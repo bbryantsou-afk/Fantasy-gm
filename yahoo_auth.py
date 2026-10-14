@@ -32,31 +32,38 @@ def build_authorization_url(client_id, client_secret, redirect_uri):
     return url, state
 
 
+
 def exchange_code_for_token(
     code, returned_state, expected_state,
     client_id, client_secret, redirect_uri
 ):
-    if not expected_state or not hmac.compare_digest(
-        returned_state or "", expected_state
-    ):
-        raise ValueError(
-            "OAuth state 不符，請重新開始 Yahoo 授權。"
-        )
+    # 驗證 Yahoo 回傳的 state 簽章與有效期限。
+    # 不依賴 Streamlit session_state 保存原始 state。
+    if not returned_state:
+        raise ValueError("Yahoo 沒有回傳 OAuth state，請重新授權。")
 
     try:
-        timestamp, nonce, signature = expected_state.split(".", 2)
+        timestamp, nonce, signature = returned_state.split(".", 2)
         age = int(time.time()) - int(timestamp)
+
         message = f"{timestamp}.{nonce}"
         expected_signature = hmac.new(
-            client_secret.encode(), message.encode(), hashlib.sha256
+            client_secret.encode(),
+            message.encode(),
+            hashlib.sha256,
         ).hexdigest()
 
         if (
             age < 0
             or age > 600
-            or not hmac.compare_digest(signature, expected_signature)
+            or not hmac.compare_digest(
+                signature, expected_signature
+            )
         ):
-            raise ValueError("OAuth 狀態已過期或驗證失敗，請重新授權。")
+            raise ValueError(
+                "OAuth 狀態已過期或驗證失敗，請重新授權。"
+            )
+
     except (ValueError, TypeError):
         raise ValueError("OAuth 狀態無效，請重新授權。")
 
@@ -85,6 +92,7 @@ def exchange_code_for_token(
         )
 
     return response.json()
+
 
 
 def yahoo_api_get(access_token, resource="users;use/games;game_codes=nba"):
