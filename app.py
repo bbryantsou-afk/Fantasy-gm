@@ -3,6 +3,11 @@ import streamlit as st
 import pandas as pd
 from data_provider import fetch_nba_player_stats, get_top_players_reference
 from stats_engine import calculate_weighted_scores
+from yahoo_auth import (
+    build_authorization_url,
+    exchange_code_for_token,
+    yahoo_api_get,
+)
 
 st.set_page_config(
     page_title="Fantasy NBA GM",
@@ -231,20 +236,109 @@ elif page == "球員比較 Player Compare":
 
 elif page == "Yahoo API 設定":
     st.subheader("Yahoo Fantasy Sports API")
-    st.write("目前尚未連接 Yahoo 官方 API。")
-    st.markdown("""
-    後續整合步驟：
+    st.write("連接你的 Yahoo Fantasy Basketball 帳號。")
 
-    1. 申請 Yahoo Developer 應用程式。
-    2. 設定 OAuth 2.0 授權。
-    3. 取得已授權的聯盟與主要球隊。
-    4. 同步真實球員名單與統計資料。
-    5. 補齊球員年齡、NBA 資歷、首秀及選秀資料。
-    """)
-    st.warning(
-        "不要把 Yahoo 密碼、Client Secret 或 Access Token "
-        "直接貼進程式碼或聊天訊息。"
+    # 確認 OAuth 憑證已設定
+    try:
+        yahoo_config = st.secrets["yahoo"]
+        client_id = yahoo_config["client_id"]
+        client_secret = yahoo_config["client_secret"]
+        redirect_uri = yahoo_config["redirect_uri"]
+    except Exception:
+        st.error(
+            "找不到 Yahoo 憑證。請到 Streamlit Cloud 的 "
+            "Manage app → Settings → Secrets 檢查設定。"
+        )
+        st.stop()
+
+    # 初始化工作階段
+    if "yahoo_oauth_state" not in st.session_state:
+        st.session_state.yahoo_oauth_state = None
+
+    if "yahoo_access_token" not in st.session_state:
+        st.session_state.yahoo_access_token = None
+
+    # 接收 Yahoo OAuth 回傳
+    query_params = st.query_params
+    code = query_params.get("code")
+    returned_state = query_params.get("state")
+    oauth_error = query_params.get("error")
+
+    if oauth_error:
+        st.error(f"Yahoo 授權未完成：{oauth_error}")
+        st.query_params.clear()
+        st.session_state.yahoo_oauth_state = None
+
+    elif code:
+        expected_state = st.session_state.yahoo_oauth_state
+
+        try:
+            token_data = exchange_code_for_token(
+                code=code,
+                returned_state=returned_state,
+                expected_state=expected_state,
+                client_id=client_id,
+                client_secret=client_secret,
+                redirect_uri=redirect_uri,
+            )
+
+            st.session_state.yahoo_access_token = token_data[
+                "access_token"
+            ]
+            st.session_state.yahoo_oauth_state = None
+            st.query_params.clear()
+
+            st.success("Yahoo 授權完成！")
+
+        except Exception as e:
+            st.error(f"授權處理失敗：{e}")
+
+    # 顯示連線狀態
+    if st.session_state.yahoo_access_token:
+        st.success("目前工作階段已取得 Yahoo Access Token。")
+
+        if st.button("測試 Yahoo Fantasy API"):
+            try:
+                data = yahoo_api_get(
+                    st.session_state.yahoo_access_token
+                )
+                st.success("Yahoo Fantasy API 回應成功！")
+                st.json(data)
+
+            except Exception as e:
+                st.error(f"API 測試失敗：{e}")
+
+        if st.button("解除目前工作階段連線"):
+            st.session_state.yahoo_access_token = None
+            st.session_state.yahoo_oauth_state = None
+            st.rerun()
+
+    else:
+        st.info(
+            "尚未連接 Yahoo。按下按鈕後，"
+            "系統會導向 Yahoo 官方網站進行授權。"
+        )
+
+        if st.button("連接 Yahoo Fantasy"):
+            auth_url, expected_state = build_authorization_url(
+                client_id=client_id,
+                client_secret=client_secret,
+                redirect_uri=redirect_uri,
+            )
+
+            st.session_state.yahoo_oauth_state = expected_state
+
+            st.link_button(
+                "前往 Yahoo 授權",
+                auth_url,
+                type="primary",
+            )
+
+    st.caption(
+        "目前 Token 僅保存在這個 Streamlit 工作階段。"
+        "重新啟動或工作階段結束後，可能需要重新授權。"
     )
+
 elif page == "9-Cat Strategy":
     st.title("🏀 9-Cat Strategy")
     st.caption("調整九項數據的權重，找出符合你球隊策略的球員。")
