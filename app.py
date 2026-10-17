@@ -83,6 +83,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+from court_theme import render_court_theme
+render_court_theme()
+
 with st.sidebar:
     st.title("🏀 Fantasy GM")
     st.caption("PERSONAL NBA ANALYTICS")
