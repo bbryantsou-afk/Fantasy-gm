@@ -105,9 +105,9 @@ def yahoo_api_get(access_token, resource="users;use/games;game_codes=nba"):
     )
 
     if not response.ok:
-        raise RuntimeError(
-            f"Yahoo Fantasy API 請求失敗（HTTP {response.status_code}）。"
-            "請確認 API 存取權與授權狀態。"
-        )
-
+	    detail = response.text[:1000]
+	    raise RuntimeError(
+	        f"Yahoo Fantasy API 請求失敗（HTTP {response.status_code}）。"
+	        f"Yahoo 回應內容：{detail}"
+	    )
     return response.json()

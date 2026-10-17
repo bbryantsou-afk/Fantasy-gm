@@ -1,0 +1,1279 @@
+{
+  "entries": [
+    {
+      "name": "Victor Wembanyama",
+      "fantasyTeam": "球隊 01",
+      "position": "(SAS - C)",
+      "round": 1,
+      "playerId": 1641705
+    },
+    {
+      "name": "Nikola Jokić",
+      "fantasyTeam": "球隊 02",
+      "position": "(DEN - C)",
+      "round": 1,
+      "playerId": 203999
+    },
+    {
+      "name": "Giannis Antetokounmpo",
+      "fantasyTeam": "球隊 03",
+      "position": "(MIA - PF,C)",
+      "round": 1,
+      "playerId": 203507
+    },
+    {
+      "name": "Luka Dončić",
+      "fantasyTeam": "球隊 04",
+      "position": "(LAL - PG,SG)",
+      "round": 1,
+      "playerId": 1629029
+    },
+    {
+      "name": "Shai Gilgeous-Alexander",
+      "fantasyTeam": "球隊 05",
+      "position": "(OKC - PG)",
+      "round": 1,
+      "playerId": 1628983
+    },
+    {
+      "name": "Cade Cunningham",
+      "fantasyTeam": "球隊 06",
+      "position": "(DET - PG,SG)",
+      "round": 1,
+      "playerId": 1630595
+    },
+    {
+      "name": "Jayson Tatum",
+      "fantasyTeam": "球隊 07",
+      "position": "(BOS - SF,PF)",
+      "round": 1,
+      "playerId": 1628369
+    },
+    {
+      "name": "Jalen Johnson",
+      "fantasyTeam": "球隊 08",
+      "position": "(ATL - SF,PF)",
+      "round": 1,
+      "playerId": 1630552
+    },
+    {
+      "name": "Anthony Edwards",
+      "fantasyTeam": "球隊 09",
+      "position": "(MIN - PG,SG)",
+      "round": 1,
+      "playerId": 1630162
+    },
+    {
+      "name": "Cooper Flagg",
+      "fantasyTeam": "球隊 10",
+      "position": "(DAL - SG,SF,PF)",
+      "round": 1,
+      "playerId": 1642843
+    },
+    {
+      "name": "Tyrese Maxey",
+      "fantasyTeam": "球隊 11",
+      "position": "(PHI - PG)",
+      "round": 1,
+      "playerId": 1630178
+    },
+    {
+      "name": "Scottie Barnes",
+      "fantasyTeam": "球隊 12",
+      "position": "(TOR - SF,PF,C)",
+      "round": 1,
+      "playerId": 1630567
+    },
+    {
+      "name": "Donovan Mitchell",
+      "fantasyTeam": "球隊 13",
+      "position": "(CLE - PG,SG)",
+      "round": 1,
+      "playerId": 1628378
+    },
+    {
+      "name": "Kevin Durant",
+      "fantasyTeam": "球隊 14",
+      "position": "(HOU - SG,SF,PF)",
+      "round": 1,
+      "playerId": 201142
+    },
+    {
+      "name": "Karl-Anthony Towns",
+      "fantasyTeam": "球隊 14",
+      "position": "(NYK - PF,C)",
+      "round": 2,
+      "playerId": 1626157
+    },
+    {
+      "name": "Jalen Brunson",
+      "fantasyTeam": "球隊 13",
+      "position": "(NYK - PG)",
+      "round": 2,
+      "playerId": 1628973
+    },
+    {
+      "name": "Alperen Şengün",
+      "fantasyTeam": "球隊 12",
+      "position": "(HOU - PF,C)",
+      "round": 2,
+      "playerId": 1630578
+    },
+    {
+      "name": "Tyrese Haliburton",
+      "fantasyTeam": "球隊 11",
+      "position": "(IND - PG,SG)",
+      "round": 2,
+      "playerId": null
+    },
+    {
+      "name": "Bam Adebayo",
+      "fantasyTeam": "球隊 10",
+      "position": "(MIA - PF,C)",
+      "round": 2,
+      "playerId": 1628389
+    },
+    {
+      "name": "Josh Giddey",
+      "fantasyTeam": "球隊 09",
+      "position": "(CHI - PG,SG)",
+      "round": 2,
+      "playerId": 1630581
+    },
+    {
+      "name": "Stephen Curry",
+      "fantasyTeam": "球隊 08",
+      "position": "(GSW - PG)",
+      "round": 2,
+      "playerId": 201939
+    },
+    {
+      "name": "Jamal Murray",
+      "fantasyTeam": "球隊 07",
+      "position": "(DEN - PG)",
+      "round": 2,
+      "playerId": 1627750
+    },
+    {
+      "name": "Austin Reaves",
+      "fantasyTeam": "球隊 06",
+      "position": "(LAL - PG,SG,SF)",
+      "round": 2,
+      "playerId": 1630559
+    },
+    {
+      "name": "Amen Thompson",
+      "fantasyTeam": "球隊 05",
+      "position": "(HOU - PG,SG)",
+      "round": 2,
+      "playerId": 1641708
+    },
+    {
+      "name": "LaMelo Ball",
+      "fantasyTeam": "球隊 04",
+      "position": "(MIN - PG)",
+      "round": 2,
+      "playerId": 1630163
+    },
+    {
+      "name": "Michael Porter Jr.",
+      "fantasyTeam": "球隊 03",
+      "position": "(BKN - SF,PF)",
+      "round": 2,
+      "playerId": 1629008
+    },
+    {
+      "name": "Devin Booker",
+      "fantasyTeam": "球隊 02",
+      "position": "(PHX - PG,SG)",
+      "round": 2,
+      "playerId": 1626164
+    },
+    {
+      "name": "Chet Holmgren",
+      "fantasyTeam": "球隊 01",
+      "position": "(OKC - PF,C)",
+      "round": 2,
+      "playerId": 1631096
+    },
+    {
+      "name": "Trey Murphy III",
+      "fantasyTeam": "球隊 01",
+      "position": "(NOP - SG,SF)",
+      "round": 3,
+      "playerId": 1630530
+    },
+    {
+      "name": "Evan Mobley",
+      "fantasyTeam": "球隊 02",
+      "position": "(CLE - PF,C)",
+      "round": 3,
+      "playerId": 1630596
+    },
+    {
+      "name": "Trae Young",
+      "fantasyTeam": "球隊 03",
+      "position": "(WAS - PG)",
+      "round": 3,
+      "playerId": 1629027
+    },
+    {
+      "name": "Domantas Sabonis",
+      "fantasyTeam": "球隊 04",
+      "position": "(SAC - PF,C)",
+      "round": 3,
+      "playerId": 1627734
+    },
+    {
+      "name": "Anthony Davis",
+      "fantasyTeam": "球隊 05",
+      "position": "(WAS - PF,C)",
+      "round": 3,
+      "playerId": 203076
+    },
+    {
+      "name": "Kawhi Leonard",
+      "fantasyTeam": "球隊 06",
+      "position": "(TOR - SG,SF,PF)",
+      "round": 3,
+      "playerId": 202695
+    },
+    {
+      "name": "Jalen Duren",
+      "fantasyTeam": "球隊 07",
+      "position": "(DET - C)",
+      "round": 3,
+      "playerId": 1631105
+    },
+    {
+      "name": "James Harden",
+      "fantasyTeam": "球隊 08",
+      "position": "(CLE - PG,SG)",
+      "round": 3,
+      "playerId": 201935
+    },
+    {
+      "name": "Jaylen Brown",
+      "fantasyTeam": "球隊 09",
+      "position": "(PHI - SG,SF,PF)",
+      "round": 3,
+      "playerId": 1627759
+    },
+    {
+      "name": "Jalen Williams",
+      "fantasyTeam": "球隊 10",
+      "position": "(OKC - SF,PF)",
+      "round": 3,
+      "playerId": 1631114
+    },
+    {
+      "name": "Paolo Banchero",
+      "fantasyTeam": "球隊 11",
+      "position": "(ORL - PF)",
+      "round": 3,
+      "playerId": 1631094
+    },
+    {
+      "name": "Deni Avdija",
+      "fantasyTeam": "球隊 12",
+      "position": "(POR - SG,SF,PF)",
+      "round": 3,
+      "playerId": 1630166
+    },
+    {
+      "name": "Pascal Siakam",
+      "fantasyTeam": "球隊 13",
+      "position": "(IND - PF,C)",
+      "round": 3,
+      "playerId": 1627783
+    },
+    {
+      "name": "Derrick White",
+      "fantasyTeam": "球隊 14",
+      "position": "(BOS - PG,SG)",
+      "round": 3,
+      "playerId": 1628401
+    },
+    {
+      "name": "Joel Embiid",
+      "fantasyTeam": "球隊 14",
+      "position": "(PHI - C)",
+      "round": 4,
+      "playerId": 203954
+    },
+    {
+      "name": "LeBron James",
+      "fantasyTeam": "球隊 13",
+      "position": "(PHI - SF,PF)",
+      "round": 4,
+      "playerId": 2544
+    },
+    {
+      "name": "Franz Wagner",
+      "fantasyTeam": "球隊 12",
+      "position": "(ORL - SF,PF)",
+      "round": 4,
+      "playerId": 1630532
+    },
+    {
+      "name": "Walker Kessler",
+      "fantasyTeam": "球隊 11",
+      "position": "(LAL - C)",
+      "round": 4,
+      "playerId": 1631117
+    },
+    {
+      "name": "Donovan Clingan",
+      "fantasyTeam": "球隊 10",
+      "position": "(POR - C)",
+      "round": 4,
+      "playerId": 1642270
+    },
+    {
+      "name": "Brandon Miller",
+      "fantasyTeam": "球隊 09",
+      "position": "(CHA - SF,PF)",
+      "round": 4,
+      "playerId": 1641706
+    },
+    {
+      "name": "Jaren Jackson Jr.",
+      "fantasyTeam": "球隊 08",
+      "position": "(UTA - PF,C)",
+      "round": 4,
+      "playerId": 1628991
+    },
+    {
+      "name": "Lauri Markkanen",
+      "fantasyTeam": "球隊 07",
+      "position": "(UTA - SF,PF)",
+      "round": 4,
+      "playerId": 1628374
+    },
+    {
+      "name": "Darius Garland",
+      "fantasyTeam": "球隊 06",
+      "position": "(LAC - PG)",
+      "round": 4,
+      "playerId": 1629636
+    },
+    {
+      "name": "Dejounte Murray",
+      "fantasyTeam": "球隊 05",
+      "position": "(NOP - PG)",
+      "round": 4,
+      "playerId": 1627749
+    },
+    {
+      "name": "Cameron Boozer",
+      "fantasyTeam": "球隊 04",
+      "position": "(MEM - PF)",
+      "round": 4,
+      "playerId": null
+    },
+    {
+      "name": "Keyonte George",
+      "fantasyTeam": "球隊 03",
+      "position": "(UTA - PG,SG)",
+      "round": 4,
+      "playerId": 1641718
+    },
+    {
+      "name": "Desmond Bane",
+      "fantasyTeam": "球隊 02",
+      "position": "(ORL - SG,SF)",
+      "round": 4,
+      "playerId": 1630217
+    },
+    {
+      "name": "Onyeka Okongwu",
+      "fantasyTeam": "球隊 01",
+      "position": "(ATL - C)",
+      "round": 4,
+      "playerId": 1630168
+    },
+    {
+      "name": "Dyson Daniels",
+      "fantasyTeam": "球隊 01",
+      "position": "(ATL - SG,SF)",
+      "round": 5,
+      "playerId": 1630700
+    },
+    {
+      "name": "OG Anunoby",
+      "fantasyTeam": "球隊 02",
+      "position": "(NYK - SF,PF)",
+      "round": 5,
+      "playerId": 1628384
+    },
+    {
+      "name": "Kon Knueppel",
+      "fantasyTeam": "球隊 03",
+      "position": "(CHA - SG,SF)",
+      "round": 5,
+      "playerId": 1642851
+    },
+    {
+      "name": "Matas Buzelis",
+      "fantasyTeam": "球隊 04",
+      "position": "(CHI - SF,PF)",
+      "round": 5,
+      "playerId": 1641824
+    },
+    {
+      "name": "Kyrie Irving",
+      "fantasyTeam": "球隊 05",
+      "position": "(DAL - PG)",
+      "round": 5,
+      "playerId": null
+    },
+    {
+      "name": "Naz Reid",
+      "fantasyTeam": "球隊 06",
+      "position": "(CHA - PF,C)",
+      "round": 5,
+      "playerId": 1629675
+    },
+    {
+      "name": "Nickeil Alexander-Walker",
+      "fantasyTeam": "球隊 07",
+      "position": "(ATL - PG,SG)",
+      "round": 5,
+      "playerId": 1629638
+    },
+    {
+      "name": "Alex Sarr",
+      "fantasyTeam": "球隊 08",
+      "position": "(WAS - C)",
+      "round": 5,
+      "playerId": 1642259
+    },
+    {
+      "name": "Ivica Zubac",
+      "fantasyTeam": "球隊 09",
+      "position": "(IND - C)",
+      "round": 5,
+      "playerId": 1627826
+    },
+    {
+      "name": "Tyler Herro",
+      "fantasyTeam": "球隊 10",
+      "position": "(MIL - PG,SG)",
+      "round": 5,
+      "playerId": 1629639
+    },
+    {
+      "name": "Stephon Castle",
+      "fantasyTeam": "球隊 11",
+      "position": "(SAS - PG,SG)",
+      "round": 5,
+      "playerId": 1642264
+    },
+    {
+      "name": "Julius Randle",
+      "fantasyTeam": "球隊 12",
+      "position": "(BKN - PF)",
+      "round": 5,
+      "playerId": 203944
+    },
+    {
+      "name": "Payton Pritchard",
+      "fantasyTeam": "球隊 13",
+      "position": "(BOS - PG)",
+      "round": 5,
+      "playerId": 1630202
+    },
+    {
+      "name": "Josh Hart",
+      "fantasyTeam": "球隊 14",
+      "position": "(NYK - SG,SF)",
+      "round": 5,
+      "playerId": 1628404
+    },
+    {
+      "name": "Ty Jerome",
+      "fantasyTeam": "球隊 14",
+      "position": "(MEM - PG,SG)",
+      "round": 6,
+      "playerId": 1629660
+    },
+    {
+      "name": "Zion Williamson",
+      "fantasyTeam": "球隊 13",
+      "position": "(NOP - PF,C)",
+      "round": 6,
+      "playerId": 1629627
+    },
+    {
+      "name": "Jarrett Allen",
+      "fantasyTeam": "球隊 12",
+      "position": "(CLE - C)",
+      "round": 6,
+      "playerId": 1628386
+    },
+    {
+      "name": "Brandon Ingram",
+      "fantasyTeam": "球隊 11",
+      "position": "(LAC - SG,SF,PF)",
+      "round": 6,
+      "playerId": 1627742
+    },
+    {
+      "name": "Mikal Bridges",
+      "fantasyTeam": "球隊 10",
+      "position": "(NYK - SF,PF)",
+      "round": 6,
+      "playerId": 1628969
+    },
+    {
+      "name": "VJ Edgecombe",
+      "fantasyTeam": "球隊 09",
+      "position": "(PHI - PG,SG)",
+      "round": 6,
+      "playerId": 1642845
+    },
+    {
+      "name": "Norman Powell",
+      "fantasyTeam": "球隊 08",
+      "position": "(CHI - SG,SF)",
+      "round": 6,
+      "playerId": 1626181
+    },
+    {
+      "name": "Ryan Rollins",
+      "fantasyTeam": "球隊 07",
+      "position": "(MIL - PG,SG)",
+      "round": 6,
+      "playerId": 1631157
+    },
+    {
+      "name": "Caleb Wilson",
+      "fantasyTeam": "球隊 06",
+      "position": "(CHI - PF)",
+      "round": 6,
+      "playerId": null
+    },
+    {
+      "name": "Paul George",
+      "fantasyTeam": "球隊 05",
+      "position": "(BOS - SF,PF)",
+      "round": 6,
+      "playerId": 202331
+    },
+    {
+      "name": "Kel'el Ware",
+      "fantasyTeam": "球隊 04",
+      "position": "(MIL - C)",
+      "round": 6,
+      "playerId": 1642276
+    },
+    {
+      "name": "Rudy Gobert",
+      "fantasyTeam": "球隊 03",
+      "position": "(MIN - C)",
+      "round": 6,
+      "playerId": 203497
+    },
+    {
+      "name": "De'Aaron Fox",
+      "fantasyTeam": "球隊 02",
+      "position": "(SAS - PG)",
+      "round": 6,
+      "playerId": 1628368
+    },
+    {
+      "name": "Ausar Thompson",
+      "fantasyTeam": "球隊 01",
+      "position": "(DET - SG,SF,PF)",
+      "round": 6,
+      "playerId": 1641709
+    },
+    {
+      "name": "Zach Edey",
+      "fantasyTeam": "球隊 01",
+      "position": "(MEM - C)",
+      "round": 7,
+      "playerId": 1641744
+    },
+    {
+      "name": "AJ Dybantsa",
+      "fantasyTeam": "球隊 02",
+      "position": "(WAS - SF)",
+      "round": 7,
+      "playerId": null
+    },
+    {
+      "name": "Damian Lillard",
+      "fantasyTeam": "球隊 03",
+      "position": "(POR - PG)",
+      "round": 7,
+      "playerId": null
+    },
+    {
+      "name": "Andrew Wiggins",
+      "fantasyTeam": "球隊 04",
+      "position": "(MIA - SG,SF,PF)",
+      "round": 7,
+      "playerId": 203952
+    },
+    {
+      "name": "Jaden McDaniels",
+      "fantasyTeam": "球隊 05",
+      "position": "(MIN - SF)",
+      "round": 7,
+      "playerId": 1630183
+    },
+    {
+      "name": "Keegan Murray",
+      "fantasyTeam": "球隊 06",
+      "position": "(SAC - SF,PF)",
+      "round": 7,
+      "playerId": 1631099
+    },
+    {
+      "name": "Immanuel Quickley",
+      "fantasyTeam": "球隊 07",
+      "position": "(TOR - PG,SG)",
+      "round": 7,
+      "playerId": 1630193
+    },
+    {
+      "name": "Jabari Smith Jr.",
+      "fantasyTeam": "球隊 08",
+      "position": "(HOU - PF,C)",
+      "round": 7,
+      "playerId": 1631095
+    },
+    {
+      "name": "Ja Morant",
+      "fantasyTeam": "球隊 09",
+      "position": "(POR - PG)",
+      "round": 7,
+      "playerId": 1629630
+    },
+    {
+      "name": "Coby White",
+      "fantasyTeam": "球隊 10",
+      "position": "(CHA - PG,SG)",
+      "round": 7,
+      "playerId": 1629632
+    },
+    {
+      "name": "Derik Queen",
+      "fantasyTeam": "球隊 11",
+      "position": "(NOP - PF,C)",
+      "round": 7,
+      "playerId": 1642852
+    },
+    {
+      "name": "Dylan Harper",
+      "fantasyTeam": "球隊 12",
+      "position": "(SAS - PG,SG)",
+      "round": 7,
+      "playerId": 1642844
+    },
+    {
+      "name": "RJ Barrett",
+      "fantasyTeam": "球隊 13",
+      "position": "(TOR - SG,SF,PF)",
+      "round": 7,
+      "playerId": 1629628
+    },
+    {
+      "name": "Zach LaVine",
+      "fantasyTeam": "球隊 14",
+      "position": "(SAC - PG,SG,SF)",
+      "round": 7,
+      "playerId": 203897
+    },
+    {
+      "name": "Dillon Brooks",
+      "fantasyTeam": "球隊 14",
+      "position": "(PHX - SF,PF)",
+      "round": 8,
+      "playerId": 1628415
+    },
+    {
+      "name": "Andrew Nembhard",
+      "fantasyTeam": "球隊 13",
+      "position": "(IND - PG,SG)",
+      "round": 8,
+      "playerId": 1629614
+    },
+    {
+      "name": "Jalen Suggs",
+      "fantasyTeam": "球隊 12",
+      "position": "(ORL - PG,SG)",
+      "round": 8,
+      "playerId": 1630591
+    },
+    {
+      "name": "Cedric Coward",
+      "fantasyTeam": "球隊 11",
+      "position": "(MEM - SG,SF)",
+      "round": 8,
+      "playerId": 1642907
+    },
+    {
+      "name": "Myles Turner",
+      "fantasyTeam": "球隊 10",
+      "position": "(MIL - C)",
+      "round": 8,
+      "playerId": 1626167
+    },
+    {
+      "name": "Peyton Watson",
+      "fantasyTeam": "球隊 09",
+      "position": "(CLE - SF,PF)",
+      "round": 8,
+      "playerId": 1631212
+    },
+    {
+      "name": "Neemias Queta",
+      "fantasyTeam": "球隊 08",
+      "position": "(BOS - C)",
+      "round": 8,
+      "playerId": 1629674
+    },
+    {
+      "name": "Miles Bridges",
+      "fantasyTeam": "球隊 07",
+      "position": "(PHX - PF)",
+      "round": 8,
+      "playerId": 1628970
+    },
+    {
+      "name": "Day'Ron Sharpe",
+      "fantasyTeam": "球隊 06",
+      "position": "(BKN - C)",
+      "round": 8,
+      "playerId": 1630549
+    },
+    {
+      "name": "Isaiah Hartenstein",
+      "fantasyTeam": "球隊 05",
+      "position": "(OKC - C)",
+      "round": 8,
+      "playerId": 1628392
+    },
+    {
+      "name": "Brandin Podziemski",
+      "fantasyTeam": "球隊 04",
+      "position": "(GSW - PG,SG)",
+      "round": 8,
+      "playerId": 1641764
+    },
+    {
+      "name": "Moussa Diabaté",
+      "fantasyTeam": "球隊 03",
+      "position": "(CHA - C)",
+      "round": 8,
+      "playerId": 1631217
+    },
+    {
+      "name": "Nic Claxton",
+      "fantasyTeam": "球隊 02",
+      "position": "(CHI - C)",
+      "round": 8,
+      "playerId": 1629651
+    },
+    {
+      "name": "Darryn Peterson",
+      "fantasyTeam": "球隊 01",
+      "position": "(UTA - SG)",
+      "round": 8,
+      "playerId": null
+    },
+    {
+      "name": "Fred VanVleet",
+      "fantasyTeam": "球隊 01",
+      "position": "(HOU - PG)",
+      "round": 9,
+      "playerId": null
+    },
+    {
+      "name": "Cason Wallace",
+      "fantasyTeam": "球隊 02",
+      "position": "(OKC - PG,SG,SF)",
+      "round": 9,
+      "playerId": 1641717
+    },
+    {
+      "name": "Reed Sheppard",
+      "fantasyTeam": "球隊 03",
+      "position": "(HOU - PG,SG)",
+      "round": 9,
+      "playerId": 1642263
+    },
+    {
+      "name": "Collin Murray-Boyles",
+      "fantasyTeam": "球隊 04",
+      "position": "(TOR - PF,C)",
+      "round": 9,
+      "playerId": 1642867
+    },
+    {
+      "name": "CJ McCollum",
+      "fantasyTeam": "球隊 05",
+      "position": "(ATL - PG,SG)",
+      "round": 9,
+      "playerId": 203468
+    },
+    {
+      "name": "Jalen Green",
+      "fantasyTeam": "球隊 06",
+      "position": "(PHX - SG,SF)",
+      "round": 9,
+      "playerId": 1630224
+    },
+    {
+      "name": "Jaime Jaquez Jr.",
+      "fantasyTeam": "球隊 07",
+      "position": "(MIL - SG,SF,PF)",
+      "round": 9,
+      "playerId": 1631170
+    },
+    {
+      "name": "Rui Hachimura",
+      "fantasyTeam": "球隊 08",
+      "position": "(LAC - SF,PF)",
+      "round": 9,
+      "playerId": 1629060
+    },
+    {
+      "name": "Toumani Camara",
+      "fantasyTeam": "球隊 09",
+      "position": "(POR - SF,PF)",
+      "round": 9,
+      "playerId": 1641739
+    },
+    {
+      "name": "Ace Bailey",
+      "fantasyTeam": "球隊 10",
+      "position": "(UTA - SF,PF)",
+      "round": 9,
+      "playerId": 1642846
+    },
+    {
+      "name": "Kristaps Porziņģis",
+      "fantasyTeam": "球隊 11",
+      "position": "(GSW - C)",
+      "round": 9,
+      "playerId": 204001
+    },
+    {
+      "name": "DeMar DeRozan",
+      "fantasyTeam": "球隊 12",
+      "position": "(DEN - SF,PF)",
+      "round": 9,
+      "playerId": 201942
+    },
+    {
+      "name": "P.J. Washington",
+      "fantasyTeam": "球隊 13",
+      "position": "(DAL - PF,C)",
+      "round": 9,
+      "playerId": 1629023
+    },
+    {
+      "name": "Aaron Gordon",
+      "fantasyTeam": "球隊 14",
+      "position": "(DEN - PF,C)",
+      "round": 9,
+      "playerId": 203932
+    },
+    {
+      "name": "Kevin Porter Jr.",
+      "fantasyTeam": "球隊 14",
+      "position": "(MIL - PG,SG)",
+      "round": 10,
+      "playerId": 1629645
+    },
+    {
+      "name": "Devin Vassell",
+      "fantasyTeam": "球隊 13",
+      "position": "(SAS - SG,SF)",
+      "round": 10,
+      "playerId": 1630170
+    },
+    {
+      "name": "John Collins",
+      "fantasyTeam": "球隊 12",
+      "position": "(DET - PF,C)",
+      "round": 10,
+      "playerId": 1628381
+    },
+    {
+      "name": "Darius Acuff Jr.",
+      "fantasyTeam": "球隊 11",
+      "position": "(SAC - PG)",
+      "round": 10,
+      "playerId": null
+    },
+    {
+      "name": "Cameron Johnson",
+      "fantasyTeam": "球隊 10",
+      "position": "(DEN - SF,PF)",
+      "round": 10,
+      "playerId": 1629661
+    },
+    {
+      "name": "Jonathan Kuminga",
+      "fantasyTeam": "球隊 09",
+      "position": "(MIN - SF,PF)",
+      "round": 10,
+      "playerId": 1630228
+    },
+    {
+      "name": "Saddiq Bey",
+      "fantasyTeam": "球隊 08",
+      "position": "(NOP - SF,PF)",
+      "round": 10,
+      "playerId": 1630180
+    },
+    {
+      "name": "Yaxel Lendeborg",
+      "fantasyTeam": "球隊 07",
+      "position": "(GSW - PF)",
+      "round": 10,
+      "playerId": null
+    },
+    {
+      "name": "Ajay Mitchell",
+      "fantasyTeam": "球隊 06",
+      "position": "(OKC - PG,SG)",
+      "round": 10,
+      "playerId": 1642349
+    },
+    {
+      "name": "Jakob Poeltl",
+      "fantasyTeam": "球隊 05",
+      "position": "(TOR - C)",
+      "round": 10,
+      "playerId": 1627751
+    },
+    {
+      "name": "Ayo Dosunmu",
+      "fantasyTeam": "球隊 04",
+      "position": "(MIN - PG,SG)",
+      "round": 10,
+      "playerId": 1630245
+    },
+    {
+      "name": "Bobby Portis Jr.",
+      "fantasyTeam": "球隊 03",
+      "position": "(MIA - PF,C)",
+      "round": 10,
+      "playerId": 1626171
+    },
+    {
+      "name": "Collin Gillespie",
+      "fantasyTeam": "球隊 02",
+      "position": "(PHX - PG,SG)",
+      "round": 10,
+      "playerId": 1631221
+    },
+    {
+      "name": "Jimmy Butler III",
+      "fantasyTeam": "球隊 01",
+      "position": "(GSW - SF,PF)",
+      "round": 10,
+      "playerId": 202710
+    },
+    {
+      "name": "Tari Eason",
+      "fantasyTeam": "球隊 01",
+      "position": "(HOU - SG,SF,PF)",
+      "round": 11,
+      "playerId": 1631106
+    },
+    {
+      "name": "Kyshawn George",
+      "fantasyTeam": "球隊 02",
+      "position": "(WAS - SG,SF,PF)",
+      "round": 11,
+      "playerId": 1642273
+    },
+    {
+      "name": "Max Christie",
+      "fantasyTeam": "球隊 03",
+      "position": "(DAL - SG,SF)",
+      "round": 11,
+      "playerId": 1631108
+    },
+    {
+      "name": "Khaman Maluach",
+      "fantasyTeam": "球隊 04",
+      "position": "(PHX - C)",
+      "round": 11,
+      "playerId": 1642863
+    },
+    {
+      "name": "Egor Dëmin",
+      "fantasyTeam": "球隊 05",
+      "position": "(BKN - PG,SG)",
+      "round": 11,
+      "playerId": 1642856
+    },
+    {
+      "name": "Draymond Green",
+      "fantasyTeam": "球隊 06",
+      "position": "(GSW - PF,C)",
+      "round": 11,
+      "playerId": 203110
+    },
+    {
+      "name": "Wendell Carter Jr.",
+      "fantasyTeam": "球隊 07",
+      "position": "(ORL - C)",
+      "round": 11,
+      "playerId": 1628976
+    },
+    {
+      "name": "Anthony Black",
+      "fantasyTeam": "球隊 08",
+      "position": "(ORL - PG,SG,SF)",
+      "round": 11,
+      "playerId": 1641710
+    },
+    {
+      "name": "Maxime Raynaud",
+      "fantasyTeam": "球隊 09",
+      "position": "(SAC - C)",
+      "round": 11,
+      "playerId": 1642875
+    },
+    {
+      "name": "Alex Caruso",
+      "fantasyTeam": "球隊 10",
+      "position": "(OKC - SG,SF)",
+      "round": 11,
+      "playerId": 1627936
+    },
+    {
+      "name": "Bennedict Mathurin",
+      "fantasyTeam": "球隊 11",
+      "position": "(NOP - SG,SF)",
+      "round": 11,
+      "playerId": 1631097
+    },
+    {
+      "name": "Jerami Grant",
+      "fantasyTeam": "球隊 12",
+      "position": "(MEM - SF,PF)",
+      "round": 11,
+      "playerId": 203924
+    },
+    {
+      "name": "Jrue Holiday",
+      "fantasyTeam": "球隊 13",
+      "position": "(POR - PG,SG)",
+      "round": 11,
+      "playerId": 201950
+    },
+    {
+      "name": "Quentin Grimes",
+      "fantasyTeam": "球隊 14",
+      "position": "(LAL - SG,SF)",
+      "round": 11,
+      "playerId": 1629656
+    },
+    {
+      "name": "Daniel Gafford",
+      "fantasyTeam": "球隊 14",
+      "position": "(DAL - C)",
+      "round": 12,
+      "playerId": 1629655
+    },
+    {
+      "name": "Grayson Allen",
+      "fantasyTeam": "球隊 13",
+      "position": "(CHA - SG,SF)",
+      "round": 12,
+      "playerId": 1628960
+    },
+    {
+      "name": "Jusuf Nurkić",
+      "fantasyTeam": "球隊 12",
+      "position": "(UTA - C)",
+      "round": 12,
+      "playerId": 203994
+    },
+    {
+      "name": "Jarace Walker",
+      "fantasyTeam": "球隊 11",
+      "position": "(IND - SF,PF)",
+      "round": 12,
+      "playerId": 1641716
+    },
+    {
+      "name": "Scotty Pippen Jr.",
+      "fantasyTeam": "球隊 10",
+      "position": "(MEM - PG)",
+      "round": 12,
+      "playerId": 1630590
+    },
+    {
+      "name": "Sandro Mamukelashvili",
+      "fantasyTeam": "球隊 09",
+      "position": "(LAL - PF,C)",
+      "round": 12,
+      "playerId": 1630572
+    },
+    {
+      "name": "Kelly Oubre Jr.",
+      "fantasyTeam": "球隊 08",
+      "position": "(IND - SF,PF)",
+      "round": 12,
+      "playerId": 1626162
+    },
+    {
+      "name": "Davion Mitchell",
+      "fantasyTeam": "球隊 07",
+      "position": "(MIA - PG)",
+      "round": 12,
+      "playerId": 1630558
+    },
+    {
+      "name": "Joan Beringer",
+      "fantasyTeam": "球隊 06",
+      "position": "(MIN - PF,C)",
+      "round": 12,
+      "playerId": 1642866
+    },
+    {
+      "name": "Aaron Nesmith",
+      "fantasyTeam": "球隊 05",
+      "position": "(IND - SG,SF)",
+      "round": 12,
+      "playerId": 1630174
+    },
+    {
+      "name": "Tre Jones",
+      "fantasyTeam": "球隊 04",
+      "position": "(CHI - PG,SG)",
+      "round": 12,
+      "playerId": 1630200
+    },
+    {
+      "name": "Jared McCain",
+      "fantasyTeam": "球隊 03",
+      "position": "(OKC - PG,SG)",
+      "round": 12,
+      "playerId": 1642272
+    },
+    {
+      "name": "Christian Braun",
+      "fantasyTeam": "球隊 02",
+      "position": "(DEN - SG,SF,PF)",
+      "round": 12,
+      "playerId": 1631128
+    },
+    {
+      "name": "Mitchell Robinson",
+      "fantasyTeam": "球隊 01",
+      "position": "(BOS - C)",
+      "round": 12,
+      "playerId": 1629011
+    },
+    {
+      "name": "Shaedon Sharpe",
+      "fantasyTeam": "球隊 01",
+      "position": "(POR - PG,SG)",
+      "round": 13,
+      "playerId": 1631101
+    },
+    {
+      "name": "Julian Champagnie",
+      "fantasyTeam": "球隊 02",
+      "position": "(SAS - SF,PF)",
+      "round": 13,
+      "playerId": 1630577
+    },
+    {
+      "name": "Anfernee Simons",
+      "fantasyTeam": "球隊 03",
+      "position": "(PHI - PG,SG)",
+      "round": 13,
+      "playerId": 1629014
+    },
+    {
+      "name": "Gui Santos",
+      "fantasyTeam": "球隊 04",
+      "position": "(GSW - SF,PF)",
+      "round": 13,
+      "playerId": 1630611
+    },
+    {
+      "name": "Paul Reed",
+      "fantasyTeam": "球隊 05",
+      "position": "(DET - PF,C)",
+      "round": 13,
+      "playerId": 1630194
+    },
+    {
+      "name": "Royce O'Neale",
+      "fantasyTeam": "球隊 06",
+      "position": "(CHA - SF,PF)",
+      "round": 13,
+      "playerId": 1626220
+    },
+    {
+      "name": "Kyle Filipowski",
+      "fantasyTeam": "球隊 07",
+      "position": "(UTA - PF,C)",
+      "round": 13,
+      "playerId": 1642271
+    },
+    {
+      "name": "Isaiah Collier",
+      "fantasyTeam": "球隊 08",
+      "position": "(UTA - PG,SG)",
+      "round": 13,
+      "playerId": 1642268
+    },
+    {
+      "name": "Keaton Wagler",
+      "fantasyTeam": "球隊 09",
+      "position": "(LAC - SG)",
+      "round": 13,
+      "playerId": null
+    },
+    {
+      "name": "Yves Missi",
+      "fantasyTeam": "球隊 10",
+      "position": "(NOP - C)",
+      "round": 13,
+      "playerId": 1642274
+    },
+    {
+      "name": "Ronald Holland II",
+      "fantasyTeam": "球隊 11",
+      "position": "(DET - SF,PF)",
+      "round": 13,
+      "playerId": 1641842
+    },
+    {
+      "name": "Dennis Schröder",
+      "fantasyTeam": "球隊 12",
+      "position": "(CHA - PG,SG)",
+      "round": 13,
+      "playerId": 203471
+    },
+    {
+      "name": "Nikola Vučević",
+      "fantasyTeam": "球隊 13",
+      "position": "(ORL - C)",
+      "round": 13,
+      "playerId": 202696
+    },
+    {
+      "name": "Keldon Johnson",
+      "fantasyTeam": "球隊 14",
+      "position": "(SAS - SF,PF)",
+      "round": 13,
+      "playerId": 1629640
+    }
+  ],
+  "source": "聯盟原始選秀結果；Fantasy球隊名稱已匿名化。保留NBA球員、輪次、位置及配置，未加入後續異動。"
+}
