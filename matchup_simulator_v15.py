@@ -1,51 +1,37 @@
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
+from zoneinfo import ZoneInfo
 import unicodedata
 import json
-import csv
-import io
-import urllib.request
 import streamlit as st
 from team_schedule import load_team_schedule, get_game_status
 
 
 def render_matchup_simulator():
     st.title("🏀 Fantasy GM — Matchup Simulator")
-    st.caption("V15 整合版｜NBA Stats 自動取得 2025–26 賽季及 2026–27 區間數據；僅自訂模式可手動輸入。")
+    st.caption("球隊 01–14 可直接載入。上季場均使用本機快照；未完賽可套用場均，已完賽強制採實績。")
 
-    # 這些數字是 UI / 計算引擎測試資料，不是 NBA 即時或真實球員統計。
-    # FG% 與 FT% 由 FGM/FGA、FTM/FTA 計算，不能直接平均百分比。
-    PLAYERS = {
-        "my": [
-            {"id": "my-1", "name": "Fred VanVleet", "team": "HOU", "eligible": ["PG"], "rank": 1, "stats": {}},
-            {"id": "my-2", "name": "Trey Murphy III", "team": "NOP", "eligible": ["SG", "SF"], "rank": 2, "stats": {}},
-            {"id": "my-3", "name": "Dyson Daniels", "team": "ATL", "eligible": ["SG", "SF"], "rank": 3, "stats": {}},
-            {"id": "my-4", "name": "Ausar Thompson", "team": "DET", "eligible": ["SG", "SF", "PF"], "rank": 4, "stats": {}},
-            {"id": "my-5", "name": "Chet Holmgren", "team": "OKC", "eligible": ["PF", "C"], "rank": 5, "stats": {}},
-            {"id": "my-6", "name": "Victor Wembanyama", "team": "SAS", "eligible": ["C"], "rank": 6, "stats": {}},
-            {"id": "my-7", "name": "Onyeka Okongwu", "team": "ATL", "eligible": ["C"], "rank": 7, "stats": {}},
-            {"id": "my-8", "name": "Zach Edey", "team": "MEM", "eligible": ["C"], "rank": 8, "stats": {}},
-            {"id": "my-9", "name": "Darryn Peterson", "team": "UTA", "eligible": ["SG"], "rank": 9, "stats": {}},
-            {"id": "my-10", "name": "Tari Eason", "team": "HOU", "eligible": ["SG", "SF", "PF"], "rank": 10, "stats": {}},
-            {"id": "my-11", "name": "Mitchell Robinson", "team": "BOS", "eligible": ["C"], "rank": 11, "stats": {}},
-            {"id": "my-12", "name": "Aday Mara", "team": "OKC", "eligible": ["C"], "rank": 12, "stats": {}},
-            {"id": "my-13", "name": "Kingston Flemings", "team": "ATL", "eligible": ["PG"], "rank": 13, "stats": {}},
-        ],
-        "opp": [
-            {"id": "opp-1", "name": "Anthony Edwards", "team": "MIN", "eligible": ["PG", "SG"], "rank": 1, "stats": {}},
-            {"id": "opp-2", "name": "Josh Giddey", "team": "CHI", "eligible": ["PG", "SG"], "rank": 2, "stats": {}},
-            {"id": "opp-3", "name": "Jaylen Brown", "team": "PHI", "eligible": ["SG", "SF", "PF"], "rank": 3, "stats": {}},
-            {"id": "opp-4", "name": "Brandon Miller", "team": "CHA", "eligible": ["SF", "PF"], "rank": 4, "stats": {}},
-            {"id": "opp-5", "name": "Peyton Watson", "team": "CLE", "eligible": ["SF", "PF"], "rank": 5, "stats": {}},
-            {"id": "opp-6", "name": "Toumani Camara", "team": "POR", "eligible": ["SF", "PF"], "rank": 6, "stats": {}},
-            {"id": "opp-7", "name": "Ivica Zubac", "team": "IND", "eligible": ["C"], "rank": 7, "stats": {}},
-            {"id": "opp-8", "name": "Brook Lopez", "team": "LAC", "eligible": ["C"], "rank": 8, "stats": {}},
-            {"id": "opp-9", "name": "VJ Edgecombe", "team": "PHI", "eligible": ["PG", "SG"], "rank": 9, "stats": {}},
-            {"id": "opp-10", "name": "Ja Morant", "team": "POR", "eligible": ["PG"], "rank": 10, "stats": {}},
-            {"id": "opp-11", "name": "Jonathan Kuminga", "team": "MIN", "eligible": ["SF", "PF"], "rank": 11, "stats": {}},
-            {"id": "opp-12", "name": "Sandro Mamukelashvili", "team": "LAL", "eligible": ["PF", "C"], "rank": 12, "stats": {}},
-            {"id": "opp-13", "name": "Keaton Wagler", "team": "LAC", "eligible": ["SG"], "rank": 13, "stats": {}},
-        ],
-    }
+    today = datetime.now(ZoneInfo("America/New_York")).date()
+    PLAYERS = {}
+    # Public numbered league rosters; never expose the local private team names.
+    from pathlib import Path
+    import re
+    root_path = Path(__file__).resolve().parent
+    draft = json.loads((root_path/'ninecat_assets/draft.json').read_text())['entries']
+    teams = list(dict.fromkeys(e['fantasyTeam'] for e in draft))
+    left, right = st.columns(2)
+    my_team = left.selectbox('我的球隊', teams, key='sim_my_team')
+    opp_team = right.selectbox('對手球隊', teams, index=1, key='sim_opp_team')
+    for side, team in [('my', my_team), ('opp', opp_team)]:
+        PLAYERS[side] = []
+        for e in draft:
+            if e['fantasyTeam'] != team: continue
+            match = re.match(r'\((\w+)\s*-\s*([^)]*)\)', e.get('position',''))
+            PLAYERS[side].append(dict(id=f"{side}-{e.get('playerId') or e['name']}",
+                nba_id=e.get('playerId'), name=e['name'], team=match.group(1) if match else '',
+                eligible=match.group(2).split(',') if match else [], rank=len(PLAYERS[side])+1, stats={}))
+    recent_sources = st.checkbox("載入本季最近 7／14／30 天場均（需連線）", value=False)
+
+
     TEAM_IDS = {
         "ATL":1610612737,"BOS":1610612738,"BKN":1610612751,"CHA":1610612766,
         "CHI":1610612741,"CLE":1610612739,"DAL":1610612742,"DEN":1610612743,
@@ -57,20 +43,24 @@ def render_matchup_simulator():
         "UTA":1610612762,"WAS":1610612764,
     }
 
+    selected_season = st.selectbox('模擬賽季', ['2026-27', '2025-26'], key='sim_season')
+    season_begin, season_end = (date(2025,10,21),date(2026,4,12)) if selected_season=='2025-26' else (date(2026,10,20),date(2027,4,11))
+    @st.cache_data(show_spinner=False)
+    def historical_logs():
+        return json.loads((root_path/'ninecat_assets/game_logs_2025_26.json').read_text())
+    logs = historical_logs() if selected_season=='2025-26' else []
     selected_date = st.date_input(
         "📅 Yahoo 比賽日期（美東日期）",
-        value=date(2026,10,20), min_value=date(2026,10,20), max_value=date(2027,4,11),
+        value=season_begin, min_value=season_begin, max_value=season_end, key="sim_date_"+selected_season,
     )
     week_start = selected_date - timedelta(days=selected_date.weekday())
     week_dates = [week_start + timedelta(days=i) for i in range(7)]
     st.caption(f"🏀 Matchup Week：{week_dates[0]:%Y-%m-%d} ～ {week_dates[6]:%Y-%m-%d}")
 
-    st.caption("賽程來源：專案附帶的 NBA 2026–27 賽程快照；可按下方按鈕向 NBA 更新，以反映改期。")
-    if st.button("更新 NBA 官方賽程", key="v15_schedule_refresh"):
+    st.caption("賽程來源：NBA 例行賽快照；本季可按按鈕更新以反映改期。")
+    if selected_season=="2026-27" and st.button("更新 NBA 官方賽程", key="v15_schedule_refresh"):
         try:
             import requests
-            from datetime import datetime
-            from zoneinfo import ZoneInfo
             response=requests.get("https://cdn.nba.com/static/json/staticData/scheduleLeagueV2.json",timeout=20)
             response.raise_for_status()
             league=response.json()["leagueSchedule"]
@@ -93,6 +83,11 @@ def render_matchup_simulator():
         except Exception as exc:
             st.warning(f"更新失敗，沿用最近可用賽程：{exc}")
     schedule = st.session_state.get("v15_live_schedule") or load_team_schedule()
+    if selected_season=='2025-26':
+        schedule = {}
+        for r in logs:
+            schedule.setdefault(r['TEAM_ABBREVIATION'],set()).add(date.fromisoformat(r['GAME_DATE'][:10]))
+        st.caption('上季賽程與單場實績使用已保存的 2025–26 NBA 例行賽紀錄；沿用目前聯盟名單回測，並非歷史 Fantasy 名單。')
     weekly_counts = [(team, sum(day in dates for day in week_dates)) for team, dates in schedule.items()]
     max_games = max((games for _, games in weekly_counts), default=0)
     top_teams = sorted((team, games) for team, games in weekly_counts if games == max_games)
@@ -139,111 +134,6 @@ def render_matchup_simulator():
         frame = leaguedashplayerstats.LeagueDashPlayerStats(**kwargs).get_data_frames()[0]
         return frame.to_dict(orient="records")
 
-    @st.cache_data(ttl=21600, show_spinner=False)
-    def load_current_nba_teams():
-        """2026–27 NBA official roster listing; not Yahoo eligible positions."""
-        frame = commonallplayers.CommonAllPlayers(
-            is_only_current_season=1, league_id="00", season="2026-27", timeout=20
-        ).get_data_frames()[0]
-        result = {}
-        for row in frame.to_dict(orient="records"):
-            try:
-                pid = int(row["PERSON_ID"])
-                abbr = str(row.get("TEAM_ABBREVIATION") or "").strip().upper()
-                if abbr in TEAM_IDS:
-                    result[pid] = abbr
-            except (TypeError, ValueError, KeyError):
-                continue
-        return result
-
-    # 2026–27 Fantasy Basketball Encyclopedia：公開 CSV，失敗時回退到網頁表格。
-    PROJECTION_PAGE = "https://chronicaria.github.io/fantasy/basketball/projections/2026-27-fantasy-basketball-player-projections.html"
-    PROJECTION_URL = "https://chronicaria.github.io/fantasy/basketball/data/player-projections-2026-07-18.csv"
-
-    def projection_records(content):
-        text = content.decode("utf-8-sig") if isinstance(content, bytes) else str(content)
-        return list(csv.DictReader(io.StringIO(text)))
-
-    def extract_projection(row):
-        import re
-        keys = {re.sub(r"[^a-z0-9%]", "", str(k).strip().lower()): v
-                for k, v in row.items() if k is not None}
-        def find(*names):
-            for name in names:
-                v = keys.get(re.sub(r"[^a-z0-9%]", "", name.lower()))
-                if v is not None and str(v).strip() not in ("", "—", "-", "nan", "None", "null"):
-                    return v
-            return None
-        name = find("player", "playername", "name", "full_name")
-        if not name:
-            return None, None
-        mapping = {"PTS": ("pts", "points", "ppg"), "REB": ("reb", "treb", "rebounds", "rpg"),
-                   "AST": ("ast", "assists", "apg"), "STL": ("stl", "steals", "spg"),
-                   "BLK": ("blk", "blocks", "bpg"), "3PM": ("3pm", "fg3m", "threes", "3ptm"),
-                   "FGM": ("fgm",), "FGA": ("fga",), "FTM": ("ftm",), "FTA": ("fta",),
-                   "TO": ("to", "tov", "turnovers", "topg")}
-        values = {}
-        for target, aliases in mapping.items():
-            raw = find(*aliases)
-            if raw is not None:
-                try: values[target] = float(str(raw).replace(",", ""))
-                except (TypeError, ValueError): pass
-        for prefix in ("fg", "ft"):
-            raw = find(prefix+"%", prefix+"pct", prefix+"percentage")
-            if raw is not None:
-                try:
-                    pct = float(str(raw).replace("%", ""))
-                    if pct > 1: pct /= 100
-                    if 0 <= pct <= 1: values[prefix.upper()+"_PCT"] = pct
-                except (TypeError, ValueError): pass
-        return str(name).strip(), values
-
-    @st.cache_data(ttl=12*3600, show_spinner=False)
-    def load_encyclopedia_projections():
-        import ssl
-        from urllib.error import URLError
-        import pandas as pd
-        import certifi
-        context = ssl.create_default_context(cafile=certifi.where())
-        headers = {"User-Agent": "Mozilla/5.0 (compatible; FantasyGM/1.0)",
-                   "Accept": "text/csv,text/html,application/octet-stream,*/*"}
-        errors = []
-        try:
-            req = urllib.request.Request(PROJECTION_URL, headers=headers)
-            with urllib.request.urlopen(req, timeout=22, context=context) as response:
-                content = response.read()
-            rows = projection_records(content)
-            if len(rows) >= 50:
-                return rows, "官方公開 CSV", []
-            errors.append(f"CSV 僅解析 {len(rows)} 筆")
-        except Exception as exc:
-            errors.append(f"CSV：{type(exc).__name__}：{str(exc)[:110]}")
-        # 來源網站的可讀 HTML 表格也包含每場預測；不需要依賴動態 JS。
-        try:
-            req = urllib.request.Request(PROJECTION_PAGE, headers=headers)
-            with urllib.request.urlopen(req, timeout=22, context=context) as response:
-                html = response.read().decode("utf-8", errors="replace")
-            tables = pd.read_html(io.StringIO(html))
-            for table in tables:
-                table.columns = [str(c).strip() for c in table.columns]
-                if len(table) >= 50 and any("PTS" in c.upper() for c in table.columns):
-                    return table.fillna("").to_dict(orient="records"), "網站 HTML 表格", errors
-            errors.append("HTML 頁面未找到球員預測表")
-        except Exception as exc:
-            errors.append(f"HTML：{type(exc).__name__}：{str(exc)[:110]}")
-        return [], "未載入", errors
-
-    def complete_projection(values, season):
-        """用真實 25–26 出手量補足來源缺的 FGA/FTA，明確標記為混合估算。"""
-        result = {k:v for k,v in values.items() if not k.endswith("_PCT")}
-        notes = []
-        for key, makes, attempts in [("FG_PCT", "FGM", "FGA"), ("FT_PCT", "FTM", "FTA")]:
-            if attempts not in result and season.get(attempts) is not None:
-                result[attempts] = float(season[attempts]); notes.append(f"{attempts} 沿用 25–26")
-            if makes not in result and attempts in result and key in values:
-                result[makes] = round(float(result[attempts])*float(values[key]), 4)
-        return result, notes
-
     STAT_FIELDS = ["PTS", "REB", "AST", "STL", "BLK", "FG3M", "FGM", "FGA", "FTM", "FTA", "TOV"]
 
     def normalize_name(name):
@@ -260,7 +150,8 @@ def render_matchup_simulator():
             "3PM":"FG3M", "FGM":"FGM", "FGA":"FGA", "FTM":"FTM", "FTA":"FTA", "TO":"TOV"
         }.items()}
 
-    st.caption("📊 NBA Stats：2025–26 賽季平均自動載入；2026–27 最近 7／14／30 天按今日可取得的已完成比賽計算。")
+    st.caption("📊 2025–26 場均由本機快照載入。本季近 7／14／30 天場均可勾選連線取得；上季模式直接使用單場實績。")
+    historical = json.loads((root_path/'ninecat_assets/data.json').read_text())['players']
     profiles_by_id = {}
     errors = []
     if NBA_API_READY:
@@ -270,9 +161,10 @@ def render_matchup_simulator():
             except Exception as exc:
                 directory = []
                 errors.append(f"球員目錄：{type(exc).__name__}")
-            asof = min(date.today(), selected_date)
-            requests = {"season": ("2025-26", None, None)}
-            if asof >= date(2026, 10, 20):
+            asof = min(today, selected_date)
+            profiles_by_id['season'] = {int(r['PLAYER_ID']):row_stats(r) for r in historical}
+            requests = {}
+            if selected_season=="2026-27" and recent_sources and asof >= date(2026, 10, 20):
                 for key, days in [("one_week", 7), ("two_weeks", 14), ("month", 30)]:
                     requests[key] = ("2026-27", (asof-timedelta(days=days-1)).strftime("%m/%d/%Y"), asof.strftime("%m/%d/%Y"))
             for key, (season, start_date, end_date) in requests.items():
@@ -288,42 +180,20 @@ def render_matchup_simulator():
     if errors:
         st.warning("NBA 統計部分未取得：" + "；".join(errors) + "。缺少數據的球員會顯示 —，不會當作 0。")
 
-    st.markdown("#### 🔮 2026–27 Fantasy Basketball Encyclopedia 預測")
-    st.markdown(f"[預測網站]({PROJECTION_PAGE}) · [原始 CSV]({PROJECTION_URL})")
-    with st.spinner("正在下載 2026–27 球員預測..."):
-        projection_rows, projection_origin, projection_errors = load_encyclopedia_projections()
-    if not projection_rows:
-        st.warning("第三方預測未成功下載；本次無法使用 Projection。" + "；".join(projection_errors))
-        uploaded = st.file_uploader("若網站暫時封鎖自動下載，可上傳該網站原始 CSV", type=["csv"], key="encyclopedia_csv")
-        if uploaded is not None:
-            try:
-                projection_rows = projection_records(uploaded.getvalue())
-                projection_origin = "手動上傳網站原始 CSV"
-            except Exception as exc:
-                st.error(f"CSV 解析失敗：{exc}")
-    else:
-        st.success(f"已載入 {len(projection_rows)} 筆 2026–27 預測（{projection_origin}）")
-        if projection_errors:
-            st.caption("CSV 連線曾失敗，已使用網站表格備援。")
-    projections = {}
-    for record in projection_rows:
-        pname, pstats = extract_projection(record)
-        if pname and pstats:
-            projections[normalize_name(pname)] = pstats
-
-    # 球隊資料可先從 NBA 官方取得，Yahoo 位置資格仍等 API。
-    try:
-        nba_team_by_id = load_current_nba_teams() if NBA_API_READY else {}
-    except Exception as exc:
-        nba_team_by_id = {}
-        st.info(f"NBA 官方現役球隊資料暫時無法讀取（{type(exc).__name__}）；新增球員時會提示稍後再試。")
+    nba_team_by_id = {int(r['PLAYER_ID']):r['TEAM_ABBREVIATION'] for r in historical}
+    for e in draft:
+        match = re.match(r'\((\w+)\s*-', e.get('position',''))
+        if selected_season == '2026-27' and e.get('playerId') and match:
+            nba_team_by_id[int(e['playerId'])] = match.group(1)
 
     name_to_entry = {normalize_name(p["full_name"]): p for p in directory}
     # 官方 NBA 球員名單涵蓋 Stephen Curry 與 Seth Curry，搜尋依部分姓名比對。
     CANDIDATES = []
     for item in directory:
         player_id = int(item["id"])
-        # 目錄包含退役球員；保留搜尋能力，加入時若無當季資料則標示待確認。
+        if not item.get("is_active") and player_id not in profiles_by_id.get("season", {}):
+            continue
+        # Keep active players and players present in the historical snapshot.
         CANDIDATES.append({"id": f"nba-{player_id}", "nba_id": player_id,
                            "name": item["full_name"], "team": nba_team_by_id.get(player_id, ""), "eligible": ["UTIL"],
                            "stats": {}, "profiles": {key: mapping.get(player_id) for key, mapping in profiles_by_id.items() if mapping.get(player_id)}})
@@ -331,43 +201,15 @@ def render_matchup_simulator():
     # 原始截圖球隊與位置由使用者提供；只用 NBA API 配對球員 ID / 統計，不覆寫 Fantasy 資格。
     for side in PLAYERS:
         for player in PLAYERS[side]:
-            entry = name_to_entry.get(normalize_name(player["name"]))
+            entry = name_to_entry.get(normalize_name(player["name"])) or ({"id":player["nba_id"]} if player.get("nba_id") else None)
             if entry:
                 player_id = int(entry["id"])
                 player["nba_id"] = player_id
                 player["profiles"] = {key: mapping[player_id] for key, mapping in profiles_by_id.items()
                                       if mapping.get(player_id)}
-                if normalize_name(player["name"]) in projections:
-                    projected, notes = complete_projection(
-                        projections[normalize_name(player["name"])],
-                        player["profiles"].get("season") or {})
-                    player["profiles"]["projection"] = projected
-                    player["projection_note"] = "Fantasy Basketball Encyclopedia" + ("；" + "、".join(notes) if notes else "")
-                default_key = "projection" if player["profiles"].get("projection") else ("season" if player["profiles"].get("season") else "two_weeks")
+                default_key = "season"
                 player["profile"] = default_key
                 player["stats"] = player["profiles"].get(default_key, {})
-
-    # NBA API 失敗或新秀尚未列入球員目錄時，仍可獨立使用第三方預測。
-    for side in PLAYERS:
-        for player in PLAYERS[side]:
-            key=normalize_name(player["name"])
-            if key not in projections or player.get("profiles", {}).get("projection"):
-                continue
-            values, notes = complete_projection(projections[key], player.get("profiles",{}).get("season") or {})
-            player.setdefault("profiles",{})["projection"]=values
-            player["projection_note"]="Fantasy Basketball Encyclopedia" + ("；" + "、".join(notes) if notes else "")
-            player["profile"]="projection"
-            player["stats"]=values
-
-    projection_found = [(p["name"], p.get("profiles", {}).get("projection", {}))
-                        for side in PLAYERS for p in PLAYERS[side]]
-    covered = [(name, stats) for name, stats in projection_found if stats]
-    full = [name for name, stats in covered if all(k in stats for k in
-            ("PTS","REB","AST","STL","BLK","3PM","FGM","FGA","FTM","FTA","TO"))]
-    st.caption(f"📈 兩隊預測覆蓋：{len(covered)}/{len(projection_found)} 人有預測；{len(full)}/{len(projection_found)} 人可完整計算 9-Cat。")
-    missing = [name for name, stats in projection_found if not stats]
-    if missing:
-        st.info("網站未提供預測：" + "、".join(missing))
 
     # 已完賽的真實 box score：必須同時有 NBA 官方 Final 狀態及球員該場 game log。
     # 若任一端點失敗，該日標為「未驗證」，絕不假裝是已完賽並鎖定。
@@ -375,16 +217,21 @@ def render_matchup_simulator():
     def fetch_week_finals(week_start_iso):
         from nba_api.stats.endpoints import scoreboardv2, leaguegamelog
         begin = date.fromisoformat(week_start_iso)
-        now = date.today()
+        now = today
         final_games = {}
+        final_teams = {}
         failures = []
         for offset in range(7):
             d=begin+timedelta(days=offset)
-            if d>now: continue
+            if d>now or not any(d in days for days in schedule.values()): continue
             try:
                 frames=scoreboardv2.ScoreboardV2(game_date=d.strftime("%m/%d/%Y"),
                         league_id="00",day_offset=0,timeout=12).get_data_frames()
                 header=frames[0]
+                id_to_team = {v:k for k,v in TEAM_IDS.items()}
+                final_teams[d.isoformat()] = sorted({id_to_team.get(int(row[col]), '')
+                    for _,row in header.iterrows() if int(row['GAME_STATUS_ID'])==3
+                    for col in ('HOME_TEAM_ID','VISITOR_TEAM_ID')})
                 final_games[d.isoformat()] = {
                     str(row["GAME_ID"]) for _,row in header.iterrows()
                     if int(row["GAME_STATUS_ID"])==3
@@ -401,13 +248,20 @@ def render_matchup_simulator():
                 game_rows=frame.to_dict(orient="records")
             except Exception as exc:
                 failures.append(f"Player Game Log: {type(exc).__name__}")
-        return final_games, game_rows, failures
+        return final_games, game_rows, failures, final_teams
 
-    final_games={}; game_rows=[]; final_errors=[]
-    if NBA_API_READY and week_dates[0] <= date.today():
+    final_games={}; game_rows=[]; final_errors=[]; final_teams={}
+    if selected_season=='2025-26':
+        game_rows = [r for r in logs if week_dates[0].isoformat() <= r['GAME_DATE'][:10] <= week_dates[-1].isoformat()]
+        for r in game_rows:
+            d=r['GAME_DATE'][:10]
+            final_games.setdefault(d,set()).add(str(r['GAME_ID']))
+            final_teams.setdefault(d,set()).add(r['TEAM_ABBREVIATION'])
+        final_teams={d:sorted(v) for d,v in final_teams.items()}
+    elif NBA_API_READY and any(d <= today and any(d in days for days in schedule.values()) for d in week_dates):
         with st.spinner("正在確認 NBA 官方已完賽狀態及球員單場 Box Score..."):
             try:
-                final_games,game_rows,final_errors=fetch_week_finals(week_dates[0].isoformat())
+                final_games,game_rows,final_errors,final_teams=fetch_week_finals(week_dates[0].isoformat())
             except Exception as exc:
                 final_errors=[f"官方賽事查詢：{type(exc).__name__}"]
     if final_errors:
@@ -430,10 +284,14 @@ def render_matchup_simulator():
         except (KeyError,ValueError,TypeError):
             continue
 
+    for player in CANDIDATES:
+        player['actual_by_day'] = actual_by_player.get(player.get('nba_id'), {})
     for side in PLAYERS:
         for player in PLAYERS[side]:
             player["actual_by_day"]=actual_by_player.get(player.get("nba_id"),{})
-            player["week"] = [get_game_status(player["team"], day, schedule) for day in week_dates]
+            if selected_season=='2025-26':
+                player['team'] = nba_team_by_id.get(player.get('nba_id'), player['team'])
+            player["week"] = [("GAME" if day.isoformat() in player["actual_by_day"] else "OFF") if selected_season=="2025-26" else get_game_status(player["team"], day, schedule) for day in week_dates]
 
 
     # NBA directory does not provide Yahoo eligible positions. Search results must be assigned
@@ -443,7 +301,10 @@ def render_matchup_simulator():
 
     HTML = """
     <div id="lineup-app">
-      <div class="guide">名單依截圖順序排名。拖曳新增球員到垃圾桶可移除；點擊先發球員即可編輯預測數據。</div>
+      <div class="guide">名單依選秀輪次排序。拖曳新增球員到垃圾桶可移除；點擊先發球員即可編輯預測數據。</div>
+      <div class="actions"><label>數據套用 <select id="bulk-profile"></select></label>
+      <select id="bulk-side"><option value="both">雙方球隊</option><option value="my">我的球隊</option><option value="opp">對手球隊</option></select>
+      <button id="bulk-apply" type="button">套用整週未完賽場次</button><span>已完賽實績與待補實績不受覆寫；缺少所選來源則保留原設定。</span></div>
       <div id="days" class="days"></div>
       <div class="board">
         <section class="roster"><h3>🔵 我的球隊</h3><div id="my-search" class="search-area"></div><div id="my-bench" class="bench"></div><div id="my-trash" class="trash">🗑️ 垃圾桶 · 拖入移除新增球員</div></section>
@@ -600,7 +461,7 @@ def render_matchup_simulator():
       let dayIndex = Math.max(0, weekDates.indexOf(data.selected_date));
       let dragging = null;
       let editing = null;
-      const profileLabels={projection:"2026–27 Encyclopedia Projection",two_weeks:"2026–27 最近兩週（真實統計）",one_week:"2026–27 最近一週（真實統計）",month:"2026–27 最近一個月（真實統計）",season:"2025–26 賽季平均（真實統計）",manual:"自訂預測（手動編輯）"};
+      const profileLabels={two_weeks:"2026–27 最近兩週（真實統計）",one_week:"2026–27 最近一週（真實統計）",month:"2026–27 最近一個月（真實統計）",season:"2025–26 賽季平均（真實統計）",manual:"自訂預測（手動編輯）"};
       const requiredStats=["PTS","REB","AST","STL","BLK","3PM","FGM","FGA","FTM","FTA","TO"];
       const completeStats=s=>requiredStats.every(k=>Number.isFinite(s?.[k])&&s[k]>=0) && s.FGM<=s.FGA && s.FTM<=s.FTA;
       const dailyChoices={my:{},opp:{}};
@@ -675,11 +536,18 @@ def render_matchup_simulator():
       refreshSaved();
 
       const dailyKey=(p,idx)=>`${p.id}::${idx}`;
-      const daySetting=(p,side,idx)=>dailyChoices[side][dailyKey(p,idx)] ?? {profile:p.profile??"season",custom:null};
-      const actual=(p,idx)=>p.actual_by_day?.[weekDates[idx]]??null;
+      const daySetting=(p,side,idx)=>{
+        const setting=dailyChoices[side][dailyKey(p,idx)] ?? {profile:p.profile??"season",custom:null};
+        return profileLabels[setting.profile]?setting:{profile:'season',custom:null};
+      };
+      // Server records remain authoritative, including after JSON restore.
+      const actual=(p,idx)=>data.actual_by_player?.[p.nba_id]?.[weekDates[idx]]??null;
+      const past=(p,idx)=>Boolean(data.final_teams?.[weekDates[idx]]?.includes(p.team)) || weekDates[idx]<data.today || (data.uncertain_days??[]).includes(weekDates[idx]);
+
       const isLocked=(p,idx)=>actual(p,idx)!==null;
       const dailyStats=(p,side,idx)=>{
         if(isLocked(p,idx))return actual(p,idx);
+        if(past(p,idx))return {}; // Never replace missing completed production with predictions.
         const setting=daySetting(p,side,idx);
         return setting.profile==="manual"?(setting.custom??{}):(p.profiles?.[setting.profile]??{});
       };
@@ -687,7 +555,7 @@ def render_matchup_simulator():
 
       const getPlayer = (side,id) => players[side].find(p=>p.id===id);
       const location = (side,id,idx=dayIndex) => positions.find(p=>state[idx][side][p]===id);
-      const status = (p,idx=dayIndex) => p.week?.[idx] ?? "OFF";
+      const status = (p,idx=dayIndex) => data.historical ? (actual(p,idx)!==null?'GAME':'OFF') : (p.week?.[idx] ?? "OFF");
       const plays = (p,idx=dayIndex) => ["GAME","B2B"].includes(status(p,idx));
       const eligible = (p,pos) => {
         if(pos.startsWith("UTIL")) return true;
@@ -787,10 +655,10 @@ def render_matchup_simulator():
         const actualWeek=teamWeeks[p.team]??[];
         ["一","二","三","四","五","六","日"].forEach((label,i)=>{
           const box=document.createElement("span");
-          const hasGame=["GAME","B2B"].includes(actualWeek[i]);
+          const hasGame=data.historical ? actual(p,i)!==null : ["GAME","B2B"].includes(actualWeek[i]);
           box.textContent=label;
           box.style.cssText=`display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:2px;font-size:9px;color:white;background:${hasGame?"#15803d":"#b91c1c"}`;
-          box.title=`${weekDates[i]} ${p.team}：${hasGame?"球隊有比賽":"無比賽"}`;
+          box.title=`${weekDates[i]} ${p.team}：${data.historical?(hasGame?"實際有出賽":"未出賽／無紀錄"):(hasGame?"球隊有比賽":"無比賽")}`;
           weekStrip.appendChild(box);
         });
         el.appendChild(weekStrip);
@@ -1101,6 +969,22 @@ def render_matchup_simulator():
         render();setMessage(`整週已排完：我方 ${my}、對手 ${opp} 球員場次；策略：名單排名。`);
       });
 
+      const bulk=root.querySelector('#bulk-profile');
+      for(const [value,label] of Object.entries(profileLabels)){
+        if(value==='manual')continue;
+        const option=document.createElement('option');option.value=value;option.textContent=label;bulk.appendChild(option);
+      }
+      bulk.value='season';
+      root.querySelector('#bulk-apply').onclick=()=>{
+        const target=root.querySelector('#bulk-side').value;
+        let changed=0,skipped=0;
+        for(const side of target==='both'?['my','opp']:[target])for(const p of players[side])for(let i=0;i<7;i++){
+          if(isLocked(p,i)||past(p,i)||!plays(p,i))continue;
+          if(!completeStats(p.profiles?.[bulk.value])){skipped++;continue;}
+          dailyChoices[side][dailyKey(p,i)]={profile:bulk.value,custom:null};changed++;
+        }
+        render();setMessage(`已套用 ${changed} 場；${skipped} 場缺少來源而保留。已完賽一律使用實績。`);
+      };
       render();
     }
     """
@@ -1112,6 +996,11 @@ def render_matchup_simulator():
     lineup(
         data={
             "selected_date":selected_date.isoformat(),
+            "today":today.isoformat(),
+            "historical":selected_season=="2025-26",
+            "uncertain_days":[d.isoformat() for d in week_dates if d<=today and d.isoformat() not in final_games and any(d in days for days in schedule.values())],
+            "actual_by_player":actual_by_player,
+            "final_teams":final_teams,
             "week_dates":[d.isoformat() for d in week_dates],
             "players":PLAYERS,
             "candidates":CANDIDATES,
@@ -1119,4 +1008,4 @@ def render_matchup_simulator():
         },
         height="content",
     )
-    st.caption("V15：已接入 Fantasy Basketball Encyclopedia 2026–27 預測（CSV / HTML 備援），保留模擬儲存與 JSON 備份、移除套用整週按鈕、搜尋候選球員時自動取得 NBA 球隊；每日獨立數據、已完賽鎖定、9-Cat 九項獨立比較；資料缺失時仍顯示暫時比分與覆蓋率。2026–27 預測來源連線失敗時可手動匯入；每位球員可獨立選擇數據來源。")
+    st.caption("已完賽一律採 NBA 單場實績。上季回測只計入實際出賽的球員；未完賽可使用場均或自訂數據，資料缺失不以預測冒充實績。")
