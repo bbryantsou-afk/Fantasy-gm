@@ -6,7 +6,7 @@ import streamlit as st
 from ninecat_model import CATS,LABELS,baseline,cohort_ids,weighted_z
 from ninecat_strategy import load_data
 from player_hub import choose_roster,profiles,ROOT
-from roster_store import active_team,roster as shared_roster,state,ownership,persist,save_team,editor
+from roster_store import active_team,roster as shared_roster,state,ownership,persist,save_team,editor,team_label,team_formatter
 from dashboard_model import regular_schedule,week_bounds
 
 def render_planner():
@@ -16,7 +16,7 @@ def render_planner():
     roster=choose_roster(entries,'stream_team');team=active_team(entries);league=state(entries)
     mode=st.radio('補強目標',['本週對局','長期適配'],horizontal=True,key='stream_mode')
     teams=[t for t in league['teams'] if t!=team]
-    opponent=st.selectbox('本週對手',teams,key='stream_opponent')
+    opponent=st.selectbox('本週對手',teams,key='stream_opponent',format_func=team_formatter())
     opp=shared_roster(entries,opponent)
     today=datetime.now(ZoneInfo('America/New_York')).date()
     day=st.date_input('從哪一天開始規劃（美東）',max(date(2026,10,20),min(today,date(2027,4,11))),min_value=date(2026,10,20),max_value=date(2027,4,11),key='stream_day')

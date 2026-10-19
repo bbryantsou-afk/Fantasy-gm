@@ -56,11 +56,24 @@ def active_team(entries):
     if st.session_state.get('_my_team') not in teams:st.session_state['_my_team']=teams[0]
     return st.session_state['_my_team']
 
+def team_label(team):
+    """Private display name; stable internal keys survive team renames."""
+    data=st.session_state.get('_league',{})
+    name=data.get('team_names',{}).get(team)
+    if name:return name
+    if not re.fullmatch(r'球隊\s*\d+',str(team)):return team
+    rows=data.get('teams',{}).get(team,[])
+    return '待同步隊名'+(' · '+rows[0]['name'] if rows else '')
+
+def team_formatter():
+    labels={t:team_label(t) for t in st.session_state.get('_league',{}).get('teams',{})}
+    return lambda t:labels.get(t,t)
+
 def choose_team(entries,key,label='我的球隊'):
     current=active_team(entries)
     if st.session_state.get(key)!=current:st.session_state[key]=current
     def changed():st.session_state['_my_team']=st.session_state[key]
-    return st.selectbox(label,list(state(entries)['teams']),key=key,on_change=changed)
+    return st.selectbox(label,list(state(entries)['teams']),key=key,on_change=changed,format_func=team_formatter())
 
 def save_team(entries,team,rows):
     data=state(entries)
@@ -82,7 +95,7 @@ def save_team(entries,team,rows):
     persist(data)
 
 def ownership(entries,my_team):
-    return {identity(r):('我的球員' if team==my_team else team) for team,rows in state(entries)['teams'].items() for r in rows}
+    return {identity(r):('我的球員' if team==my_team else team_label(team)) for team,rows in state(entries)['teams'].items() for r in rows}
 
 def availability(entries,my_team,key):
     owner=ownership(entries,my_team).get(key)
@@ -121,12 +134,12 @@ def render_roster_source():
     kind=source.get('kind','draft')
     count=f"{len(rows)} 人／IL {sum(r.get('status')=='IL' for r in rows)} 人"
     if kind=='draft':
-        st.warning(f'{team} · {count} · 目前仍是選秀初始名單，尚未套用 Yahoo 最新名單。請到「聯盟同步」同步或完成首次配對。')
+        st.warning(f'{team_label(team)} · {count} · 目前仍是選秀初始名單，尚未套用 Yahoo 最新名單。請到「聯盟同步」同步或完成首次配對。')
     else:
         label={'yahoo':'Yahoo 同步','manual':'手動調整','file':'檔案匯入'}.get(kind,'私人名單')
         stamp=source.get('updated_at','')
         try:stamp=datetime.fromisoformat(stamp.replace('Z','+00:00')).astimezone(ZoneInfo('Asia/Taipei')).strftime('%m/%d %H:%M')+' 台灣時間'
         except (ValueError,AttributeError):pass
         source_team=source.get('source_team','').split(':')[-1]
-        team_label=f'Yahoo 隊伍 {source_team} → {team}' if kind=='yahoo' and source_team else team
-        st.caption(f"名單來源：{label} · {team_label} · {count} · 陣容日期 {source.get('date','未指定')} · 最後套用 {stamp or '未記錄'}")
+        display_name=team_label(team)
+        st.caption(f"名單來源：{label} · {display_name} · {count} · 陣容日期 {source.get('date','未指定')} · 最後套用 {stamp or '未記錄'}")

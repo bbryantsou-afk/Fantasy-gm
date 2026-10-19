@@ -29,6 +29,9 @@ def validate_backup(data,teams,allow_history=True):
         if not isinstance(k,str) or not isinstance(v,dict) or not isinstance(v.get('eligible',[]),list) or any(p not in ['PG','SG','SF','PF','C'] for p in v.get('eligible',[])):raise ValueError('球員位置設定不符。')
         if not isinstance(v.get('team',''),str) or len(v.get('team',''))>3:raise ValueError('NBA 隊伍格式不符。')
     output={'player_meta':copy.deepcopy(meta),'teams':copy.deepcopy(data['teams']),'free':list(set(free)),'capacity':cap,'revision':int(data.get('revision',0))}
+    names=data.get('team_names',{})
+    if not isinstance(names,dict) or any(t not in teams or not isinstance(n,str) or not n.strip() or len(n)>100 for t,n in names.items()):raise ValueError('隊名格式不符。')
+    output['team_names']=copy.deepcopy(names)
     sources=data.get('roster_sources',{})
     if not isinstance(sources,dict):raise ValueError('名單來源格式不符。')
     output['roster_sources']={}

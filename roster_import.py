@@ -3,7 +3,7 @@ import copy,io,json,re,zipfile,hashlib
 from datetime import datetime,timezone
 import streamlit as st
 from ninecat_model import norm
-from roster_store import state,identity,persist
+from roster_store import state,identity,persist,team_label,team_formatter
 
 def read_export(raw):
     if len(raw)>5_000_000:raise ValueError('檔案過大。')
@@ -55,6 +55,10 @@ def build_import(league,rows,mapping):
     if len(set(mapping.values()))!=len(mapping):raise ValueError('不同來源球隊不能配到同一隊。')
     if set(mapping)!=set(r['source_team'] for r in rows):raise ValueError('請配對所有來源球隊。')
     new=copy.deepcopy(league)
+    names=new.setdefault('team_names',{})
+    for r in rows:
+        name=str(r.get('source_name','')).strip()
+        if name and name!=r['source_team']:names[mapping[r['source_team']]]=name
     for t in mapping.values():
         if t not in new['teams']:raise ValueError('目標球隊不存在。')
         new['teams'][t]=[]
@@ -93,7 +97,7 @@ def render_import(players,entries):
     with st.expander('確認來源球隊 → App 球隊',expanded=True):
         for source in sources:
             label=next(str(r['source_name']) for r in rows if r['source_team']==source)
-            mapping[source]=st.selectbox(label+' · '+source,teams,index=teams.index(defaults[source]),key='helper_map_'+tag+source)
+            mapping[source]=st.selectbox(label+' · '+source,teams,index=teams.index(defaults[source]),key='helper_map_'+tag+source,format_func=team_formatter())
     with st.expander('球員配對／無資料球員'):
         st.caption('Yahoo ID 與 NBA ID 不同，依姓名配對；未配對者保留姓名，不會套用其他球員數據。受傷狀態不等於 IL，只有原名單 IL 席次才匯入為 IL。')
         for r in rows:
@@ -106,7 +110,7 @@ def render_import(players,entries):
     changes=[]
     for source,t in mapping.items():
         before={identity(r):r['name'] for r in league['teams'][t]};after={identity(r):r['name'] for r in new['teams'][t]}
-        changes.append({'App 球隊':t,'人數':len(after),'加入':'、'.join(after[k] for k in after.keys()-before.keys()) or '—','移除':'、'.join(before[k] for k in before.keys()-after.keys()) or '—'})
+        changes.append({'App 球隊':team_label(t),'人數':len(after),'加入':'、'.join(after[k] for k in after.keys()-before.keys()) or '—','移除':'、'.join(before[k] for k in before.keys()-after.keys()) or '—'})
     st.dataframe(changes,hide_index=True)
     st.download_button('先下載目前名單備份',json.dumps(league,ensure_ascii=False,indent=2),'league_before_import.json','application/json')
     confirmed=st.checkbox('我已確認隊伍配對，以上名單將取代對應隊伍',key='helper_confirm_'+tag)

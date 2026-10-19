@@ -12,7 +12,7 @@ def render_matchup_simulator(lite=False):
         st.markdown('<style>[data-testid="stMainBlockContainer"]{padding-top:2rem}</style>',unsafe_allow_html=True)
     else:
         st.title("🏀 Fantasy GM — Matchup Simulator")
-    st.caption("球隊 01–14 可直接載入。上季場均使用本機快照；未完賽可套用場均，已完賽強制採實績。")
+    st.caption("可依隊名直接載入共用名單。上季場均使用本機快照；未完賽可套用場均，已完賽強制採實績。")
 
     today = datetime.now(ZoneInfo("America/New_York")).date()
     PLAYERS = {}
@@ -21,11 +21,11 @@ def render_matchup_simulator(lite=False):
     import re
     root_path = Path(__file__).resolve().parent
     draft = json.loads((root_path/'ninecat_assets/draft.json').read_text())['entries']
-    from roster_store import choose_team,roster as shared_roster,state
+    from roster_store import choose_team,roster as shared_roster,state,team_label,team_formatter
     teams=list(state(draft)['teams'])
     left, right = st.columns(2)
     with left:my_team=choose_team(draft,'sim_my_team')
-    opp_team=right.selectbox('對手球隊',teams,index=1,key='sim_opp_team')
+    opp_team=right.selectbox('對手球隊',teams,index=1,key='sim_opp_team',format_func=team_formatter())
     for side,team in [('my',my_team),('opp',opp_team)]:
         PLAYERS[side]=[]
         for r in shared_roster(draft,team):

@@ -7,7 +7,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 from ninecat_strategy import load_data
 from ninecat_model import norm
-from roster_store import state,persist,identity
+from roster_store import state,persist,identity,team_label,team_formatter
 from roster_import import match_rows,build_import,name_key
 ROOT=Path(__file__).resolve().parent
 bridge=components.declare_component('league_sync',path=str(ROOT/'sync_bridge'))
@@ -135,7 +135,7 @@ def render_sync_connection(full=False):
                     st.info('首次同步請確認隊伍配對，之後按同步即可自動套用。')
                     defaults=suggested_mapping(rows,league);mapping={};targets=list(league['teams'])
                     for team in payload['teams']:
-                        k=source+':'+team['id'];mapping[k]=st.selectbox(team['name']+' → App 球隊',targets,index=targets.index(defaults[k]),key='sync_map_'+source+'_'+team['id'])
+                        k=source+':'+team['id'];mapping[k]=st.selectbox(team['name']+' → App 球隊',targets,index=targets.index(defaults[k]),key='sync_map_'+source+'_'+team['id'],format_func=team_formatter())
                     st.dataframe([{'球員':r['name'],'來源隊伍':r['source_name'],'席次':r['slot'],'數據':'已配對' if r['matched'] else '無數據／保留姓名'} for r in rows],hide_index=True)
                     preview=apply_snapshot(league,rows,mapping,payload,today)
                     st.download_button('先備份現有名單',json.dumps(league,ensure_ascii=False,indent=2),'league_before_sync.json','application/json')
@@ -159,6 +159,6 @@ def render_sync():
         st.caption('讀取時間：'+saved['captured_at']+'。這是當時快照，並非已驗證的最終鎖定紀錄。')
         table=[]
         for team,rows in saved['teams'].items():
-            for r in rows:table.append({'隊伍':team,'席次':r.get('slot',r['status']),'球員':r['name'],'NBA':r.get('team',''),'位置':'/'.join(r.get('eligible',[]))})
+            for r in rows:table.append({'隊伍':team_label(team),'席次':r.get('slot',r['status']),'球員':r['name'],'NBA':r.get('team',''),'位置':'/'.join(r.get('eligible',[]))})
         st.dataframe(table,hide_index=True,width="stretch")
         st.download_button('下載完整同步備份',json.dumps(league,ensure_ascii=False,indent=2),'league_sync_backup.json','application/json')

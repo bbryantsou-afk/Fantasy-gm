@@ -64,7 +64,7 @@ def select_quality(candidates,limit=5,league=False,prefer_middle=True):
 
 def render_package_finder(roster,pool,players,entries):
     from trade_packages import near_value_trades
-    from roster_store import roster as shared_roster
+    from roster_store import roster as shared_roster,team_label,team_formatter
     st.markdown('### ✨ 精選模擬交易包')
     st.caption('先篩選滾動交易價值接近，再要求雙方數據適配改善；選秀代表本聯盟偏好，不是客觀價格或接受機率。')
     from trade_market import current_logs,market_model
@@ -86,7 +86,7 @@ def render_package_finder(roster,pool,players,entries):
     actual_count=sum(d['gp']>0 for d in market_details.values())
     st.caption(f'交易依據截至美東 {asof}｜'+('目前尚無本季樣本：選秀30%＋歷史70%。' if not actual_count else f'{actual_count} 位球員有本季樣本；每人依出賽場次調整比重。'))
     teams=list(dict.fromkeys(e['fantasyTeam'] for e in entries))
-    partner=st.selectbox('交易對象',['全部球隊']+teams,index=min(2,len(teams)),key='auto_partner')
+    partner=st.selectbox('交易對象',['全部球隊']+teams,index=min(2,len(teams)),key='auto_partner',format_func=team_formatter())
     league=partner=='全部球隊'
     mine={str(r.get('id')) for r in roster if str(r.get('id')) in pool}
     fmt=lambda k:pool[k]['PLAYER_NAME']
@@ -113,7 +113,7 @@ def render_package_finder(roster,pool,players,entries):
         for team,rows in targets.items():
             ids={str(r.get('id')) for r in rows if str(r.get('id')) in pool}
             key='auto_protect_opp_'+hashlib.sha256(team.encode()).hexdigest()[:10]
-            protections[team]=protection_picker(team,ids,pool,key)
+            protections[team]=protection_picker(team_label(team),ids,pool,key)
     st.caption('非賣品設定自動保存在本機；對方設定是你的判斷，非對方GM的已知意願。')
     auto_sizes=st.checkbox("自動搜尋不同人數組合（每方1–4人）",value=True,key="auto_flexible_sizes")
     cols=st.columns(3)
@@ -161,11 +161,11 @@ def render_package_finder(roster,pool,players,entries):
                     st.markdown('**'+team+'**')
                     delta=abs(n_send-n_receive)
                     if n_send>n_receive:
-                        config['my_fill']=balanced_picker(f'我方補進 {delta} 人 · {team}',external,format_func=fmt,max_selections=delta,key='auto_my_fill_'+suffix)
-                        config['their_release']=balanced_picker(f'對方額外釋出 {delta} 人 · {team}',sorted(ids-set(protections[team])),format_func=fmt,max_selections=delta,key='auto_their_release_'+suffix)
+                        config['my_fill']=balanced_picker(f'我方補進 {delta} 人 · {team_label(team)}',external,format_func=fmt,max_selections=delta,key='auto_my_fill_'+suffix)
+                        config['their_release']=balanced_picker(f'對方額外釋出 {delta} 人 · {team_label(team)}',sorted(ids-set(protections[team])),format_func=fmt,max_selections=delta,key='auto_their_release_'+suffix)
                     else:
-                        config['their_fill']=balanced_picker(f'對方補進 {delta} 人 · {team}',external,format_func=fmt,max_selections=delta,key='auto_their_fill_'+suffix)
-                        config['my_release']=balanced_picker(f'我方額外釋出 {delta} 人 · {team}',sorted(mine-set(my_protected)),format_func=fmt,max_selections=delta,key='auto_my_release_'+suffix)
+                        config['their_fill']=balanced_picker(f'對方補進 {delta} 人 · {team_label(team)}',external,format_func=fmt,max_selections=delta,key='auto_their_fill_'+suffix)
+                        config['my_release']=balanced_picker(f'我方額外釋出 {delta} 人 · {team_label(team)}',sorted(mine-set(my_protected)),format_func=fmt,max_selections=delta,key='auto_my_release_'+suffix)
                 configs[team]=config
             if n_send!=n_receive:
                 st.caption('假設原本滿員；自行確認自由球員可取得。尚未填齊的隊伍不搜尋，不會把補人價值算成0。')
@@ -213,10 +213,10 @@ def render_package_finder(roster,pool,players,entries):
         st.info('沒有同時滿足條件的優質包裹。可調整非賣品、價值差、位置或權重，不強行推薦。')
         return
     st.caption(f"從 {saved.get('candidates',0)} 組近值候選中保留 {len(found)} 組。只有此兩隊交換；不同對手的方案互相獨立。")
-    st.dataframe(pd.DataFrame([{'方案':i+1,'對手球隊':r['partner'],'形式':r.get('shape',''),'我方送出':'＋'.join(fmt(k) for k in r['send']),
+    st.dataframe(pd.DataFrame([{'方案':i+1,'對手球隊':team_label(r['partner']),'形式':r.get('shape',''),'我方送出':'＋'.join(fmt(k) for k in r['send']),
             '對方送出':'＋'.join(fmt(k) for k in r['receive']),'我方提升':round(r['my_gain'],3),
             '對方提升':round(r['their_gain'],3),'滾動價值差':round(r['gap'],3),'純數據價值差':round(r.get('statistical_gap',0),3)} for i,r in enumerate(found)]),hide_index=True,width='stretch')
-    selected=st.selectbox('研究交易包',range(len(found)),format_func=lambda i:f"方案 {i+1} · {found[i]['partner']}",key='auto_detail_'+signature[:10])
+    selected=st.selectbox('研究交易包',range(len(found)),format_func=lambda i:f"方案 {i+1} · {team_label(found[i]['partner'])}",key='auto_detail_'+signature[:10])
     r=found[selected];config=r['config']
     st.markdown('**值得研究的原因**：雙方適配與最高權重項目合計皆提升，滾動交易價值差在設定內，且不動非賣品。')
     with st.expander('本包球員的價值依據',expanded=True):

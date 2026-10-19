@@ -17,9 +17,13 @@ mapping={'7:1':'球隊 01','7:2':'球隊 02'}
 new=apply_snapshot(league,rows,mapping,payload,date(2026,10,20))
 assert new['teams']['球隊 01'][0]['status']=='IL' and new['teams']['球隊 02'][0]['status']=='bench'
 assert not league['teams']['球隊 01']
+assert new['team_names']=={'球隊 01':'Private 1','球隊 02':'Private 2'}
+renamed=copy.deepcopy(rows);renamed[0]['source_name']='Renamed Club'
+assert apply_snapshot(new,renamed,mapping,payload,date(2026,10,20))['team_names']['球隊 01']=='Renamed Club'
 old=apply_snapshot(league,rows,mapping,payload,date(2026,10,21))
 assert old['teams']==league['teams'] and old['daily_rosters']['2026-10-20']['teams']==new['teams']
 restored=validate_backup(new,league['teams']);assert restored['daily_rosters']==new['daily_rosters'] and restored['sync_mapping']==mapping
+assert restored['team_names']==new['team_names']
 for kind in ['missing','duplicate','date','league','position']:
  bad=copy.deepcopy(payload)
  if kind=='missing':bad['teams'].pop()
