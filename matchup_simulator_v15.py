@@ -6,8 +6,12 @@ import streamlit as st
 from team_schedule import load_team_schedule, get_game_status
 
 
-def render_matchup_simulator():
-    st.title("🏀 Fantasy GM — Matchup Simulator")
+def render_matchup_simulator(lite=False):
+    if lite:
+        st.subheader("🏀 Matchup Simulator Lite")
+        st.markdown('<style>[data-testid="stMainBlockContainer"]{padding-top:2rem}</style>',unsafe_allow_html=True)
+    else:
+        st.title("🏀 Fantasy GM — Matchup Simulator")
     st.caption("球隊 01–14 可直接載入。上季場均使用本機快照；未完賽可套用場均，已完賽強制採實績。")
 
     today = datetime.now(ZoneInfo("America/New_York")).date()
@@ -92,21 +96,23 @@ def render_matchup_simulator():
     max_games = max((games for _, games in weekly_counts), default=0)
     top_teams = sorted((team, games) for team, games in weekly_counts if games == max_games)
 
-    from matchup_schedule_summary import schedule_summary, CSS as summary_css
-    cards, calendar, leaders = schedule_summary(schedule,week_dates,TEAM_IDS)
-    st.markdown(summary_css,unsafe_allow_html=True)
-    summary_left, summary_right = st.columns([1,2])
-    with summary_left:
-        st.markdown("**🏆 本週出賽最多 · 含並列**")
-        if leaders:
-            st.markdown(cards,unsafe_allow_html=True)
-        else:
-            st.info("本週沒有排定比賽。")
-    with summary_right:
-        st.markdown("**📅 B2B 週曆**")
-        st.markdown(calendar,unsafe_allow_html=True)
-        st.caption("✓ 連兩天出賽的日期 · * 跨週 B2B · 滑鼠移上可看相鄰日期。表內可捲動。")
-    st.caption("日期採美東。B2B 依球隊賽程判定，不代表球員確定出場；下方球員綠／紅格分別代表有／無賽程。")
+    from contextlib import nullcontext
+    with st.expander('📅 本週賽程摘要', expanded=False) if lite else nullcontext():
+        from matchup_schedule_summary import schedule_summary, CSS as summary_css
+        cards, calendar, leaders = schedule_summary(schedule,week_dates,TEAM_IDS)
+        st.markdown(summary_css,unsafe_allow_html=True)
+        summary_left, summary_right = st.columns([1,2])
+        with summary_left:
+            st.markdown("**🏆 本週出賽最多 · 含並列**")
+            if leaders:
+                st.markdown(cards,unsafe_allow_html=True)
+            else:
+                st.info("本週沒有排定比賽。")
+        with summary_right:
+            st.markdown("**📅 B2B 週曆**")
+            st.markdown(calendar,unsafe_allow_html=True)
+            st.caption("✓ 連兩天出賽的日期 · * 跨週 B2B · 滑鼠移上可看相鄰日期。表內可捲動。")
+        st.caption("日期採美東。B2B 依球隊賽程判定，不代表球員確定出場；下方球員綠／紅格分別代表有／無賽程。")
 
     # NBA 球員資料庫：包含不在目前兩隊名單中的球員（例如 Seth Curry）。
     # NBA Stats 有時會限制連線；失敗時顯示狀態，絕不填入虛構統計。
@@ -989,8 +995,14 @@ def render_matchup_simulator():
     }
     """
 
+    if lite:
+        from matchup_lite import LITE_CSS, enhance_lite
+        HTML = HTML.replace("名單依選秀輪次排序。拖曳新增球員到垃圾桶可移除；點擊先發球員即可編輯預測數據。", "從底部選擇我的／對手球隊，拖曳或點選姓名再點位置；點頭像查看當天數據。")
+        CSS += LITE_CSS
+        JS = enhance_lite(JS)
+
     lineup = st.components.v2.component(
-        "fantasy_gm_integrated_9cat_v13",
+        "fantasy_gm_matchup_lite" if lite else "fantasy_gm_integrated_9cat_v13",
         html=HTML, css=CSS, js=JS,
     )
     lineup(

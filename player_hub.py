@@ -57,6 +57,17 @@ def profiles(players,entries):
                                   'eligible':positions,'fantasyTeam':e.get('fantasyTeam','未在原始選秀名單'),'draft_round':e.get('round')}
     return out
 
+def news_tone(title):
+    """Conservative headline hints, not an injury or availability assessment."""
+    text=title.lower()
+    if re.search(r'\b(could|may|might|unlikely|rumou?r|not ruled out|potential)\b',text):
+        return '⚪', '中性／待確認'
+    positive=bool(re.search(r'\b(career[- ]high|season[- ]high|cleared to play|available to play|returns to action|full practice|will play|breakout)\b|復出|獲准出賽|生涯新高|傷癒',text))
+    negative=bool(re.search(r'\b(ruled out|will miss|injury|injured|surgery|suspended|suspension|setback|out for|doubtful)\b|受傷|缺席|手術|禁賽',text))
+    if positive and not negative:return '🟢','正面訊號'
+    if negative and not positive:return '🔴','負面訊號'
+    return '⚪','中性／待確認'
+
 @st.cache_data(ttl=1800,show_spinner=False)
 def player_news(name):
     query=quote('"'+name+'" NBA basketball when:14d')
@@ -111,7 +122,7 @@ def render_watchroom():
             except Exception:
                 st.info('官方基本資料暫時無法連線，請使用官方球員頁。')
     st.markdown('#### 近14天新聞')
-    st.caption('公開新聞索引；列出標題、來源與發布時間，不自動推斷傷勢或出賽狀態。')
+    st.caption('🟢 正面訊號 · 🔴 負面訊號 · ⚪ 中性／待確認。依標題關鍵字初步標示，請點原文確認，不代表確定出賽狀態。')
     if st.button('更新這位球員的新聞',key='watch_refresh_news'):
         player_news.clear()
     try:
@@ -120,8 +131,9 @@ def render_watchroom():
         if not news:
             st.info('近14天未找到相關新聞。')
         for n in news:
-            st.link_button(n['title'],n['url'])
-            st.caption(n['source']+' · '+n['published'])
+            emoji, tone = news_tone(n['title'])
+            st.link_button(emoji+' '+n['title'],n['url'])
+            st.caption(tone+' · '+n['source']+' · '+n['published'])
     except Exception:
         st.warning('新聞來源暫時無法讀取。')
         st.link_button('開啟新聞搜尋','https://news.google.com/search?q='+quote(name+' NBA'))
