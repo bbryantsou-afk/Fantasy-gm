@@ -56,3 +56,10 @@ COMPONENT_CSS += '''
 #lineup-app {color-scheme:light;}
 #lineup-app select option,#lineup-app select {color:#263444 !important;background:#fff !important;}
 '''
+APP_CSS += '''
+.stApp [data-testid="stLinkButton"] a,.stApp a[data-testid^="stBaseLinkButton"],.stApp a[kind] {background:#fff !important;color:#245366 !important;border:1px solid #b8c8d3 !important;border-radius:8px !important;box-shadow:none !important;}
+.stApp [data-testid="stLinkButton"] a *,.stApp a[data-testid^="stBaseLinkButton"] *,.stApp a[kind] * {color:#245366 !important;}
+.stApp [data-testid="stLinkButton"] a:hover {background:#edf5f7 !important;border-color:#639cae !important;}
+.stApp [data-testid="stTable"],.stApp [data-testid="stTable"] th,.stApp [data-testid="stTable"] td,.stApp [data-testid="stJson"],.stApp pre {background:#fff !important;color:#263444 !important;border-color:#dce3e9 !important;}
+.stApp [data-testid="stJson"] span,.stApp pre code {color:#263444 !important;}
+'''

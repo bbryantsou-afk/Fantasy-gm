@@ -118,7 +118,7 @@ def render_watchroom():
             try:
                 b=player_bio(selected)
                 labels={'POSITION':'NBA位置','HEIGHT':'身高（英尺／英吋）','WEIGHT':'體重（磅）','BIRTHDATE':'生日','COUNTRY':'國家','SCHOOL':'學校','DRAFT_YEAR':'選秀年份','DRAFT_ROUND':'輪次','DRAFT_NUMBER':'順位','TEAM_NAME':'官方球隊'}
-                st.dataframe([{'基本資料':label,'內容':str(b.get(k) or '—')} for k,label in labels.items()],hide_index=True,width='stretch')
+                st.table([{'基本資料':label,'內容':str(b.get(k) or '—')} for k,label in labels.items()])
             except Exception:
                 st.info('官方基本資料暫時無法連線，請使用官方球員頁。')
     st.markdown('#### 近14天新聞')

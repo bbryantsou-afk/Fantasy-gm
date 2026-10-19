@@ -68,3 +68,8 @@ APP_CSS += '''
 .stApp [data-testid="stDateInputField"] *:not(svg),.stApp [data-testid="stSelectbox"] *:not(svg) {font-family:HAND_FONT !important;}
 [role="listbox"],[role="option"] {background:#16322f !important;color:#f4f0df !important;font-family:HAND_FONT !important;}
 '''.replace('SKETCH',_sketch_url).replace('HAND_FONT',FAMILY)
+APP_CSS += '''
+.stApp [data-testid="stLinkButton"] a,.stApp a[data-testid^="stBaseLinkButton"],.stApp a[kind] {background:#16322f !important;color:#f4f0df !important;border:1.5px solid #cbd4bcaa !important;border-radius:7px 13px 5px 11px !important;font-family:HAND_FONT !important;}
+.stApp [data-testid="stLinkButton"] a *,.stApp a[data-testid^="stBaseLinkButton"] *,.stApp a[kind] * {color:#f4f0df !important;}
+.stApp [data-testid="stTable"],.stApp [data-testid="stTable"] th,.stApp [data-testid="stTable"] td,.stApp [data-testid="stJson"],.stApp pre {background:#16322f !important;color:#f4f0df !important;border-color:#cbd4bc88 !important;}
+'''.replace('HAND_FONT',FAMILY)

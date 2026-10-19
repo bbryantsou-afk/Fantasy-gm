@@ -8,8 +8,26 @@ def background_data():
     asset=Path(__file__).resolve().parent/'assets/black-mirror-soft-v1.webp'
     return base64.b64encode(asset.read_bytes()).decode('ascii')
 
+THEMES={"light":"簡約淺色","tactics":"戰術板草圖","mirror":"黑色鏡面"}
+
+def theme_slug():
+    return next((k for k,v in THEMES.items() if v==st.session_state.get('visual_theme')), 'light')
+
+def clear_oauth_query():
+    # Preserve presentation preferences while removing the authorization response.
+    for key in ('code','state','error','error_description'):
+        if key in st.query_params: del st.query_params[key]
+    st.query_params['theme']=theme_slug()
+
 def render_court_theme():
+    if 'visual_theme' not in st.session_state:
+        slug=st.query_params.get('theme','light')
+        returned=str(st.query_params.get('state','')).split('.')
+        if len(returned)==3 and '~' in returned[1]:
+            slug=returned[1].split('~',1)[0]
+        st.session_state.visual_theme=THEMES.get(slug,THEMES['light'])
     theme=st.sidebar.selectbox("視覺風格", ["簡約淺色", "戰術板草圖", "黑色鏡面"], key="visual_theme")
+    st.query_params['theme']=theme_slug()
     image=background_data()
     st.markdown("""
 <style>

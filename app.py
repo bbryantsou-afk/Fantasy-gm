@@ -83,7 +83,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-from court_theme import render_court_theme
+from court_theme import render_court_theme, theme_slug, clear_oauth_query
 render_court_theme()
 
 with st.sidebar:
@@ -165,7 +165,7 @@ elif page == "Yahoo API 設定":
 
     if oauth_error:
         st.error(f"Yahoo 授權未完成：{oauth_error}")
-        st.query_params.clear()
+        clear_oauth_query()
         st.session_state.yahoo_oauth_state = None
 
     elif code:
@@ -185,7 +185,7 @@ elif page == "Yahoo API 設定":
                 "access_token"
             ]
             st.session_state.yahoo_oauth_state = None
-            st.query_params.clear()
+            clear_oauth_query()
 
             st.success("Yahoo 授權完成！")
 
@@ -220,6 +220,7 @@ elif page == "Yahoo API 設定":
 
         if st.button("連接 Yahoo Fantasy"):
             auth_url, expected_state = build_authorization_url(
+                theme=theme_slug(),
                 client_id=client_id,
                 client_secret=client_secret,
                 redirect_uri=redirect_uri,

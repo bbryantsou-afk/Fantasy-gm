@@ -12,9 +12,11 @@ TOKEN_URL = "https://api.login.yahoo.com/oauth2/get_token"
 API_BASE = "https://fantasysports.yahooapis.com/fantasy/v2"
 
 
-def build_authorization_url(client_id, client_secret, redirect_uri):
+def build_authorization_url(client_id, client_secret, redirect_uri, theme=None):
     timestamp = str(int(time.time()))
     nonce = secrets.token_urlsafe(24)
+    if theme in ("light","tactics","mirror"):
+        nonce = theme + "~" + nonce
     message = f"{timestamp}.{nonce}"
     signature = hmac.new(
         client_secret.encode(), message.encode(), hashlib.sha256
