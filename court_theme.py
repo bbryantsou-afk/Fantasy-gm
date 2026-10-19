@@ -21,7 +21,20 @@ def render_court_theme():
   color:#f1f5f9;
 }
 [data-testid="stHeader"] { background:linear-gradient(180deg,rgba(5,5,6,.92),rgba(5,5,6,0)) !important; }
-[data-testid="stSidebar"] { background:rgba(9,9,11,.94) !important; border-right:1px solid rgba(180,180,185,.12); backdrop-filter:blur(10px); }
+[data-testid="stSidebar"] { background:rgba(5,5,7,.18) !important; border-right:1px solid rgba(180,180,185,.10); }
+[data-testid="stSidebar"] [data-testid="stSidebarContent"] { background:transparent !important; }
+[data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] { gap:7px; }
+[data-testid="stSidebar"] [data-testid="stRadio"] label {
+  width:100%; min-height:49px; padding:12px 13px; margin:0;
+  border:1px solid rgba(180,195,210,.16); border-radius:11px;
+  background:rgba(15,19,25,.66); cursor:pointer;
+  transition:background .15s ease,border-color .15s ease;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] label p { font-size:15px !important; font-weight:550; line-height:1.4; color:#edf3fb !important; }
+[data-testid="stSidebar"] [data-testid="stRadio"] label:hover { background:rgba(42,53,65,.8); border-color:rgba(180,210,225,.4); }
+[data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked) { background:rgba(28,87,78,.76); border-color:#69c9b5; }
+[data-testid="stSidebar"] [data-testid="stRadio"] label:focus-within { outline:2px solid #9edbd1; outline-offset:2px; }
+@media(prefers-reduced-motion:reduce) { [data-testid="stSidebar"] [data-testid="stRadio"] label { transition:none; } }
 [data-testid="stSidebar"] > div { background:transparent; }
 [data-testid="stMain"] h1,[data-testid="stMain"] h2,[data-testid="stMain"] h3 { color:#f4f6fa; text-shadow:0 2px 14px rgba(0,0,0,.7); }
 [data-testid="stCaptionContainer"] { color:#c4cbd5; }
