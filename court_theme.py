@@ -9,7 +9,7 @@ def background_data():
     return base64.b64encode(asset.read_bytes()).decode('ascii')
 
 def render_court_theme():
-    theme=st.sidebar.selectbox("視覺風格", ["戰術板草圖", "黑色鏡面"], key="visual_theme")
+    theme=st.sidebar.selectbox("視覺風格", ["簡約淺色", "戰術板草圖", "黑色鏡面"], key="visual_theme")
     image=background_data()
     st.markdown("""
 <style>
@@ -55,4 +55,8 @@ def render_court_theme():
 
     if theme == "戰術板草圖":
         from tactics_theme import APP_CSS
+        st.markdown("<style>"+APP_CSS+"</style>",unsafe_allow_html=True)
+
+    if theme == "簡約淺色":
+        from light_theme import APP_CSS
         st.markdown("<style>"+APP_CSS+"</style>",unsafe_allow_html=True)

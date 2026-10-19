@@ -87,13 +87,15 @@ def pie_chart(rows, cat, names, ref):
     tooltip = [alt.Tooltip('球員:N'),alt.Tooltip('產量:Q',format='.1f'),alt.Tooltip('占比:Q',format='.1%'),alt.Tooltip('計分場次:Q')]
     if cat in ('FG','FT'):
         tooltip += [alt.Tooltip('命中率:Q',format='.1%'),alt.Tooltip('命中率Impact:Q',format='+.2f')]
-    arcs = base.mark_arc(innerRadius=48,outerRadius=95,stroke='#0b1020',strokeWidth=1).encode(tooltip=tooltip)
+    light = st.session_state.get('visual_theme') == '簡約淺色'
+    chart_bg = '#ffffff' if light else '#0b1020'
+    arcs = base.mark_arc(innerRadius=48,outerRadius=95,stroke=chart_bg,strokeWidth=1).encode(tooltip=tooltip)
     labels = base.mark_text(radius=73,size=11,color='#ffffff',fontWeight=600).encode(
         text=alt.condition('datum.占比 >= 0.08',alt.Text('占比:Q',format='.0%'),alt.value('')),color=alt.value('#ffffff'))
     center = value(totals(rows),cat) if cat in ('FG','FT') else total
     text = f'{center:.1%}' if cat in ('FG','FT') else f'{total:,.1f}'
-    middle = alt.Chart(pd.DataFrame([{'text':text}])).mark_text(color='#f1f5f9',fontSize=17,fontWeight=700).encode(text='text:N')
-    return (arcs+labels+middle).properties(height=220).configure_view(stroke=None).configure(background='#0b1020')
+    middle = alt.Chart(pd.DataFrame([{'text':text}])).mark_text(color='#243746' if light else '#f1f5f9',fontSize=17,fontWeight=700).encode(text='text:N')
+    return (arcs+labels+middle).properties(height=220).configure_view(stroke=None).configure(background=chart_bg)
 
 
 def render_dashboard():
@@ -193,7 +195,8 @@ def render_dashboard():
             st.caption('追趕者：'+'　 · 　'.join(f"{i+2}. {r['name']}（{r['score']:+.3f}）" for i,r in enumerate(scores[1:3])))
     else:
         st.info('🏆 本期尚無可評選的出賽紀錄。')
-    legend=' '.join('<span style="display:inline-flex;align-items:center;gap:5px;margin:3px 12px 3px 0;color:#edf3fb;font-size:12px"><span style="background:'+COLORS[i%len(COLORS)]+';width:9px;height:9px;border-radius:50%;display:inline-block"></span>'+html.escape(r['name'])+'</span>' for i,r in enumerate(rows))
+    legend_color = '#465a6a' if st.session_state.get('visual_theme') == '簡約淺色' else '#edf3fb'
+    legend=' '.join('<span style="display:inline-flex;align-items:center;gap:5px;margin:3px 12px 3px 0;color:'+legend_color+';font-size:12px"><span style="background:'+COLORS[i%len(COLORS)]+';width:9px;height:9px;border-radius:50%;display:inline-block"></span>'+html.escape(r['name'])+'</span>' for i,r in enumerate(rows))
     st.markdown(legend,unsafe_allow_html=True)
     chart_names=[r['name'] for r in rows]
     for offset in range(0,9,3):

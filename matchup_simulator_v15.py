@@ -1005,8 +1005,13 @@ def render_matchup_simulator(lite=False):
         from tactics_theme import COMPONENT_CSS
         CSS = COMPONENT_CSS.split(";",1)[0]+";"+CSS+COMPONENT_CSS.split(";",1)[1]
 
+    if st.session_state.get("visual_theme") == "簡約淺色":
+        from light_theme import COMPONENT_CSS
+        CSS += COMPONENT_CSS
+
+    theme_id = {"簡約淺色": "light", "戰術板草圖": "tactics"}.get(st.session_state.get("visual_theme"), "mirror")
     lineup = st.components.v2.component(
-        "fantasy_gm_matchup_lite" if lite else "fantasy_gm_integrated_9cat_v13",
+        ("fantasy_gm_matchup_lite" if lite else "fantasy_gm_integrated_9cat_v13") + "_" + theme_id,
         html=HTML, css=CSS, js=JS,
     )
     lineup(
