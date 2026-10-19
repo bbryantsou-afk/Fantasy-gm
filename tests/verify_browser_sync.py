@@ -33,6 +33,14 @@ for kind in ['missing','duplicate','date','league','position']:
  if kind=='position':bad['teams'][0]['rows'][0]['position']='UNKNOWN'
  try:validate_snapshot(bad,'7',date(2026,10,20),2);raise AssertionError(kind+' accepted')
  except ValueError:pass
+# Abbreviated Yahoo names must share the NBA identity, while ambiguous initials stay unmatched.
+from roster_import import match_rows
+naw={'ID':'478.p.99','First Name':'N.','Last Name':'Alexander-Walker','Team ID':'478.l.7.t.1','Position':'SG','Eligible Positions':'PG,SG'}
+naw_players=[{'PLAYER_ID':1629638,'PLAYER_NAME':'Nickeil Alexander-Walker','TEAM_ABBREVIATION':'ATL'}]
+matched,_=match_rows([naw],naw_players,[])
+assert matched[0]['id']=='1629638' and matched[0]['name']=='Nickeil Alexander-Walker' and matched[0]['matched']
+ambiguous=naw_players+[{'PLAYER_ID':999,'PLAYER_NAME':'Nathan Alexander-Walker','TEAM_ABBREVIATION':'ATL'}]
+assert not match_rows([naw],ambiguous,[])[0][0]['matched']
 assert extension_zip().startswith(b'PK')
 app=AppTest.from_file(str(ROOT/'app.py'),default_timeout=60).run()
 app.sidebar.radio[0].set_value('聯盟同步 League Sync').run();assert not app.exception,app.exception

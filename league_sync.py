@@ -117,7 +117,7 @@ def render_sync_connection(full=False):
     if result:
         try:
             payload=result['snapshot'];raw=validate_snapshot(payload,source,day,len(league['teams']))
-            token=hashlib.sha256(json.dumps(payload,sort_keys=True).encode()).hexdigest()
+            token=hashlib.sha256(('name-match-v2:'+json.dumps(payload,sort_keys=True)).encode()).hexdigest()
             if token!=st.session_state.get('_sync_applied_token'):
                 rows,pool=match_snapshot(raw,snapshot['players'],entries)
                 remembered=league.get('sync_mapping') if league.get('sync_league')==source else result.get('mapping',{})
@@ -156,9 +156,12 @@ def render_sync():
     if archives:
         st.markdown('### 已同步的每日陣容')
         selected=st.selectbox('查看已保存日期',sorted(archives,reverse=True),key='sync_view_date');saved=archives[selected]
+        st.caption('日期以美東比賽日為準。要看當天陣容，先在上方選日期並同步，再在這裡選相同日期。PG～Util 為先發，BN 為板凳，IL 為傷兵。')
         st.caption('讀取時間：'+saved['captured_at']+'。這是當時快照，並非已驗證的最終鎖定紀錄。')
+        selected_team=st.selectbox('查看當日球隊',['全部球隊']+list(saved['teams']),format_func=team_formatter(),key='sync_daily_team')
         table=[]
         for team,rows in saved['teams'].items():
+            if selected_team!='全部球隊' and team!=selected_team:continue
             for r in rows:table.append({'隊伍':team_label(team),'席次':r.get('slot',r['status']),'球員':r['name'],'NBA':r.get('team',''),'位置':'/'.join(r.get('eligible',[]))})
         st.dataframe(table,hide_index=True,width="stretch")
         st.download_button('下載完整同步備份',json.dumps(league,ensure_ascii=False,indent=2),'league_sync_backup.json','application/json')

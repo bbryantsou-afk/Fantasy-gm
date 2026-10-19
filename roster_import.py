@@ -42,10 +42,19 @@ def match_rows(rows,players,entries):
         pool['name:'+norm(e['name'])]={'id':None,'name':e['name'],'team':m.group(1) if m else ''}
     index={}
     for k,p in pool.items():index.setdefault(name_key(p['name']),[]).append(k)
+    # Yahoo sometimes shows a first initial; accept only a unique full-surname match.
+    abbreviated={}
+    for k,p in pool.items():
+        first,_,last=p['name'].partition(' ')
+        if first and last:abbreviated.setdefault((first[0].lower(),name_key(last)),[]).append(k)
     result=[]
     for r in rows:
         name=str(r['First Name']).strip()+' '+str(r['Last Name']).strip()
-        hits=index.get(name_key(name),[]);p=pool[hits[0]] if len(hits)==1 else {'id':None,'name':name,'team':''}
+        hits=index.get(name_key(name),[])
+        first=str(r['First Name']).strip()
+        if not hits and re.fullmatch(r'[A-Za-z]\.?',first):
+            hits=abbreviated.get((first[0].lower(),name_key(str(r['Last Name']))),[])
+        p=pool[hits[0]] if len(hits)==1 else {'id':None,'name':name,'team':''}
         pos=str(r['Position']);eligible=[x for x in str(r['Eligible Positions']).split(',') if x in ['PG','SG','SF','PF','C']]
         result.append(dict(p,eligible=eligible,status='IL' if pos in ['IL','IL+','IR','IR+'] else 'bench' if pos=='BN' else 'active',games=1,
             yahoo_id=r['ID'],source_team=r['Team ID'],source_name=r.get('Team Name',r['Team ID']),matched=len(hits)==1))
