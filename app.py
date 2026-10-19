@@ -118,6 +118,11 @@ if page not in ("9-Cat Strategy", "總覽 Dashboard", "模擬對局 Matchup Simu
         "不是你的 Yahoo 球隊，也不代表最新球季統計。"
     )
 
+from league_sync import render_sync_connection
+render_sync_connection(full=page == "聯盟同步 League Sync")
+from roster_store import render_roster_source
+render_roster_source()
+
 if page == "總覽 Dashboard":
     from dashboard_overview import render_dashboard
     render_dashboard()

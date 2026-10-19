@@ -67,7 +67,7 @@ chrome.runtime.onConnect.addListener(port=>{
         if(m.enabled){await chrome.alarms.create(name,{periodInMinutes:30});}else{await chrome.alarms.clear(name);}
         send({kind:'scheduled',message:m.enabled?'已開啟：瀏覽器運作時每 30 分鐘檢查一次。':'已關閉自動檢查。'});
       }else if(m.action==='status'){
-        send({kind:'status',savedDates:Object.keys(stored.snapshots||{}).sort(),lastSuccess:stored.lastSuccess,lastError:stored.lastError,auto:!!(await chrome.alarms.get('sync_'+m.league))});
+        send({kind:'status',savedDates:Object.keys(stored.snapshots||{}).sort(),selectedCapturedAt:stored.snapshots?.[m.date]?.capturedAt,lastSuccess:stored.lastSuccess,lastError:stored.lastError,auto:!!(await chrome.alarms.get('sync_'+m.league))});
       }
     }catch(e){send({kind:'error',message:e.message||'同步失敗，未更新 App。'});}
   });

@@ -1,27 +1,45 @@
 <!doctype html><html><head><meta charset="utf-8"><style>
 body{font:14px system-ui;margin:0;color:var(--text-color,#222)}button{padding:12px 16px;border:1px solid #9aa6b2;border-radius:8px;margin:4px;background:#fff;color:#172b3a;cursor:pointer}button:disabled{opacity:.5}#status{padding:8px;white-space:pre-wrap}label{display:block;margin:8px}small{display:block;color:#687888}
-</style></head><body><div><button id="sync" disabled>同步指定日期</button><button id="cached" disabled>讀取此瀏覽器已保存的名單</button></div><label><input id="auto" type="checkbox" disabled>瀏覽器運作時，每 30 分鐘自動檢查今天的名單</label><div id="status">正在檢查同步擴充功能…</div><small>只讀取陣容，不會加退球員或修改先發。登入過期時需重新登入 Yahoo。自動檢查的資料保存在此瀏覽器。</small><script>
-const channel='fantasy-gm-sync-v1';let args={},ready=false,current='',lastMapped='',lastReceived='';
+</style></head><body><div><button id="sync" disabled>同步指定日期</button><button id="cached" disabled>讀取此瀏覽器已保存的名單</button></div><label><input id="auto" type="checkbox" disabled>瀏覽器運作時，每 30 分鐘自動檢查今天的名單</label><div id="status">正在檢查同步擴充功能…</div><small>只讀取陣容，不會加退球員或修改先發。登入過期時需重新登入 Yahoo。資料取得與網站套用會分別顯示。</small><script>
+const channel='fantasy-gm-sync-v1';let args={},ready=false,lastMapped='',received={},pendingKey='',busy=false;
 const status=document.querySelector('#status');
 function parentMessage(type,more={}){window.parent.postMessage({isStreamlitMessage:true,type,...more},'*');}
-function request(action,extra={}){const requestId=crypto.randomUUID();current=requestId;window.postMessage({channel,requestId,action,league:args.league,date:args.date,...extra},location.origin);return requestId;}
+function request(action,extra={}){const requestId=crypto.randomUUID();window.postMessage({channel,requestId,action,league:args.league,date:args.date,...extra},location.origin);return requestId;}
+function currentKey(){return args.league+'|'+args.date;}
+function mapping(){if(args.mapping && JSON.stringify(args.mapping)!==lastMapped){lastMapped=JSON.stringify(args.mapping);request('mapping',{mapping:args.mapping});}}
+function appliedText(){return args.applied?.date===args.date?args.applied.message:'';}
 window.addEventListener('message',e=>{
  if(e.source===window.parent && e.data?.type==='streamlit:render'){
-  args=e.data.args||{};if(e.data.theme?.textColor)document.body.style.color=e.data.theme.textColor;document.querySelector('#sync').textContent='同步 '+args.date;
-  if(args.mapping && JSON.stringify(args.mapping)!==lastMapped && ready){lastMapped=JSON.stringify(args.mapping);request('mapping',{mapping:args.mapping});}
-  if(!ready)request('hello');return;
+  const previous=currentKey();args=e.data.args||{};
+  if(e.data.theme?.textColor)document.body.style.color=e.data.theme.textColor;
+  document.querySelector('#sync').textContent='同步 '+args.date;
+  if(ready){mapping();if(previous!==currentKey())request('status');if(appliedText())status.textContent=appliedText();}
+  else request('hello');return;
  }
  if(e.source!==window || e.origin!==location.origin || e.data?.channel!=='fantasy-gm-sync-extension-v1')return;
  const m=e.data;
- if(m.kind==='ready'){ready=true;document.querySelectorAll('button,input').forEach(x=>x.disabled=false);status.textContent='擴充功能已連線。首次同步後請確認隊伍配對。';request('status');return;}
- if(m.kind==='status'){if(m.lastSuccess && m.lastSuccess!==lastReceived && m.savedDates.includes(args.date)){lastReceived=m.lastSuccess;request('cached');}document.querySelector('#auto').checked=!!m.auto;status.textContent=m.lastError?'上次自動同步未成功：'+m.lastError:m.lastSuccess?'上次成功：'+m.lastSuccess+'\n已保存日期：'+m.savedDates.join('、'):'尚未同步';return;}
+ if(m.kind==='ready'){ready=true;document.querySelectorAll('button,input').forEach(x=>x.disabled=false);status.textContent='擴充功能已連線，檢查已保存的今天名單…';mapping();request('status');return;}
+ if(m.kind==='status'){
+  document.querySelector('#auto').checked=!!m.auto;
+  const captured=m.selectedCapturedAt||m.lastSuccess;
+  if(!busy && captured && received[currentKey()]!==captured && m.savedDates.includes(args.date)){pendingKey=currentKey();request('cached');}
+  status.textContent=m.lastError?'上次讀取未成功：'+m.lastError:appliedText()|| (captured?'瀏覽器已保存資料，尚未確認網站套用。':'此瀏覽器尚未保存 '+args.date+' 名單，請按同步。');return;
+ }
  if(m.kind==='progress'){status.textContent=m.message;return;}
- if(m.kind==='result'){lastReceived=m.snapshot.capturedAt;document.querySelectorAll('button').forEach(x=>x.disabled=false);status.textContent='已取得 '+m.snapshot.teams.length+' 隊，正在檢查資料…';parentMessage('streamlit:setComponentValue',{value:{requestId:m.requestId,snapshot:m.snapshot,mapping:m.mapping||{}},dataType:'json'});return;}
- if(['error','mapped','scheduled'].includes(m.kind)){status.textContent=m.message;document.querySelectorAll('button').forEach(x=>x.disabled=false);}
+ if(m.kind==='result'){
+  busy=false;document.querySelectorAll('button').forEach(x=>x.disabled=false);
+  if(m.snapshot.league!==args.league || m.snapshot.date!==args.date)return;
+  received[currentKey()]=m.snapshot.capturedAt;
+  status.textContent='已讀取 '+m.snapshot.teams.length+' 隊，等待網站驗證／套用；這還不是套用成功。';
+  parentMessage('streamlit:setComponentValue',{value:{requestId:m.requestId,snapshot:m.snapshot,mapping:m.mapping||{}},dataType:'json'});return;
+ }
+ if(m.kind==='error'){busy=false;status.textContent=m.message;document.querySelectorAll('button').forEach(x=>x.disabled=false);return;}
+ if(m.kind==='mapped'){status.textContent=appliedText()||m.message;return;}
+ if(m.kind==='scheduled')status.textContent=m.message;
 });
-for(const action of ['sync','cached'])document.querySelector('#'+action).onclick=()=>{document.querySelectorAll('button').forEach(x=>x.disabled=true);status.textContent='正在連線…';request(action);};
+for(const action of ['sync','cached'])document.querySelector('#'+action).onclick=()=>{busy=true;document.querySelectorAll('button').forEach(x=>x.disabled=true);status.textContent='正在連線…';request(action);};
 document.querySelector('#auto').onchange=e=>request('schedule',{enabled:e.target.checked});
 parentMessage('streamlit:componentReady',{apiVersion:1});parentMessage('streamlit:setFrameHeight',{height:230});
-setInterval(()=>{if(ready && document.visibilityState==='visible')request('status');},60000);
-setTimeout(()=>{if(!ready)status.textContent='尚未偵測到擴充功能。請展開「首次安裝／同步說明」安裝，並重新整理這個網站。';},2500);
+setInterval(()=>{if(ready && !busy && document.visibilityState==='visible')request('status');else if(!ready)request('hello');},60000);
+setTimeout(()=>{if(!ready)status.textContent='尚未偵測到擴充功能。請用已安裝擴充功能的同一個 Chrome 開啟網站。';},2500);
 </script></body></html>

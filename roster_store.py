@@ -17,7 +17,7 @@ def state(entries):
             m=re.match(r'\((\w+)\s*-\s*([^)]*)',e.get('position',''))
             teams.setdefault(e['fantasyTeam'],[]).append({'id':str(e['playerId']) if e.get('playerId') is not None else None,
                 'name':e['name'],'team':m.group(1) if m else '', 'eligible':m.group(2).split(',') if m else [],'status':'active','games':1})
-        data={'teams':teams,'free':[],'capacity':14,'revision':0}
+        data={'teams':teams,'free':[],'capacity':14,'revision':0,'roster_sources':{t:{'kind':'draft'} for t in teams}}
         try:
             saved=json.loads(private_path(FILE).read_text())
             if set(saved.get('teams',{}))==set(teams): data.update(saved)
@@ -74,6 +74,8 @@ def save_team(entries,team,rows):
     for other in data['teams']:
         if other!=team:data['teams'][other]=[r for r in data['teams'][other] if identity(r) not in incoming]
     data['teams'][team]=copy.deepcopy(rows)
+    from datetime import datetime,timezone
+    data.setdefault('roster_sources',{})[team]={'kind':'manual','updated_at':datetime.now(timezone.utc).isoformat()}
     data['free']=[k for k in data['free'] if k not in incoming]
     st.session_state['nc_roster']=copy.deepcopy(rows)
     st.session_state['sim_my_players']=[r['name'] for r in rows if r.get('status')!='IL']
@@ -108,3 +110,23 @@ def editor(entries,players,team,key='shared'):
                 updated.append(dict(r,eligible=pos))
             if st.form_submit_button('儲存位置資格'):
                 save_team(entries,team,updated);st.rerun()
+
+
+def render_roster_source():
+    from ninecat_strategy import load_data
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    _,entries=load_data();league=state(entries);team=active_team(entries)
+    rows=roster(entries,team);source=league.get('roster_sources',{}).get(team,{})
+    kind=source.get('kind','draft')
+    count=f"{len(rows)} 人／IL {sum(r.get('status')=='IL' for r in rows)} 人"
+    if kind=='draft':
+        st.warning(f'{team} · {count} · 目前仍是選秀初始名單，尚未套用 Yahoo 最新名單。請到「聯盟同步」同步或完成首次配對。')
+    else:
+        label={'yahoo':'Yahoo 同步','manual':'手動調整','file':'檔案匯入'}.get(kind,'私人名單')
+        stamp=source.get('updated_at','')
+        try:stamp=datetime.fromisoformat(stamp.replace('Z','+00:00')).astimezone(ZoneInfo('Asia/Taipei')).strftime('%m/%d %H:%M')+' 台灣時間'
+        except (ValueError,AttributeError):pass
+        source_team=source.get('source_team','').split(':')[-1]
+        team_label=f'Yahoo 隊伍 {source_team} → {team}' if kind=='yahoo' and source_team else team
+        st.caption(f"名單來源：{label} · {team_label} · {count} · 陣容日期 {source.get('date','未指定')} · 最後套用 {stamp or '未記錄'}")

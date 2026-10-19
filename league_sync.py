@@ -72,6 +72,8 @@ def apply_snapshot(league,rows,mapping,payload,today):
     new['sync_updated_at']=captured
     # Only today's roster becomes the shared current roster; history never changes ownership today.
     if day!=str(today):new['teams']=copy.deepcopy(league['teams']);new['free']=copy.deepcopy(league['free'])
+    if day==str(today):
+        new['roster_sources']={t:{'kind':'yahoo','updated_at':captured,'date':day,'league':source,'source_team':k} for k,t in mapping.items()}
     new['import_source']='Yahoo browser snapshot';return new
 
 def extension_zip():
@@ -81,22 +83,35 @@ def extension_zip():
             if p.is_file() and p.suffix in ['.json','.js','.md']:z.write(p,'fantasy-gm-sync/'+p.name)
     return buf.getvalue()
 
-def render_sync():
-    st.subheader('🔄 聯盟同步 · 每日陣容')
+def render_sync_connection(full=False):
+    """Always mounted before every analysis page so a fresh cloud session restores its private cache."""
     snapshot,entries=load_data();league=state(entries)
     today=datetime.now(ZoneInfo('America/New_York')).date()
-    source=st.text_input('Yahoo 聯盟 ID',value=str(league.get('sync_league','71585')),key='sync_league_input').strip()
-    day=st.date_input('陣容日期（美東）',value=today,min_value=date(2025,1,1),max_value=today,key='sync_roster_day')
-    st.caption('同步目前可見的指定日期陣容。今天的資料可能隨排陣改變，不能視為最終鎖定陣容；歷史快照保留讀取時間。')
-    with st.expander('首次安裝／同步說明',expanded=False):
-        st.download_button('下載同步擴充功能 ZIP',extension_zip(),'fantasy-gm-sync.zip','application/zip')
-        st.markdown('1. 解壓縮 ZIP。\n2. 在桌面 Chrome 開啟 `chrome://extensions`，開啟「開發人員模式」。\n3. 按「載入未封裝項目」，選取含 manifest.json 的 fantasy-gm-sync 資料夾。\n4. 在同一個 Chrome 登入 Yahoo，再開啟這個 App，重新整理後按同步。')
-        st.caption('首次需要你安裝並授權；手機可查看已匯入的工作階段資料，無法執行這個 Chrome 擴充功能。擴充功能只支援目前正式站與本機 8501；換網站需更新來源清單。')
-        st.caption('自動檢查最多保留最近 14 個日期於此瀏覽器。網站名單仍屬私人工作階段；重開後可按「讀取已保存名單」還原所選日期。請另下載備份。')
-    if not re.fullmatch(r'\d{1,10}',source):st.info('請輸入 Yahoo 網址 /nba/ 後方的數字聯盟 ID。');return
-    st.link_button('先登入／查看 Yahoo 聯盟',f'https://basketball.fantasysports.yahoo.com/nba/{source}')
-    ack=st.session_state.get('_sync_mapping_ack')
-    result=bridge(league=source,date=str(day),mapping=ack if ack and league.get('sync_league')==source else None,key='yahoo_browser_bridge',default=None)
+    if full:
+        st.subheader('🔄 聯盟同步 · 每日陣容')
+        source=st.text_input('Yahoo 聯盟 ID',value=str(st.session_state.get('_sync_requested_league',league.get('sync_league','71585'))),key='sync_league_input').strip()
+        st.session_state['_sync_requested_league']=source
+        day=st.date_input('陣容日期（美東）',value=today,min_value=date(2025,1,1),max_value=today,key='sync_roster_day')
+        st.caption('今天的資料可能隨排陣改變；歷史日期只保存快照，不取代目前持有名單。')
+        with st.expander('首次安裝／同步說明',expanded=False):
+            st.download_button('下載同步擴充功能 ZIP',extension_zip(),'fantasy-gm-sync.zip','application/zip')
+            st.markdown('1. 解壓縮 ZIP。\n2. 在桌面 Chrome 開啟 `chrome://extensions`，開啟「開發人員模式」。\n3. 按「載入未封裝項目」，選取含 manifest.json 的 fantasy-gm-sync 資料夾。\n4. 在同一個 Chrome 登入 Yahoo，再開啟這個 App，重新整理後按同步。')
+            st.caption('網站修正相容既有 0.1.0 擴充功能，不需重裝。下載包為 0.1.1；需要更新時替換資料夾並在 chrome://extensions 重新載入。')
+            st.caption('本機保存最近 14 個日期。網站重開後會自動讀取此瀏覽器已保存的今天名單；若沒有今天快照，請按同步。')
+        if re.fullmatch(r'\d{1,10}',source):st.link_button('先登入／查看 Yahoo 聯盟',f'https://basketball.fantasysports.yahoo.com/nba/{source}')
+    else:
+        source=str(st.session_state.get('_sync_requested_league',league.get('sync_league','71585')))
+        day=today
+    if not re.fullmatch(r'\d{1,10}',source):
+        if full:st.info('請輸入 Yahoo 網址 /nba/ 後方的數字聯盟 ID。')
+        return
+    ack=st.session_state.get('_sync_mapping_ack') or (league.get('sync_mapping') if league.get('sync_league')==source else None)
+    args=dict(league=source,date=str(day),mapping=ack,compact=not full,applied=st.session_state.get('_sync_browser_ack'),key='yahoo_browser_bridge',default=None)
+    if full:result=bridge(**args)
+    else:
+        with st.expander('名單同步狀態／立即更新',expanded=False):
+            st.caption('全站共用同一個同步接收器。已在此瀏覽器完成配對後，重新連線會自動載入已保存的今天名單。')
+            result=bridge(**args)
     if result and isinstance(result,dict) and result.get('snapshot',{}).get('date')!=str(day):
         result=None  # Previous component value while the date selector changes.
     if result:
@@ -111,7 +126,11 @@ def render_sync():
                     new=apply_snapshot(league,rows,remembered,payload,today)
                     st.session_state['_league']=new;persist(new);st.session_state['_sync_applied_token']=token;st.session_state.pop('nc_roster',None)
                     st.success(f'已同步 {len(rows)} 人 · {day}。'+('今天名單已更新。' if day==today else '已保存歷史日期，今天名單未變更。'))
+                    st.session_state['_sync_browser_ack']={'capturedAt':payload['capturedAt'],'date':str(day),'message':f'網站已套用：{len(rows)} 人 · {day}'}
                     league=new
+                    st.session_state['_sync_mapping_ack']=remembered
+                elif not full:
+                    st.warning('已取得新名單，但尚未確認隊伍配對。請進入「聯盟同步」完成首次確認；目前名單尚未更新。')
                 else:
                     st.info('首次同步請確認隊伍配對，之後按同步即可自動套用。')
                     defaults=suggested_mapping(rows,league);mapping={};targets=list(league['teams'])
@@ -122,8 +141,17 @@ def render_sync():
                     st.download_button('先備份現有名單',json.dumps(league,ensure_ascii=False,indent=2),'league_before_sync.json','application/json')
                     if st.button('確認隊伍配對並完成首次同步'):
                         st.session_state['_league']=preview;persist(preview);st.session_state['_sync_mapping_ack']=mapping
-                        st.session_state['_sync_applied_token']=token;st.session_state.pop('nc_roster',None);st.rerun()
-        except (ValueError,TypeError,KeyError,AttributeError) as exc:st.error('同步未套用：'+str(exc))
+                        st.session_state['_sync_applied_token']=token;st.session_state['_sync_browser_ack']={'capturedAt':payload['capturedAt'],'date':str(day),'message':f'網站已套用：{len(rows)} 人 · {day}'};st.session_state.pop('nc_roster',None);st.rerun()
+        except (ValueError,TypeError,KeyError,AttributeError) as exc:
+            st.error('同步未套用：'+str(exc))
+            st.session_state['_sync_browser_ack']={'date':str(day),'message':'網站未套用：'+str(exc)}
+
+    return state(entries)
+
+
+def render_sync():
+    # The receiver and first-time mapping UI render globally in app.py before page dispatch.
+    _,entries=load_data();league=state(entries)
     archives=league.get('daily_rosters',{})
     if archives:
         st.markdown('### 已同步的每日陣容')

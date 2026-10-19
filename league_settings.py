@@ -29,6 +29,12 @@ def validate_backup(data,teams,allow_history=True):
         if not isinstance(k,str) or not isinstance(v,dict) or not isinstance(v.get('eligible',[]),list) or any(p not in ['PG','SG','SF','PF','C'] for p in v.get('eligible',[])):raise ValueError('球員位置設定不符。')
         if not isinstance(v.get('team',''),str) or len(v.get('team',''))>3:raise ValueError('NBA 隊伍格式不符。')
     output={'player_meta':copy.deepcopy(meta),'teams':copy.deepcopy(data['teams']),'free':list(set(free)),'capacity':cap,'revision':int(data.get('revision',0))}
+    sources=data.get('roster_sources',{})
+    if not isinstance(sources,dict):raise ValueError('名單來源格式不符。')
+    output['roster_sources']={}
+    for team,meta in sources.items():
+        if team not in teams or not isinstance(meta,dict) or meta.get('kind') not in ['draft','yahoo','manual','file']:raise ValueError('名單來源格式不符。')
+        output['roster_sources'][team]={k:str(v)[:120] for k,v in meta.items() if k in ['kind','updated_at','date','league','source_team']}
     if allow_history and data.get('daily_rosters'):
         from datetime import date
         archives=data['daily_rosters']

@@ -1,14 +1,35 @@
 {
   "manifest_version": 3,
   "name": "Fantasy GM 私人聯盟同步",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "按下同步後，以已登入的 Yahoo 網頁唯讀取得指定日期陣容，不傳送登入憑證。",
-  "permissions": ["storage", "scripting", "alarms"],
-  "host_permissions": ["https://basketball.fantasysports.yahoo.com/*"],
-  "background": {"service_worker": "background.js"},
-  "content_scripts": [{
-    "matches": ["https://fantasy-gm-bgjfjwjnxx8mbxjvajm2nk.streamlit.app/*", "http://localhost:8501/*", "http://127.0.0.1:8501/*"],
-    "js": ["bridge.js"], "all_frames": true, "match_about_blank": true, "run_at": "document_start"
-  }],
-  "action": {"default_title": "在 Fantasy GM 的聯盟同步頁操作"}
+  "permissions": [
+    "storage",
+    "scripting",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://basketball.fantasysports.yahoo.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://fantasy-gm-bgjfjwjnxx8mbxjvajm2nk.streamlit.app/*",
+        "http://localhost:8501/*",
+        "http://127.0.0.1:8501/*"
+      ],
+      "js": [
+        "bridge.js"
+      ],
+      "all_frames": true,
+      "match_about_blank": true,
+      "run_at": "document_start"
+    }
+  ],
+  "action": {
+    "default_title": "在 Fantasy GM 的聯盟同步頁操作"
+  }
 }

@@ -64,6 +64,8 @@ def build_import(league,rows,mapping):
     new['free']=[k for k in new['free'] if k not in owned]
     from league_settings import validate_backup
     new=validate_backup(new,league['teams'])
+    new['roster_sources']=copy.deepcopy(league.get('roster_sources',{}))
+    for t in mapping.values():new['roster_sources'][t]={'kind':'file','updated_at':datetime.now(timezone.utc).isoformat()}
     new['imported_at']=datetime.now(timezone.utc).isoformat()
     new['import_source']='Fantasy Helper Roster'
     return new
