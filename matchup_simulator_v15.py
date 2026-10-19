@@ -1001,6 +1001,10 @@ def render_matchup_simulator(lite=False):
         CSS += LITE_CSS
         JS = enhance_lite(JS)
 
+    if st.session_state.get("visual_theme") == "戰術板草圖":
+        from tactics_theme import COMPONENT_CSS
+        CSS = COMPONENT_CSS.split(";",1)[0]+";"+CSS+COMPONENT_CSS.split(";",1)[1]
+
     lineup = st.components.v2.component(
         "fantasy_gm_matchup_lite" if lite else "fantasy_gm_integrated_9cat_v13",
         html=HTML, css=CSS, js=JS,
