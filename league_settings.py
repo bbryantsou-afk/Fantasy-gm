@@ -31,7 +31,10 @@ def validate_backup(data,teams):
     return {'player_meta':copy.deepcopy(meta),'teams':copy.deepcopy(data['teams']),'free':list(set(free)),'capacity':cap,'revision':int(data.get('revision',0))}
 
 def render_league_settings():
-    _,entries=load_data();data=state(entries)
+    snapshot,entries=load_data()
+    from roster_import import render_import
+    render_import(snapshot['players'],entries)
+    data=state(entries)
     with st.expander('聯盟名單與備份',expanded=False):
         cap=st.number_input('一般名單席次（另有 3 個 IL）',10,25,int(data['capacity']),key='league_capacity')
         if st.button('儲存席次'):
