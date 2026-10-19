@@ -110,20 +110,10 @@ def render_dashboard():
     default_day = first
     schedule = {}
     today = datetime.now(ZoneInfo('America/New_York')).date()
-    teams = list(dict.fromkeys(e['fantasyTeam'] for e in entries))
-    choice = st.selectbox('查看球隊',teams+['我的9-Cat自訂名單'],key='dash_team')
-    if choice == '我的9-Cat自訂名單':
-        custom = st.session_state.get('nc_roster')
-        if custom is None and private_path(STATE).exists():
-            try:
-                custom = json.loads(private_path(STATE).read_text(encoding='utf-8')).get('roster',[])
-            except (OSError,ValueError):
-                custom = []
-        team_by_name = {norm(r['name']):r['team'] for t in teams for r in draft_roster(entries,t)}
-        old_team = {norm(p['PLAYER_NAME']):p['TEAM_ABBREVIATION'] for p in players}
-        roster = [{**r,'team':team_by_name.get(norm(r['name']),old_team.get(norm(r['name']),''))} for r in custom or []]
-    else:
-        roster = draft_roster(entries,choice)
+    from roster_store import choose_team,roster as shared_roster,editor
+    choice=choose_team(entries,'dash_team','查看球隊／我的球隊')
+    editor(entries,players,choice,'dashboard_roster')
+    roster=shared_roster(entries,choice)
     if not roster:
         st.info('目前沒有名單；請先到9-Cat分頁載入或建立我的球隊。')
         return

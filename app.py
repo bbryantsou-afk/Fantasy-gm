@@ -92,11 +92,12 @@ with st.sidebar:
     page = st.radio(
         "功能選單",
         ["總覽 Dashboard", "球員觀察室 Player Watch",
-         "每週補強 Weekly Planner", "交易分析 Trade Lab", "Yahoo API 設定",
-     "9-Cat Strategy", "模擬對局 Matchup Simulator", "Matchup Simulator Lite"]
+         "每週補強 Weekly Planner", "交易分析 Trade Lab",
+     "9-Cat Strategy", "模擬對局 Matchup Simulator", "Matchup Simulator Lite", "⚙️ 設定"],
+        index=7 if st.query_params.get("code") or st.query_params.get("error") else 0
     )
     st.divider()
-    if page in ("9-Cat Strategy", "總覽 Dashboard", "模擬對局 Matchup Simulator", "Matchup Simulator Lite", "球員觀察室 Player Watch", "每週補強 Weekly Planner", "交易分析 Trade Lab"):
+    if page in ("9-Cat Strategy", "總覽 Dashboard", "模擬對局 Matchup Simulator", "Matchup Simulator Lite", "⚙️ 設定", "球員觀察室 Player Watch", "每週補強 Weekly Planner", "交易分析 Trade Lab"):
         st.caption("2025–26 場均／2026–27 期間分析")
         st.caption("本機名單分析，不會操作 Yahoo")
     else:
@@ -111,7 +112,7 @@ else:
 import os,sys
 if os.environ.get("FANTASY_GM_STORAGE_MODE","local" if sys.platform=="darwin" else "session")=="session":
     st.caption("雲端設定只保留於本次工作階段；重新部署或重開連線可能重置。重要名單請下載備份。")
-if page not in ("9-Cat Strategy", "總覽 Dashboard", "模擬對局 Matchup Simulator", "Matchup Simulator Lite", "球員觀察室 Player Watch", "每週補強 Weekly Planner", "交易分析 Trade Lab"):
+if page not in ("9-Cat Strategy", "總覽 Dashboard", "模擬對局 Matchup Simulator", "Matchup Simulator Lite", "⚙️ 設定", "球員觀察室 Player Watch", "每週補強 Weekly Planner", "交易分析 Trade Lab"):
     st.info(
         "示範模式：目前資料僅用於測試網站功能，"
         "不是你的 Yahoo 球隊，也不代表最新球季統計。"
@@ -133,7 +134,13 @@ elif page == "交易分析 Trade Lab":
     from team_workbench import render_trades
     render_trades()
 
-elif page == "Yahoo API 設定":
+elif page == "⚙️ 設定":
+    st.subheader('⚙️ 設定')
+    from court_theme import render_theme_settings
+    render_theme_settings()
+    from league_settings import render_league_settings
+    render_league_settings()
+    st.divider()
     st.subheader("Yahoo Fantasy Sports API")
     st.write("連接你的 Yahoo Fantasy Basketball 帳號。")
 
@@ -249,5 +256,5 @@ elif page == "Matchup Simulator Lite":
 elif page == "模擬對局 Matchup Simulator":
     render_matchup_simulator()
 st.divider()
-st.caption("Fantasy NBA GM · 9-Cat 整合版" if page in ("9-Cat Strategy", "總覽 Dashboard", "模擬對局 Matchup Simulator", "Matchup Simulator Lite", "球員觀察室 Player Watch", "每週補強 Weekly Planner", "交易分析 Trade Lab") else "Fantasy NBA GM · Demo Version 0.2")
+st.caption("Fantasy NBA GM · 9-Cat 整合版" if page in ("9-Cat Strategy", "總覽 Dashboard", "模擬對局 Matchup Simulator", "Matchup Simulator Lite", "⚙️ 設定", "球員觀察室 Player Watch", "每週補強 Weekly Planner", "交易分析 Trade Lab") else "Fantasy NBA GM · Demo Version 0.2")
 

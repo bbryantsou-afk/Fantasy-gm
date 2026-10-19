@@ -33,18 +33,8 @@ def star_picker(players,key):
     return selected
 
 def choose_roster(entries,key):
-    teams=list(dict.fromkeys(e['fantasyTeam'] for e in entries))
-    options=['我的9-Cat名單']+teams
-    chosen=st.selectbox('我的球隊',options,index=0 if st.session_state.get('nc_roster') or private_path(STATE).exists() else 1,key=key)
-    if chosen=='我的9-Cat名單':
-        rows=st.session_state.get('nc_roster')
-        if rows is None:
-            try:
-                rows=json.loads(private_path(STATE).read_text()).get('roster',[])
-            except (OSError,ValueError):
-                rows=[]
-        return [dict(r) for r in rows or []]
-    return [dict(r,games=1) for r in draft_roster(entries,chosen)]
+    from roster_store import choose_team,roster
+    return roster(entries,choose_team(entries,key))
 
 def profiles(players,entries):
     draft={str(e['playerId']):e for e in entries if e.get('playerId') is not None}
@@ -55,6 +45,19 @@ def profiles(players,entries):
         positions=set(match.group(2).split(',')) if match else set()
         out[str(p['PLAYER_ID'])]={**p,'team':match.group(1) if match else p['TEAM_ABBREVIATION'],
                                   'eligible':positions,'fantasyTeam':e.get('fantasyTeam','未在原始選秀名單'),'draft_round':e.get('round')}
+    from roster_store import state, identity
+    league=state(entries)
+    for k,meta in league.get('player_meta',{}).items():
+        if k in out:
+            out[k]['team']=meta.get('team') or out[k]['team']
+            out[k]['eligible']=set(meta.get('eligible',out[k]['eligible']))
+    for team,rows in league['teams'].items():
+        for r in rows:
+            k=identity(r)
+            if k in out:
+                out[k]['team']=r.get('team') or out[k]['team']
+                out[k]['fantasyTeam']=team
+                if r.get('eligible'):out[k]['eligible']=set(r['eligible'])
     return out
 
 def news_tone(title):
@@ -84,27 +87,40 @@ def player_bio(pid):
     return frames[0].to_dict('records')[0] if not frames[0].empty else {}
 
 def render_watchroom():
+    from roster_store import active_team,ownership,availability,editor,identity
     st.subheader('⭐ 球員觀察室')
-    snapshot,entries=load_data()
-    players=snapshot['players']
+    snapshot,entries=load_data();players=snapshot['players']
+    roster=choose_roster(entries,'watch_team');team=active_team(entries)
+    editor(entries,players,team,'watch_roster')
     pool=profiles(players,entries)
-    roster=choose_roster(entries,'watch_team')
     with st.expander('管理加星名單'):
         star_picker(players,'watch_stars')
         st.download_button('下載加星名單備份',json.dumps({'ids':load_stars()}),'player_watchlist.json','application/json')
-    ids=list(dict.fromkeys([str(r.get('id')) if r.get('id') is not None else 'missing:'+norm(r['name']) for r in roster]+load_stars()))
-    names={str(r.get('id')) if r.get('id') is not None else 'missing:'+norm(r['name']):r['name'] for r in roster}
-    st.caption('自動整理所選球隊＋已儲存加星名單。NBA隊伍／位置依選秀對照；場均為2025–26，不是本週實績。')
-    records=[{'球員':pool[k]['PLAYER_NAME'] if k in pool else names.get(k,'未知球員'),
-              '追蹤':('我的球員 ' if k in names else '')+('⭐' if k in load_stars() else ''),
-              'NBA隊伍（對照）':pool[k]['team'] if k in pool else '待確認',
-              '位置（對照）':','.join(sorted(pool[k]['eligible'])) or '待確認' if k in pool else '待確認',
-              '2025–26場次':pool[k]['GP'] if k in pool else None} for k in ids]
-    st.dataframe(records,hide_index=True,width='stretch')
-    if not ids:
-        st.info('先選擇球隊或加入星號追蹤球員。')
-        return
-    selected=st.selectbox('查看球員資料與新聞',ids,format_func=lambda k:pool[k]['PLAYER_NAME'] if k in pool else names.get(k,'未知球員'),key='watch_player')
+    mine={identity(r):r['name'] for r in roster};stars=load_stars()
+    view=st.radio('觀察範圍',['全部','我的球員','星號追蹤'],horizontal=True,key='watch_scope')
+    ids=list(dict.fromkeys(list(mine)+stars)) if view=='全部' else list(mine) if view=='我的球員' else stars
+    names={**{str(p['PLAYER_ID']):p['PLAYER_NAME'] for p in players},**mine}
+    st.caption('頭像卡只顯示重點；按「⋯ 展開」才讀取新聞與完整資料。歸屬依這份共用聯盟紀錄，不代表已與 Yahoo 同步。')
+    if not ids:st.info('目前沒有球員；可先選擇球隊或加星追蹤。');return
+    columns=st.columns(3)
+    for i,k in enumerate(ids):
+        p=pool.get(k);name=names.get(k,'未知球員')
+        with columns[i%3],st.container(border=True):
+            if k.isdigit():st.image(f'https://cdn.nba.com/headshots/nba/latest/260x190/{k}.png',width=105)
+            else:st.markdown('### 🏀')
+            st.markdown('**'+name+(' ⭐' if k in stars else '')+'**')
+            st.caption((p['team']+' · '+('/'.join(sorted(p['eligible'])) or '位置待確認')) if p else '新秀／資料待補')
+            st.caption(availability(entries,team,k))
+            if st.button('⋯ 展開 '+name,key='watch_expand_'+k):st.session_state['watch_open']=k
+    selected=st.session_state.get('watch_open')
+    if selected in ids:
+        with st.container(border=True):
+            if st.button('收起詳細資料',key='watch_collapse'):
+                st.session_state.pop('watch_open',None);st.rerun()
+            show_player_detail(selected,pool,names)
+
+
+def show_player_detail(selected,pool,names):
     p=pool.get(selected)
     name=p['PLAYER_NAME'] if p else names.get(selected,'')
     st.markdown('### '+name)

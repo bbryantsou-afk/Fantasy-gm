@@ -6,7 +6,7 @@ APP_CSS = '''
 .stApp h1,.stApp h2,.stApp h3,.stApp p,.stApp label,.stApp button,.stApp input,.stApp textarea,.stApp select,.stApp table,.stApp [data-testid="stMetricValue"],.stApp [data-testid="stCaptionContainer"] {font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif !important;letter-spacing:normal !important;text-shadow:none !important;}
 .stApp h1,.stApp h2,.stApp h3,.stApp p,.stApp label {color:#202a36 !important;}
 .stApp [data-testid="stCaptionContainer"],.stApp [data-testid="stCaptionContainer"] p {color:#5f6c7b !important;}
-.stApp [data-testid="stExpander"],.stApp [data-testid="stMetric"],.stApp [data-testid="stAlert"],.stApp .nc-baseline-strip,.stApp .sched-card,.stApp .sched-calendar,.stApp div:has(> .mvp-body) {background:#fff !important;border:1px solid #dce2e8 !important;border-radius:10px !important;box-shadow:none !important;color:#202a36 !important;}
+.stApp [data-testid="stVerticalBlockBorderWrapper"],.stApp [data-testid="stExpander"],.stApp [data-testid="stMetric"],.stApp [data-testid="stAlert"],.stApp .nc-baseline-strip,.stApp .sched-card,.stApp .sched-calendar,.stApp div:has(> .mvp-body) {background:#fff !important;border:1px solid #dce2e8 !important;border-radius:10px !important;box-shadow:none !important;color:#202a36 !important;}
 .stApp div:has(> .mvp-body) *:not(img),.stApp .nc-baseline-value,.stApp [data-testid="stMetricValue"],.stApp [data-testid="stMetricLabel"] {color:#203f46 !important;}
 .stApp .nc-baseline-label,.stApp .nc-baseline-stat {color:#5f6c7b !important;border-color:#e2e7ec !important;}
 .stApp [data-testid="stSidebar"] [data-testid="stRadioOption"] {background:#fff !important;border:1px solid #dce2e8 !important;border-radius:9px !important;box-shadow:none !important;}

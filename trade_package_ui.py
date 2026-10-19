@@ -64,7 +64,7 @@ def select_quality(candidates,limit=5,league=False,prefer_middle=True):
 
 def render_package_finder(roster,pool,players,entries):
     from trade_packages import near_value_trades
-    from dashboard_model import draft_roster
+    from roster_store import roster as shared_roster
     st.markdown('### ✨ 精選模擬交易包')
     st.caption('先篩選滾動交易價值接近，再要求雙方數據適配改善；選秀代表本聯盟偏好，不是客觀價格或接受機率。')
     from trade_market import current_logs,market_model
@@ -93,7 +93,7 @@ def render_package_finder(roster,pool,players,entries):
     targets={}
     skipped=[]
     for team in teams if league else [partner]:
-        rows=draft_roster(entries,team)
+        rows=shared_roster(entries,team)
         ids={str(r.get('id')) for r in rows if str(r.get('id')) in pool}
         if not ids or ids & mine:
             skipped.append(team)

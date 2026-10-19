@@ -10,7 +10,7 @@ APP_CSS = FONT_CSS + '''
 .stApp [data-testid="stSidebar"] [data-testid="stRadioOption"],
 .stApp button[kind],.stApp [data-testid="stDownloadButton"] button,
 .stApp [data-baseweb="select"]>div,.stApp input,.stApp textarea,
-.stApp [data-testid="stExpander"],.stApp [data-testid="stMetric"],
+.stApp [data-testid="stVerticalBlockBorderWrapper"],.stApp [data-testid="stExpander"],.stApp [data-testid="stMetric"],
 .stApp [data-testid="stAlert"],.stApp [data-testid="stDataFrame"],
 .stApp [data-testid="stVegaLiteChart"],.stApp .nc-baseline-strip,
 .stApp .sched-card,.stApp .sched-calendar,.stApp div:has(> .mvp-body) {

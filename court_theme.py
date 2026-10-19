@@ -26,7 +26,7 @@ def render_court_theme():
         if len(returned)==3 and '~' in returned[1]:
             slug=returned[1].split('~',1)[0]
         st.session_state.visual_theme=THEMES.get(slug,THEMES['light'])
-    theme=st.sidebar.selectbox("視覺風格", ["簡約淺色", "戰術板草圖", "黑色鏡面"], key="visual_theme")
+    theme=st.session_state.visual_theme
     st.query_params['theme']=theme_slug()
     image=background_data()
     st.markdown("""
@@ -78,3 +78,12 @@ def render_court_theme():
     if theme == "簡約淺色":
         from light_theme import APP_CSS
         st.markdown("<style>"+APP_CSS+"</style>",unsafe_allow_html=True)
+
+
+def render_theme_settings():
+    options=list(THEMES.values())
+    st.session_state['_theme_picker']=st.session_state.get('visual_theme',options[0])
+    def changed():
+        st.session_state.visual_theme=st.session_state['_theme_picker']
+        st.query_params['theme']=theme_slug()
+    st.selectbox('視覺風格',options,key='_theme_picker',on_change=changed)

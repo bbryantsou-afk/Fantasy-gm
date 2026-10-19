@@ -31,7 +31,7 @@ app.query_params['state']=state
 app.query_params['code']='dummy'
 app.run()
 assert not app.exception
-assert app.selectbox(key='visual_theme').value=='戰術板草圖'
+assert app.session_state['visual_theme']=='戰術板草圖'
 app.button[0].click().run()
 assert not app.exception
 assert 'code' not in app.query_params and 'state' not in app.query_params

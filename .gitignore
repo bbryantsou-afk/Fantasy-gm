@@ -31,3 +31,6 @@ trade_feedback.tmp
 /.deployment-check/
 
 /ninecat_assets/draft.local.json
+
+/league_rosters.json
+/league_rosters.tmp

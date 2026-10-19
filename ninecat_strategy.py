@@ -17,9 +17,7 @@ STATE = ROOT / 'ninecat_state.json'
 @st.cache_data
 def load_data():
     snapshot = json.loads((ASSETS / 'data.json').read_text(encoding='utf-8'))
-    draft_path = ASSETS / 'draft.local.json'
-    if not draft_path.exists():
-        draft_path = ASSETS / 'draft.json'
+    draft_path = ASSETS / 'draft.json'
     draft = json.loads(draft_path.read_text(encoding='utf-8'))['entries']
     return snapshot, draft
 
@@ -48,6 +46,9 @@ def reset_package():
 
 
 def replace_roster(rows):
+    from roster_store import save_team, active_team
+    _, entries=load_data()
+    save_team(entries,active_team(entries),rows)
     st.session_state.nc_roster = rows
     st.session_state.nc_revision += 1
     reset_package()
@@ -84,6 +85,9 @@ def render_ninecat_strategy():
                 st.session_state.nc_roster, st.session_state.nc_weeks = rows, weeks
             except (ValueError, OSError, TypeError, AttributeError):
                 st.warning('本機名單檔格式有誤，原檔未覆寫；請匯入備份。')
+    from roster_store import choose_team, roster as shared_roster
+    selected_team=choose_team(entries,'nc_shared_team')
+    st.session_state.nc_roster=shared_roster(entries,selected_team)
     st.session_state.setdefault('nc_revision', 0)
     st.session_state.setdefault('nc_custom', {})
     pool.update(st.session_state.nc_custom)
@@ -125,23 +129,7 @@ def render_ninecat_strategy():
 
     st.divider()
     st.subheader('我的球隊 · 每次計分出賽貢獻')
-    teams = list(dict.fromkeys(e['fantasyTeam'] for e in entries))
-    team = st.selectbox('載入原始選秀球隊', teams, key='nc_team')
-    def load_team():
-        replace_roster([{'id': str(e['playerId']) if e['playerId'] is not None else None, 'name': e['name'], 'status': 'active',
-                         'games': 1 if e['playerId'] is not None else 0} for e in entries if e['fantasyTeam'] == team])
-    a, b = st.columns(2)
-    a.button('載入並取代目前名單', on_click=load_team, key='nc_load_team')
-    def import_sim():
-        names = st.session_state.get('sim_my_players', [])
-        by_name = {norm(p['PLAYER_NAME']): p for p in pool.values()}
-        rows = []
-        for name in names:
-            p = by_name.get(norm(name))
-            rows.append({'id': str(p['PLAYER_ID']) if p and p.get('PLAYER_ID') is not None else None,
-                         'name': p['PLAYER_NAME'] if p else name, 'status': 'active', 'games': 1 if p and p.get('PLAYER_ID') is not None else 0})
-        replace_roster(rows)
-    b.button('從模擬對局匯入我的球員', on_click=import_sim, disabled=not st.session_state.get('sim_my_players'), key='nc_import_sim')
+    st.caption('目前使用上方所選球隊的共用名單；可在總覽編輯名單、位置及 IL。')
     st.caption('預設有資料者各1場。可改成預期實際計入的場次；板凳、IL及缺資料者不進入歷史估算。這不是本週實績。')
     roster = st.session_state.nc_roster
     with st.expander('編輯名單、IL及計分場次', expanded=not bool(roster)):

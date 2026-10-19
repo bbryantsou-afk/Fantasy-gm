@@ -21,18 +21,19 @@ def render_matchup_simulator(lite=False):
     import re
     root_path = Path(__file__).resolve().parent
     draft = json.loads((root_path/'ninecat_assets/draft.json').read_text())['entries']
-    teams = list(dict.fromkeys(e['fantasyTeam'] for e in draft))
+    from roster_store import choose_team,roster as shared_roster,state
+    teams=list(state(draft)['teams'])
     left, right = st.columns(2)
-    my_team = left.selectbox('我的球隊', teams, key='sim_my_team')
-    opp_team = right.selectbox('對手球隊', teams, index=1, key='sim_opp_team')
-    for side, team in [('my', my_team), ('opp', opp_team)]:
-        PLAYERS[side] = []
-        for e in draft:
-            if e['fantasyTeam'] != team: continue
-            match = re.match(r'\((\w+)\s*-\s*([^)]*)\)', e.get('position',''))
-            PLAYERS[side].append(dict(id=f"{side}-{e.get('playerId') or e['name']}",
-                nba_id=e.get('playerId'), name=e['name'], team=match.group(1) if match else '',
-                eligible=match.group(2).split(',') if match else [], rank=len(PLAYERS[side])+1, stats={}))
+    with left:my_team=choose_team(draft,'sim_my_team')
+    opp_team=right.selectbox('對手球隊',teams,index=1,key='sim_opp_team')
+    for side,team in [('my',my_team),('opp',opp_team)]:
+        PLAYERS[side]=[]
+        for r in shared_roster(draft,team):
+            if r.get('status')=='IL':continue
+            PLAYERS[side].append(dict(id=f"{side}-{r.get('id') or r['name']}",
+                nba_id=int(r['id']) if r.get('id') and str(r['id']).isdigit() else None,
+                name=r['name'],team=r.get('team',''),eligible=r.get('eligible',[]),rank=len(PLAYERS[side])+1,stats={}))
+    st.caption('雙方使用共用名單，IL 不排入；此頁拖曳與新增屬於模擬，不會自動修改共用名單。')
     recent_sources = st.checkbox("載入本季最近 7／14／30 天場均（需連線）", value=False)
 
 
