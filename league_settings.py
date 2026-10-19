@@ -4,7 +4,7 @@ import streamlit as st
 from ninecat_strategy import load_data
 from roster_store import state,persist,identity
 
-def validate_backup(data,teams):
+def validate_backup(data,teams,allow_history=True):
     if not isinstance(data,dict) or set(data.get('teams',{}))!=set(teams):raise ValueError('備份的聯盟球隊不符。')
     cap=data.get('capacity',14)
     if type(cap) is not int or not 10<=cap<=25:raise ValueError('名單席次必須介於10至25。')
@@ -28,7 +28,20 @@ def validate_backup(data,teams):
     for k,v in meta.items():
         if not isinstance(k,str) or not isinstance(v,dict) or not isinstance(v.get('eligible',[]),list) or any(p not in ['PG','SG','SF','PF','C'] for p in v.get('eligible',[])):raise ValueError('球員位置設定不符。')
         if not isinstance(v.get('team',''),str) or len(v.get('team',''))>3:raise ValueError('NBA 隊伍格式不符。')
-    return {'player_meta':copy.deepcopy(meta),'teams':copy.deepcopy(data['teams']),'free':list(set(free)),'capacity':cap,'revision':int(data.get('revision',0))}
+    output={'player_meta':copy.deepcopy(meta),'teams':copy.deepcopy(data['teams']),'free':list(set(free)),'capacity':cap,'revision':int(data.get('revision',0))}
+    if allow_history and data.get('daily_rosters'):
+        from datetime import date
+        archives=data['daily_rosters']
+        if not isinstance(archives,dict) or len(archives)>370:raise ValueError('日期快照格式不符。')
+        clean={}
+        for day,archive in archives.items():
+            date.fromisoformat(day)
+            if not isinstance(archive,dict) or not isinstance(archive.get('captured_at'),str):raise ValueError('快照資料不完整。')
+            checked=validate_backup({'teams':archive.get('teams'),'capacity':cap,'free':[]},teams,False)
+            clean[day]={'teams':checked['teams'],'captured_at':archive['captured_at'],'source':'Yahoo browser snapshot'}
+        output['daily_rosters']=clean
+        for key in ['sync_league','sync_mapping','sync_updated_at']:output[key]=copy.deepcopy(data.get(key))
+    return output
 
 def render_league_settings():
     snapshot,entries=load_data()

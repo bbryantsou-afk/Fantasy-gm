@@ -1,0 +1,136 @@
+"""Private browser-assisted roster snapshots. No Yahoo credentials on the server."""
+import copy,io,json,re,zipfile,hashlib
+from pathlib import Path
+from datetime import date,datetime,timedelta
+from zoneinfo import ZoneInfo
+import streamlit as st
+import streamlit.components.v1 as components
+from ninecat_strategy import load_data
+from ninecat_model import norm
+from roster_store import state,persist,identity
+from roster_import import match_rows,build_import,name_key
+ROOT=Path(__file__).resolve().parent
+bridge=components.declare_component('league_sync',path=str(ROOT/'sync_bridge'))
+POSITIONS={'PG','SG','G','SF','PF','F','C','Util','UTIL','BN','IL','IL+','IR','IR+'}
+
+def validate_snapshot(payload,league,day,expected_teams):
+    if not isinstance(payload,dict) or len(json.dumps(payload))>1_000_000:raise ValueError('同步資料格式或大小不符。')
+    if payload.get('schema')!=1 or payload.get('league')!=league or payload.get('date')!=str(day):raise ValueError('聯盟／日期不符，未套用。')
+    try:
+        stamp=datetime.fromisoformat(payload['capturedAt'].replace('Z','+00:00'))
+        if stamp.tzinfo is None or stamp.timestamp()>datetime.now().timestamp()+300:raise ValueError()
+    except (KeyError,TypeError,ValueError,AttributeError):raise ValueError('同步時間不符。')
+    teams=payload.get('teams')
+    if not isinstance(teams,list) or len(teams)!=expected_teams:raise ValueError(f'需要完整 {expected_teams} 隊，資料不完整時不覆寫。')
+    seen=set();team_ids=set();result=[]
+    for t in teams:
+        if not isinstance(t,dict) or not re.fullmatch(r'\d{1,5}',str(t.get('id',''))) or t.get('date')!=str(day):raise ValueError('隊伍日期／ID 不符。')
+        source=f"{league}:{t['id']}"
+        if source in team_ids:raise ValueError('來源隊伍重複。')
+        team_ids.add(source)
+        rows=t.get('rows')
+        if not isinstance(rows,list) or not 1<=len(rows)<=28:raise ValueError('球員人數不符。')
+        for r in rows:
+            if not isinstance(r,dict) or not re.fullmatch(r'\d{1,10}',str(r.get('yahooPlayerId',''))):raise ValueError('球員 ID 不符。')
+            if r['yahooPlayerId'] in seen:raise ValueError('不同隊伍出現相同球員，請重新同步。')
+            seen.add(r['yahooPlayerId'])
+            if not isinstance(r.get('name'),str) or not 1<=len(r['name'].strip())<=100:raise ValueError('姓名不符。')
+            if r.get('position') not in POSITIONS:raise ValueError('先發／板凳位置不符。')
+            if not isinstance(r.get('eligible'),list) or not r['eligible'] or any(p not in ['PG','SG','SF','PF','C'] for p in r['eligible']):raise ValueError('球員位置資格不符。')
+            if not re.fullmatch(r'[A-Z]{2,3}',str(r.get('nbaTeam',''))):raise ValueError('NBA 隊伍不符。')
+            result.append(dict(r,source_team=source,source_name=str(t.get('name') or t['id'])[:100]))
+    return result
+
+def match_snapshot(rows,players,entries):
+    exported=[]
+    for r in rows:
+        first,_,last=r['name'].partition(' ')
+        exported.append({'ID':r['yahooPlayerId'],'First Name':first,'Last Name':last,'Team ID':r['source_team'],
+                         'Team Name':r['source_name'],'Position':r['position'],'Eligible Positions':','.join(r['eligible'])})
+    matched,pool=match_rows(exported,players,entries)
+    for r,source in zip(matched,rows):r.update(team=source['nbaTeam'],slot=source['position'])
+    return matched,pool
+
+def suggested_mapping(rows,league):
+    pairs=[]
+    for source in dict.fromkeys(r['source_team'] for r in rows):
+        names={name_key(r['name']) for r in rows if r['source_team']==source}
+        for target,rs in league['teams'].items():pairs.append((len(names & {name_key(r['name']) for r in rs}),source,target))
+    mapping={};used=set()
+    for score,source,target in sorted(pairs,reverse=True):
+        if source not in mapping and target not in used:mapping[source]=target;used.add(target)
+    return mapping
+
+def apply_snapshot(league,rows,mapping,payload,today):
+    new=build_import(league,rows,mapping)
+    captured=payload['capturedAt'];day=payload['date'];source=payload['league']
+    archives=copy.deepcopy(league.get('daily_rosters',{}))
+    if archives and league.get('sync_league')!=source:raise ValueError('此工作階段已有另一個聯盟快照，請先下載備份並重開工作階段。')
+    archive={'captured_at':captured,'source':'Yahoo browser snapshot','teams':copy.deepcopy(new['teams'])}
+    archives[day]=archive
+    new['daily_rosters']=archives;new['sync_mapping']=dict(mapping);new['sync_league']=source
+    new['sync_updated_at']=captured
+    # Only today's roster becomes the shared current roster; history never changes ownership today.
+    if day!=str(today):new['teams']=copy.deepcopy(league['teams']);new['free']=copy.deepcopy(league['free'])
+    new['import_source']='Yahoo browser snapshot';return new
+
+def extension_zip():
+    buf=io.BytesIO()
+    with zipfile.ZipFile(buf,'w',zipfile.ZIP_DEFLATED) as z:
+        for p in sorted((ROOT/'browser_sync_extension').iterdir()):
+            if p.is_file() and p.suffix in ['.json','.js','.md']:z.write(p,'fantasy-gm-sync/'+p.name)
+    return buf.getvalue()
+
+def render_sync():
+    st.subheader('🔄 聯盟同步 · 每日陣容')
+    snapshot,entries=load_data();league=state(entries)
+    today=datetime.now(ZoneInfo('America/New_York')).date()
+    source=st.text_input('Yahoo 聯盟 ID',value=str(league.get('sync_league','71585')),key='sync_league_input').strip()
+    day=st.date_input('陣容日期（美東）',value=today,min_value=date(2025,1,1),max_value=today,key='sync_roster_day')
+    st.caption('同步目前可見的指定日期陣容。今天的資料可能隨排陣改變，不能視為最終鎖定陣容；歷史快照保留讀取時間。')
+    with st.expander('首次安裝／同步說明',expanded=False):
+        st.download_button('下載同步擴充功能 ZIP',extension_zip(),'fantasy-gm-sync.zip','application/zip')
+        st.markdown('1. 解壓縮 ZIP。\n2. 在桌面 Chrome 開啟 `chrome://extensions`，開啟「開發人員模式」。\n3. 按「載入未封裝項目」，選取含 manifest.json 的 fantasy-gm-sync 資料夾。\n4. 在同一個 Chrome 登入 Yahoo，再開啟這個 App，重新整理後按同步。')
+        st.caption('首次需要你安裝並授權；手機可查看已匯入的工作階段資料，無法執行這個 Chrome 擴充功能。擴充功能只支援目前正式站與本機 8501；換網站需更新來源清單。')
+        st.caption('自動檢查最多保留最近 14 個日期於此瀏覽器。網站名單仍屬私人工作階段；重開後可按「讀取已保存名單」還原所選日期。請另下載備份。')
+    if not re.fullmatch(r'\d{1,10}',source):st.info('請輸入 Yahoo 網址 /nba/ 後方的數字聯盟 ID。');return
+    st.link_button('先登入／查看 Yahoo 聯盟',f'https://basketball.fantasysports.yahoo.com/nba/{source}')
+    ack=st.session_state.get('_sync_mapping_ack')
+    result=bridge(league=source,date=str(day),mapping=ack if ack and league.get('sync_league')==source else None,key='yahoo_browser_bridge',default=None)
+    if result and isinstance(result,dict) and result.get('snapshot',{}).get('date')!=str(day):
+        result=None  # Previous component value while the date selector changes.
+    if result:
+        try:
+            payload=result['snapshot'];raw=validate_snapshot(payload,source,day,len(league['teams']))
+            token=hashlib.sha256(json.dumps(payload,sort_keys=True).encode()).hexdigest()
+            if token!=st.session_state.get('_sync_applied_token'):
+                rows,pool=match_snapshot(raw,snapshot['players'],entries)
+                remembered=league.get('sync_mapping') if league.get('sync_league')==source else result.get('mapping',{})
+                valid_mapping=(isinstance(remembered,dict) and set(remembered)==set(r['source_team'] for r in rows) and set(remembered.values())==set(league['teams']) and len(remembered)==len(league['teams']))
+                if valid_mapping:
+                    new=apply_snapshot(league,rows,remembered,payload,today)
+                    st.session_state['_league']=new;persist(new);st.session_state['_sync_applied_token']=token;st.session_state.pop('nc_roster',None)
+                    st.success(f'已同步 {len(rows)} 人 · {day}。'+('今天名單已更新。' if day==today else '已保存歷史日期，今天名單未變更。'))
+                    league=new
+                else:
+                    st.info('首次同步請確認隊伍配對，之後按同步即可自動套用。')
+                    defaults=suggested_mapping(rows,league);mapping={};targets=list(league['teams'])
+                    for team in payload['teams']:
+                        k=source+':'+team['id'];mapping[k]=st.selectbox(team['name']+' → App 球隊',targets,index=targets.index(defaults[k]),key='sync_map_'+source+'_'+team['id'])
+                    st.dataframe([{'球員':r['name'],'來源隊伍':r['source_name'],'席次':r['slot'],'數據':'已配對' if r['matched'] else '無數據／保留姓名'} for r in rows],hide_index=True)
+                    preview=apply_snapshot(league,rows,mapping,payload,today)
+                    st.download_button('先備份現有名單',json.dumps(league,ensure_ascii=False,indent=2),'league_before_sync.json','application/json')
+                    if st.button('確認隊伍配對並完成首次同步'):
+                        st.session_state['_league']=preview;persist(preview);st.session_state['_sync_mapping_ack']=mapping
+                        st.session_state['_sync_applied_token']=token;st.session_state.pop('nc_roster',None);st.rerun()
+        except (ValueError,TypeError,KeyError,AttributeError) as exc:st.error('同步未套用：'+str(exc))
+    archives=league.get('daily_rosters',{})
+    if archives:
+        st.markdown('### 已同步的每日陣容')
+        selected=st.selectbox('查看已保存日期',sorted(archives,reverse=True),key='sync_view_date');saved=archives[selected]
+        st.caption('讀取時間：'+saved['captured_at']+'。這是當時快照，並非已驗證的最終鎖定紀錄。')
+        table=[]
+        for team,rows in saved['teams'].items():
+            for r in rows:table.append({'隊伍':team,'席次':r.get('slot',r['status']),'球員':r['name'],'NBA':r.get('team',''),'位置':'/'.join(r.get('eligible',[]))})
+        st.dataframe(table,hide_index=True,width="stretch")
+        st.download_button('下載完整同步備份',json.dumps(league,ensure_ascii=False,indent=2),'league_sync_backup.json','application/json')
