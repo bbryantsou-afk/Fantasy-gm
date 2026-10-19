@@ -31,7 +31,19 @@ with patch('data_center.requests.get',return_value=Response()):
 app=AppTest.from_file(str(ROOT/'app.py'),default_timeout=60).run()
 app.sidebar.radio[0].set_value('Data Source 資料中心').run()
 assert not app.exception,app.exception
-assert [t.label for t in app.tabs]==['選秀結果','每週比賽結果','積分排名','當週即時數據']
+assert [t.label for t in app.tabs]==['選秀結果','原始數據與備份']
 assert any(x.label=='儲存此週結果' for x in app.button)
 assert app.sidebar.radio[0].options[-2:]==['Data Source 資料中心','⚙️ 設定']
 print('PASS nine-category W/L/T, final-only standings, symmetric opponents, shooting validation, starter-only live totals, date guard and all data-center tabs')
+
+from data_center import week_view
+case={'weeks':{'2026-10-19':{'teams':rows,'final':False}},'days':{}}
+assert week_view(case,'A','2026-10-19',date(2026,10,20))['opponent']=='B'
+assert week_view(case,'A','2026-10-19',date(2026,10,18))['a'] is None
+assert week_view({'weeks':{},'days':{}},'A','2026-10-19',date(2026,10,20))['opponent'] is None
+case['weeks']['2026-10-19']['final']=True
+assert week_view(case,'A','2026-10-19',date(2026,10,27))['status']=='已結算'
+app.sidebar.radio[0].set_value('比賽戰況').run();assert not app.exception,app.exception
+assert any(x.label=='查看隊伍' for x in app.selectbox)
+assert any('聯盟總積分' in x.value for x in app.markdown)
+print('PASS independent matchup page, no invented opponents, pregame placeholders and settled-week view')
