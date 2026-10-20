@@ -50,6 +50,9 @@ def validate_backup(data,teams,allow_history=True):
             clean[day]={'teams':checked['teams'],'captured_at':archive['captured_at'],'source':'Yahoo browser snapshot'}
         output['daily_rosters']=clean
         for key in ['sync_league','sync_mapping','sync_updated_at']:output[key]=copy.deepcopy(data.get(key))
+    if data.get('matchup_schedule'):
+        from fantasy_schedule import validate_schedule
+        output['matchup_schedule']=validate_schedule(data['matchup_schedule'],teams)
     return output
 
 def render_league_settings():

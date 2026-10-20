@@ -97,6 +97,13 @@ st.markdown("""
 from court_theme import render_court_theme, theme_slug, clear_oauth_query
 render_court_theme()
 
+# View belongs to this device/URL, not the cloud profile: a phone must not flip a desktop.
+if 'device_view' not in st.session_state:
+    requested=st.query_params.get('view')
+    st.session_state['device_view']='手機版' if requested=='mobile' or (not requested and st.query_params.get('phone_sync')) else '電腦版'
+view=st.radio('顯示版本',['電腦版','手機版'],horizontal=True,key='device_view')
+st.query_params['view']='mobile' if view=='手機版' else 'desktop'
+
 with st.sidebar:
     st.title("🏀 Fantasy GM")
     if st.session_state.get("_account_id"):
@@ -111,8 +118,8 @@ with st.sidebar:
         "功能選單",
         ["總覽 Dashboard", "球員觀察室 Player Watch",
          "每週補強 Weekly Planner", "交易分析 Trade Lab",
-     "9-Cat Strategy", "模擬對局 Matchup Simulator", "Matchup Simulator Lite", "聯盟同步 League Sync", "比賽戰況", "Data Source 資料中心", "⚙️ 設定"],
-        index=10 if st.query_params.get("code") or st.query_params.get("error") else 7 if st.query_params.get("phone_sync") else 0
+     "9-Cat Strategy", "模擬對局 Matchup Simulator", "聯盟同步 League Sync", "比賽戰況", "Data Source 資料中心", "⚙️ 設定"],
+        index=9 if st.query_params.get("code") or st.query_params.get("error") else 6 if st.query_params.get("phone_sync") else 0
     )
     st.divider()
     if page in ("9-Cat Strategy", "總覽 Dashboard", "模擬對局 Matchup Simulator", "Matchup Simulator Lite", "聯盟同步 League Sync", "比賽戰況", "Data Source 資料中心", "⚙️ 設定", "球員觀察室 Player Watch", "每週補強 Weekly Planner", "交易分析 Trade Lab"):
@@ -122,7 +129,7 @@ with st.sidebar:
         st.warning("Demo Data：非即時球員數據")
         st.caption("Yahoo 帳號尚未連線")
 
-if page == "Matchup Simulator Lite":
+if view == '手機版':
     st.markdown("**🏀 Fantasy GM**")
 else:
     st.title("🏀 NBA Fantasy General Manager")
@@ -301,7 +308,7 @@ elif page == "Matchup Simulator Lite":
     render_matchup_simulator(lite=True)
 
 elif page == "模擬對局 Matchup Simulator":
-    render_matchup_simulator()
+    render_matchup_simulator(lite=view=='手機版')
 st.divider()
 st.caption("Fantasy NBA GM · 9-Cat 整合版" if page in ("9-Cat Strategy", "總覽 Dashboard", "模擬對局 Matchup Simulator", "Matchup Simulator Lite", "聯盟同步 League Sync", "比賽戰況", "Data Source 資料中心", "⚙️ 設定", "球員觀察室 Player Watch", "每週補強 Weekly Planner", "交易分析 Trade Lab") else "Fantasy NBA GM · Demo Version 0.2")
 

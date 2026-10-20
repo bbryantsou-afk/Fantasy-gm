@@ -75,6 +75,12 @@ def apply_snapshot(league,rows,mapping,payload,today):
     if day!=str(today):new['teams']=copy.deepcopy(league['teams']);new['free']=copy.deepcopy(league['free'])
     if day==str(today):
         new['roster_sources']={t:{'kind':'yahoo','updated_at':captured,'date':day,'league':source,'source_team':k} for k,t in mapping.items()}
+    if 'matchupSchedule' in payload:
+        from fantasy_schedule import import_schedule
+        incoming=import_schedule(payload['matchupSchedule'],mapping,source,captured)
+        if incoming['weeks']:new['matchup_schedule']=incoming
+    elif league.get('matchup_schedule'):
+        new['matchup_schedule']=copy.deepcopy(league['matchup_schedule'])
     new['import_source']='Yahoo browser snapshot';return new
 
 def extension_zip():
@@ -87,6 +93,7 @@ def extension_zip():
 def render_sync_connection(full=False):
     """Always mounted before every analysis page so a fresh cloud session restores its private cache."""
     snapshot,entries=load_data();league=state(entries)
+    if full:st.caption('對戰排程同步需要擴充功能 0.2.0，或最新手機同步書籤。首次讀取整季會較久，當天後續同步使用快取。')
     today=datetime.now(ZoneInfo('America/New_York')).date()
     if full:
         with st.expander('手機直接同步（不需電腦）',expanded=bool(st.query_params.get('phone_sync'))):
@@ -100,7 +107,7 @@ def render_sync_connection(full=False):
         with st.expander('首次安裝／同步說明',expanded=False):
             st.download_button('下載同步擴充功能 ZIP',extension_zip(),'fantasy-gm-sync.zip','application/zip')
             st.markdown('1. 解壓縮 ZIP。\n2. 在桌面 Chrome 開啟 `chrome://extensions`，開啟「開發人員模式」。\n3. 按「載入未封裝項目」，選取含 manifest.json 的 fantasy-gm-sync 資料夾。\n4. 在同一個 Chrome 登入 Yahoo，再開啟這個 App，重新整理後按同步。')
-            st.caption('網站修正相容既有 0.1.0 擴充功能，不需重裝。下載包為 0.1.1；需要更新時替換資料夾並在 chrome://extensions 重新載入。')
+            st.caption('目前版本 0.2.0：新增整季對手排程。舊版仍能同步名單；要讀對戰表，請下載新版替換原資料夾，在 chrome://extensions 按重新載入，再重新整理 App。')
             st.caption('本機保存最近 14 個日期。網站重開後會自動讀取此瀏覽器已保存的今天名單；若沒有今天快照，請按同步。')
         if re.fullmatch(r'\d{1,10}',source):st.link_button('先登入／查看 Yahoo 聯盟',f'https://basketball.fantasysports.yahoo.com/nba/{source}')
     else:

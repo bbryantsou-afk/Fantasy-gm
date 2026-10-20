@@ -3,6 +3,7 @@ import streamlit as st
 
 def render_setup_guide():
     st.markdown('### 📖 第一次使用 · 設定指南')
+    st.caption('電腦與手機用同一網站；頂端選「電腦版／手機版」。模擬器手機版為 Lite，與電腦版共用已保存模擬。')
     desktop,phone=st.tabs(['手機＋電腦','純手機'])
     with desktop:
         st.markdown('**電腦與手機登入同一 Google 帳號，資料自動同步。**')
@@ -33,3 +34,4 @@ def render_setup_guide():
         st.info('星號與分析設定會自動保存並同步；要取得 Yahoo 新名單，回 Yahoo 聯盟頁點同步書籤。手機鎖定或網站在背景時，跨裝置檢查可能暫停，回到網站後恢復。')
 
     st.caption('Google 保存與 Yahoo 抓取是兩件事：Drive 讓裝置共用已保存資料；Yahoo 同步負責取得最新聯盟名單。建議仍定期下載備份。')
+    st.caption('同步工具 0.2.0／最新手機書籤會一併讀取每週對手：到 Data Source → 每週對手排程核對。模擬器依日期與我的球隊預選對手，尚未公布的週次保留手動選擇。模擬排陣請按「儲存模擬」後再換裝置。')

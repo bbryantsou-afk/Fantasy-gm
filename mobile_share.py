@@ -59,9 +59,8 @@ def watch_share():
 
 def render_mobile_settings():
     st.markdown('### 電腦／手機入口')
-    st.link_button('電腦版入口',BASE+'?theme=light')
-    st.link_button('手機版入口',BASE+'?theme=light&phone_sync=1')
-    st.caption('兩個入口使用同一套網站程式，功能與版面同步發布。電腦、手機登入同一個 Google 帳號即可共用資料，不需產生或傳送配對連結。')
+    st.link_button('開啟 Fantasy GM',BASE+'?theme=light')
+    st.caption('電腦、手機使用同一網站，在頁面頂端切換顯示版本。模擬對局：電腦版為完整介面，手機版為 Lite。相同 Google 帳號共用保存資料；顯示版本各裝置獨立。')
     if st.session_state.get('_account_id'):
         st.info('已連接個人 Drive。任何一端保存星號、權重或名單後，其他開啟的裝置每 5 秒檢查更新。')
         return

@@ -124,6 +124,9 @@ def render_account():
         render_login('drive_settings_login')
         return
     st.write('已登入：'+st.session_state['_account_user_name'])
+    with st.expander('Google Drive 現在保存什麼？'):
+        st.write('聯盟球隊與球員名單（含 IL、每日先發快照）、已同步的每週對手排程、已保存週比分與即時數據、星號觀察名單、9-Cat 母體與權重、交易偏好與評語，以及按「儲存模擬」保存的雙方七日排陣、每日數據套用、自訂預測與新增球員。')
+        st.caption('保存於你自己的 Drive 隱藏 App 資料夾。Google／Yahoo 密鑰不放進紀錄；未按儲存的模擬編輯不會上傳。NBA 原始資料由網站提供，不會整份複製至個人 Drive。')
     render_logout()
     if st.session_state.get('_account_new'):
         st.info('帳號尚無資料。請選擇匯入本裝置既有紀錄，或建立新紀錄；未確認前不會自動上傳。')

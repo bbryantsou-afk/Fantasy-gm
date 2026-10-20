@@ -23,7 +23,17 @@
     }
     const players=teams.flatMap(t=>t.rows.map(p=>p.yahooPlayerId));
     if(new Set(players).size!==players.length)throw Error('不同隊伍出現同一球員，可能正好有交易，請稍後重試。');
-    const snapshot={schema:1,league,date:day,capturedAt:new Date().toISOString(),teams};
+    let schedule;
+    try{
+      const cacheKey='fantasy-gm-yahoo-schedule:'+league;
+      let cached;try{cached=JSON.parse(localStorage.getItem(cacheKey)||'null');}catch{}
+      if(cached?.day===day)schedule=cached.weeks;
+      else{
+        const result=await collectYahooSchedule(read,league,status);schedule=result.weeks;
+        try{localStorage.setItem(cacheKey,JSON.stringify({day,weeks:schedule}));}catch{}
+      }
+    }catch(e){status('名單已讀取；對戰表暫未更新：'+e.message);}
+    const snapshot={schema:1,league,date:day,capturedAt:new Date().toISOString(),teams,...(schedule?{matchupSchedule:schedule}:{})};
     const bytes=new TextEncoder().encode(JSON.stringify(snapshot));
     const payload=btoa(Array.from(bytes,b=>String.fromCharCode(b)).join(''));
     status('已取得 '+teams.length+' 隊、'+players.length+' 人，返回 App 驗證…');

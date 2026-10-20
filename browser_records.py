@@ -7,7 +7,7 @@ import streamlit.components.v1 as components
 from app_storage import private_path
 from profile_preferences import preference_key,validate_preferences,capture_preferences
 ROOT=Path(__file__).parent
-FILES={'league_rosters.json','league_results.json','player_watchlist.json','ninecat_state.json','trade_preferences.json','trade_feedback.json'}
+FILES={'league_rosters.json','league_results.json','player_watchlist.json','ninecat_state.json','trade_preferences.json','trade_feedback.json','simulations.json'}
 bridge=components.declare_component('browser_records',path=str(ROOT/'browser_records'))
 
 def validate_records(snapshot,entries):
@@ -15,6 +15,9 @@ def validate_records(snapshot,entries):
     files=snapshot.get('files',{})
     if not isinstance(files,dict) or set(files)-FILES:raise ValueError('瀏覽器備份含未知檔案。')
     files=copy.deepcopy(files)
+    if 'simulations.json' in files:
+        from matchup_records import validate_simulations
+        files['simulations.json']=validate_simulations(files['simulations.json'])
     teams=list(dict.fromkeys(e['fantasyTeam'] for e in entries))
     if 'league_rosters.json' in files:
         from league_settings import validate_backup

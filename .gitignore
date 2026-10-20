@@ -39,3 +39,6 @@ trade_feedback.tmp
 /league_results.tmp
 /fantasy-gm-accounts/
 /fantasy-gm-sessions/
+
+/simulations.json
+/simulations.tmp

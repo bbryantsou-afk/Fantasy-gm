@@ -100,8 +100,11 @@ def totals_table(totals):
 def render_data_center():
     _,entries=load_data();league=state(entries);teams=list(league['teams']);data=store()
     st.subheader('📚 Data Source · 資料中心')
-    st.caption('選秀為原始紀錄；週結果與積分榜使用已保存實績。雲端資料屬於目前工作階段，請下載備份。')
-    draft_tab,weekly_tab=st.tabs(['選秀結果','原始數據與備份'])
+    st.caption('選秀為原始紀錄；週結果與積分榜使用已保存實績。登入 Google 後保存至個人 Drive；訪客請下載備份。')
+    draft_tab,schedule_tab,weekly_tab=st.tabs(['選秀結果','每週對手排程','原始數據與備份'])
+    with schedule_tab:
+        from fantasy_schedule import render_schedule
+        render_schedule(league)
     with draft_tab:
         st.caption('原始選秀結果不隨交易或加人改動；隊名沿用目前同步名稱。')
         selected=st.selectbox('選秀球隊',['全部球隊']+teams,format_func=team_formatter(),key='ds_draft_team')
@@ -118,7 +121,9 @@ def render_data_center():
         defaults=[]
         for i,t in enumerate(teams):
             old=existing.get('teams',{}).get(t,{})
-            defaults.append({'team':t,'opponent':old.get('opponent',''),**old.get('totals',dict.fromkeys(KEYS,0.))})
+            from fantasy_schedule import week_for
+            scheduled=week_for(league,day) or {}
+            defaults.append({'team':t,'opponent':old.get('opponent') or scheduled.get('opponents',{}).get(t,''),**old.get('totals',dict.fromkeys(KEYS,0.))})
         display=[{'隊伍':team_label(r['team']),'對手':team_label(r['opponent']) if r['opponent'] else '尚未設定',**{k:r[k] for k in KEYS}} for r in defaults]
         labels={team_label(t):t for t in teams}
         if len(labels)!=len(teams):st.warning('有相同隊名，請先在 Yahoo 區分隊名後同步。');return

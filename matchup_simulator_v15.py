@@ -22,18 +22,22 @@ def render_matchup_simulator(lite=False):
     root_path = Path(__file__).resolve().parent
     draft = json.loads((root_path/'ninecat_assets/draft.json').read_text())['entries']
     from roster_store import choose_team,roster as shared_roster,state,team_label,team_formatter
+    from matchup_records import load as load_simulations,save as save_simulations
+    saved_simulations=load_simulations()
+    with st.expander('開啟已保存模擬（電腦／手機共用）'):
+        saved_name=st.selectbox('保存的模擬',['']+sorted(saved_simulations),key='sim_open_name')
+        if st.button('載入此模擬',disabled=not saved_name,key='sim_open_saved'):
+            payload=saved_simulations[saved_name];context=payload.get('context',{})
+            if context.get('my_team') in state(draft)['teams']:st.session_state['_my_team']=context['my_team']
+            if context.get('opp_team') in state(draft)['teams']:st.session_state['sim_opp_team']=context['opp_team']
+            season=context.get('season','2026-27')
+            st.session_state['sim_season']=season
+            begin,end=(date(2025,10,21),date(2026,4,12)) if season=='2025-26' else (date(2026,10,20),date(2027,4,11))
+            st.session_state['sim_date_'+season]=max(begin,min(end,date.fromisoformat(payload['week_dates'][payload['selected_day']])))
+            st.session_state['_sim_restore']=payload
+            st.session_state['_sim_restore_name']=saved_name
+            st.session_state['_sim_manual_restore']=True
     teams=list(state(draft)['teams'])
-    left, right = st.columns(2)
-    with left:my_team=choose_team(draft,'sim_my_team')
-    opp_team=right.selectbox('對手球隊',teams,index=1,key='sim_opp_team',format_func=team_formatter())
-    for side,team in [('my',my_team),('opp',opp_team)]:
-        PLAYERS[side]=[]
-        for r in shared_roster(draft,team):
-            if r.get('status')=='IL':continue
-            PLAYERS[side].append(dict(id=f"{side}-{r.get('id') or r['name']}",
-                nba_id=int(r['id']) if r.get('id') and str(r['id']).isdigit() else None,
-                name=r['name'],team=r.get('team',''),eligible=r.get('eligible',[]),rank=len(PLAYERS[side])+1,stats={}))
-    st.caption('雙方使用共用名單，IL 不排入；此頁拖曳與新增屬於模擬，不會自動修改共用名單。')
     recent_sources = st.checkbox("載入本季最近 7／14／30 天場均（需連線）", value=False)
 
 
@@ -56,12 +60,33 @@ def render_matchup_simulator(lite=False):
     logs = historical_logs() if selected_season=='2025-26' else []
     selected_date = st.date_input(
         "📅 Yahoo 比賽日期（美東日期）",
-        value=season_begin, min_value=season_begin, max_value=season_end, key="sim_date_"+selected_season,
+        value=None if 'sim_date_'+selected_season in st.session_state else season_begin,
+        min_value=season_begin, max_value=season_end, key="sim_date_"+selected_season,
     )
     week_start = selected_date - timedelta(days=selected_date.weekday())
     week_dates = [week_start + timedelta(days=i) for i in range(7)]
     st.caption(f"🏀 Matchup Week：{week_dates[0]:%Y-%m-%d} ～ {week_dates[6]:%Y-%m-%d}")
 
+    left, right = st.columns(2)
+    with left:my_team=choose_team(draft,'sim_my_team')
+    from fantasy_schedule import week_for
+    known_week=week_for(state(draft),selected_date) if selected_season=='2026-27' else None
+    pairing=known_week.get('opponents',{}).get(my_team) if known_week else None
+    context=(selected_season,str(week_start),my_team,(known_week or {}).get('week'),pairing)
+    if st.session_state.get('_sim_pairing_context')!=context:
+        if pairing and not st.session_state.pop('_sim_manual_restore',False):st.session_state['sim_opp_team']=pairing
+        st.session_state['_sim_pairing_context']=context
+    opp_team=right.selectbox('對手球隊',teams,index=1,key='sim_opp_team',format_func=team_formatter())
+    if pairing:st.caption(f"Yahoo Week {known_week['week']} · 預設對手：{team_label(pairing)}（可自行切換研究）")
+    else:st.caption('此週尚無已同步的 Yahoo 對手；請先同步，或自行選擇對手。')
+    for side,team in [('my',my_team),('opp',opp_team)]:
+        PLAYERS[side]=[]
+        for r in shared_roster(draft,team):
+            if r.get('status')=='IL':continue
+            PLAYERS[side].append(dict(id=f"{side}-{r.get('id') or r['name']}",
+                nba_id=int(r['id']) if r.get('id') and str(r['id']).isdigit() else None,
+                name=r['name'],team=r.get('team',''),eligible=r.get('eligible',[]),rank=len(PLAYERS[side])+1,stats={}))
+    st.caption('雙方使用共用名單，IL 不排入；此頁拖曳與新增屬於模擬，不會自動修改共用名單。')
     st.caption("賽程來源：NBA 例行賽快照；本季可按按鈕更新以反映改期。")
     if selected_season=="2026-27" and st.button("更新 NBA 官方賽程", key="v15_schedule_refresh"):
         try:
@@ -338,7 +363,7 @@ def render_matchup_simulator(lite=False):
           <button id="sim-export" type="button">⬇ 匯出 JSON</button>
           <label class="sim-import-label">⬆ 匯入 JSON<input id="sim-import" type="file" accept=".json,application/json" hidden /></label>
         </div>
-        <div class="note">本機儲存只保留在同一瀏覽器；JSON 可備份、換電腦或分享。儲存包含雙方七天先發、每日數據來源、自訂預測與新增球員。</div>
+        <div class="note">登入 Google 後，按儲存會納入個人 Drive，同帳號電腦／手機共用；訪客保存於本瀏覽器。舊版紀錄請先還原，再按儲存移轉。儲存包含雙方七天先發、每日數據來源、自訂預測與新增球員。</div>
       </section>
       <section class="summary">
         <h3>📊 每週 9-Cat 預測與差距</h3><p class="cat-rule">9 個類別各自獨立比較：每贏 1 項得 1 分，TO 越低越好；不使用權重。</p>
@@ -473,11 +498,12 @@ def render_matchup_simulator(lite=False):
       const completeStats=s=>requiredStats.every(k=>Number.isFinite(s?.[k])&&s[k]>=0) && s.FGM<=s.FGA && s.FTM<=s.FTA;
       const dailyChoices={my:{},opp:{}};
       // One record per matchup week, not tied to the selected day.
-      const storageKey="fantasy-gm-v11-simulations";
+      const storageKey="fantasy-gm-v12-simulations:"+(data.owner??"guest");
+      let savedDB=structuredClone(data.saved_simulations??{});
       const snapshot=()=>({format:"fantasy-gm-simulation",version:1,week_dates:[...weekDates],
         players:structuredClone(players),lineups:structuredClone(state),
         daily_choices:structuredClone(dailyChoices),selected_day:dayIndex,
-        saved_at:new Date().toISOString()});
+        context:data.context,saved_at:new Date().toISOString()});
       function restore(payload){
         if(!payload||payload.format!=="fantasy-gm-simulation"||payload.version!==1 ||
            JSON.stringify(payload.week_dates)!==JSON.stringify(weekDates) ||
@@ -502,12 +528,18 @@ def render_matchup_simulator(lite=False):
         dayIndex=Math.max(0,Math.min(6,Number(payload.selected_day)||0));
         render();
       }
-      function readSaved(){try{return JSON.parse(localStorage.getItem(storageKey)||"{}");}catch{return {};}}
-      function writeSaved(v){try{localStorage.setItem(storageKey,JSON.stringify(v));return true;}catch(e){setMessage("瀏覽器儲存不可用，請使用匯出 JSON 備份："+e.message);return false;}}
+      function readSaved(){return savedDB;}
+      function legacySaved(){try{return JSON.parse(localStorage.getItem("fantasy-gm-v11-simulations")||"{}");}catch{return {};}}
+      function writeSaved(v){
+        savedDB=v;
+        try{localStorage.setItem(storageKey,JSON.stringify(v));}catch{}
+        component.setTriggerValue('simulation_change',{records:v,active:snapshot(),name:root.querySelector('#sim-name').value.trim()});return true;
+      }
       function refreshSaved(){
         const sel=root.querySelector("#sim-list");const old=sel.value;
         sel.replaceChildren(new Option("選擇已儲存模擬",""));
         Object.keys(readSaved()).sort().forEach(n=>sel.add(new Option(n,n)));
+        for(const n of Object.keys(legacySaved()).sort())if(!Object.hasOwn(readSaved(),n))sel.add(new Option('舊瀏覽器紀錄 · '+n,'legacy:'+n));
         if(Object.hasOwn(readSaved(),old))sel.value=old;
       }
       root.querySelector("#sim-save").onclick=()=>{
@@ -515,12 +547,12 @@ def render_matchup_simulator(lite=False):
         if(!name){setMessage("請先輸入模擬名稱。");return;}
         const db=readSaved();
         if(db[name]&&!confirm(`「${name}」已存在，要覆蓋嗎？`))return;
-        db[name]=snapshot();if(writeSaved(db)){refreshSaved();root.querySelector("#sim-list").value=name;setMessage(`已儲存模擬「${name}」。`);}
+        db[name]=snapshot();if(writeSaved(db)){refreshSaved();root.querySelector("#sim-list").value=name;setMessage(`正在保存「${name}」…`);}
       };
       root.querySelector("#sim-load").onclick=()=>{
         const name=root.querySelector("#sim-list").value;
         if(!name){setMessage("請先選擇已儲存的模擬。");return;}
-        try{restore(readSaved()[name]);root.querySelector("#sim-name").value=name;setMessage(`已還原「${name}」。`);}
+        try{const legacy=!Object.hasOwn(readSaved(),name);restore(legacy?legacySaved()[name.slice(7)]:readSaved()[name]);root.querySelector("#sim-name").value=legacy?name.slice(7):name;setMessage(`已還原「${name}」。`);}
         catch(e){setMessage("還原失敗："+e.message);}
       };
       root.querySelector("#sim-delete").onclick=()=>{
@@ -993,6 +1025,9 @@ def render_matchup_simulator(lite=False):
         render();setMessage(`已套用 ${changed} 場；${skipped} 場缺少來源而保留。已完賽一律使用實績。`);
       };
       render();
+      if(data.restore && JSON.stringify(data.restore.week_dates)===JSON.stringify(weekDates)){
+        try{restore(data.restore);root.querySelector('#sim-name').value=data.restore_name??'';}catch(e){setMessage('還原失敗：'+e.message);}
+      }
     }
     """
 
@@ -1015,8 +1050,18 @@ def render_matchup_simulator(lite=False):
         ("fantasy_gm_matchup_lite" if lite else "fantasy_gm_integrated_9cat_v13") + "_" + theme_id,
         html=HTML, css=CSS, js=JS,
     )
-    lineup(
+    context={'season':selected_season,'my_team':my_team,'opp_team':opp_team}
+    restore_payload=st.session_state.get('_sim_restore')
+    if restore_payload and restore_payload.get('context')!=context:restore_payload=None
+    result=lineup(
+        on_simulation_change_change=lambda:None,
+        key='matchup_board_'+('lite' if lite else 'desktop'),
         data={
+            "owner":st.session_state.get('_account_id','guest'),
+            "saved_simulations":saved_simulations,
+            "context":context,
+            "restore":restore_payload,
+            "restore_name":st.session_state.get('_sim_restore_name',''),
             "selected_date":selected_date.isoformat(),
             "today":today.isoformat(),
             "historical":selected_season=="2025-26",
@@ -1030,4 +1075,21 @@ def render_matchup_simulator(lite=False):
         },
         height="content",
     )
+    change=result.get('simulation_change')
+    if change:
+        try:
+            save_simulations(change['records'])
+            st.session_state['_sim_restore']=change.get('active')
+            st.session_state['_sim_restore_name']=str(change.get('name',''))[:80]
+            from browser_records import save_browser_records
+            from account_store import finish_account
+            save_browser_records();finish_account()
+            if st.session_state.get('_account_conflict') or st.session_state.get('_account_save_error'):
+                st.warning('此裝置已保存，但 Google 同步尚未完成，請到設定查看狀態。')
+            else:
+                st.session_state['_sim_saved_notice']=True
+                st.rerun()
+        except (ValueError,TypeError,KeyError) as exc:st.error('模擬未保存：'+str(exc))
+    if st.session_state.pop('_sim_saved_notice',False):
+        st.success('模擬已保存'+('至個人 Google Drive。' if st.session_state.get('_account_loaded') else '於本裝置。'))
     st.caption("已完賽一律採 NBA 單場實績。上季回測只計入實際出賽的球員；未完賽可使用場均或自訂數據，資料缺失不以預測冒充實績。")

@@ -18,6 +18,7 @@ scoreboardv2.ScoreboardV2=forbidden
 def fake_component(*args,**kwargs):
     def capture(**values):
         st.session_state['captured']=values['data']
+        return {}
     return capture
 st.components.v2.component=fake_component
 from matchup_simulator_v15 import render_matchup_simulator

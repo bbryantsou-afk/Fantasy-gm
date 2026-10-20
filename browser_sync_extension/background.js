@@ -35,8 +35,19 @@ async function collect(league,date,report){
     }
     const ids=teams.flatMap(t=>t.rows.map(r=>r.yahooPlayerId));
     if(new Set(ids).size!==ids.length)throw new Error('不同隊出現重複球員，可能同步時發生交易。請重新同步。');
-    const snapshot={schema:1,league,date,capturedAt:new Date().toISOString(),teams};
     const key='league_'+league;const stored=(await chrome.storage.local.get(key))[key]||{};
+    let schedule=stored.matchupSchedule;
+    if(!schedule || stored.scheduleDate!==easternDate()){
+      try{
+        const result=await execute(tab.id,async lid=>{
+          async function read(path){const r=await fetch(path,{credentials:'same-origin'});if(!r.ok)throw Error('Yahoo '+r.status);return new DOMParser().parseFromString(await r.text(),'text/html');}
+          try{return {ok:true,...await collectYahooSchedule(read,lid)};}catch(e){return {ok:false,error:e.message};}
+        },[league]);
+        if(result.ok){schedule=result.weeks;stored.matchupSchedule=schedule;stored.scheduleDate=easternDate();}
+        else report({kind:'progress',message:'名單已讀取；對戰排程未更新：'+result.error});
+      }catch(e){report({kind:'progress',message:'對戰排程未更新：'+e.message});}
+    }
+    const snapshot={schema:1,league,date,capturedAt:new Date().toISOString(),teams,...(schedule?{matchupSchedule:schedule}:{})};
     stored.snapshots=stored.snapshots||{};stored.snapshots[date]=snapshot;
     // Keep 14 distinct dates; cloud sessions can restore them from this browser.
     for(const old of Object.keys(stored.snapshots).sort().slice(0,-14))delete stored.snapshots[old];

@@ -1,0 +1,10 @@
+const assert=require('node:assert/strict');
+const {parseYahooTeamSchedule,parseYahooMatchupWeek}=require('../browser_sync_extension/parser.js');
+const link=href=>({getAttribute:k=>k==='href'?href:null});
+const table={textContent:'Wk Opponent Result Score',querySelectorAll:q=>[1,2,3].map((w,i)=>({cells:[{textContent:String(w)}],querySelectorAll:()=>i<2?[link('/nba/7/'+(i+2)),link('https://basketball.fantasysports.yahoo.com/nba/7/'+(i+2))]:[]}))};
+assert.deepEqual(parseYahooTeamSchedule({querySelectorAll:()=>[table]},'7'),{1:'2',2:'3'});
+assert.throws(()=>parseYahooTeamSchedule({querySelectorAll:()=>[]},'7'),/對戰表/);
+const doc={querySelectorAll:q=>q==='a[href]'?['2026-10-26','2026-10-27','2026-11-01'].map(d=>link('/nba/7/matchup?week=2&date='+d+'&mid1=1&mid2=3')):[]};
+assert.deepEqual(parseYahooMatchupWeek(doc,'7',2),{week:2,start:'2026-10-26',end:'2026-11-01',pairs:[]});
+assert.throws(()=>parseYahooMatchupWeek(doc,'7',3),/日期/);
+console.log('PASS Yahoo team schedule duplicate image/name links, unpublished opponents, exact week/date matching and future server-rendered layout');

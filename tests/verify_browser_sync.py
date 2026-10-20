@@ -24,6 +24,13 @@ old=apply_snapshot(league,rows,mapping,payload,date(2026,10,21))
 assert old['teams']==league['teams'] and old['daily_rosters']['2026-10-20']['teams']==new['teams']
 restored=validate_backup(new,league['teams']);assert restored['daily_rosters']==new['daily_rosters'] and restored['sync_mapping']==mapping
 assert restored['team_names']==new['team_names']
+scheduled=copy.deepcopy(payload)
+scheduled['matchupSchedule']=[{'week':1,'start':'2026-10-20','end':'2026-10-25','pairs':[['1','2']]}]
+with_schedule=apply_snapshot(league,rows,mapping,scheduled,date(2026,10,20))
+checked=validate_backup(with_schedule,league['teams'])
+assert checked['matchup_schedule']['weeks'][0]['opponents']=={'球隊 01':'球隊 02','球隊 02':'球隊 01'}
+# Older extensions never erase a schedule already collected by a newer device.
+assert apply_snapshot(with_schedule,rows,mapping,payload,date(2026,10,20))['matchup_schedule']==checked['matchup_schedule']
 for kind in ['missing','duplicate','date','league','position']:
  bad=copy.deepcopy(payload)
  if kind=='missing':bad['teams'].pop()
