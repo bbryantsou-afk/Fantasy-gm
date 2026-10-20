@@ -157,6 +157,8 @@ elif page == "Data Source 資料中心":
 
 elif page == "⚙️ 設定":
     st.subheader('⚙️ 設定')
+    from setup_guide import render_setup_guide
+    render_setup_guide()
     from mobile_share import render_mobile_settings
     render_mobile_settings()
     from court_theme import render_theme_settings
