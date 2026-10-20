@@ -111,7 +111,7 @@ def init_auth():
         st.session_state['_drive_auth_error']=str(exc);st.session_state['_drive_auth_ready']=True
         st.session_state.pop('_drive_user',None);st.session_state.pop('_drive_token',None)
     if callback:
-        for k in ('code','state','scope','authuser','prompt','error'):st.query_params.pop(k,None)
+        for k in ('code','state','scope','authuser','prompt','error','iss'):st.query_params.pop(k,None)
         st.rerun()
 def render_login(key='drive_login'):
     c=config()

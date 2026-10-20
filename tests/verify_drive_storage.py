@@ -24,20 +24,25 @@ class Response:
 owner='a'*64;payload={'schema':1,'files':{},'prefs':{}}
 profile={'owner':owner,'revision':1,'payload':payload}
 with patch('drive_profiles.access_token',return_value='private-access'),patch('drive_profiles.requests.request') as request:
- request.side_effect=[Response({'files':[{'id':'file1'}]}),Response(profile),Response({'id':'file1'})]
+ request.side_effect=[Response({'files':[{'id':'file1'}]}),Response({'id':'file1','etag':'"v1"'}),Response(profile),Response({'id':'file1','etag':'"v1"'}),Response({'id':'file1'})]
  assert CloudClient().save(owner,1,payload)==2
  calls=request.call_args_list
  assert calls[0].kwargs['params']['spaces']=='appDataFolder'
- assert calls[2].kwargs['headers']['If-Match']=='"v1"'
+ assert calls[4].kwargs['headers']['If-Match']=='"v1"'
+ assert calls[4].args[:2]==('PUT','https://www.googleapis.com/upload/drive/v2/files/file1')
  assert all(x.kwargs['headers']['Authorization']=='Bearer private-access' for x in calls)
  assert all('private-access' not in x.args[1] for x in calls)
- request.reset_mock();request.side_effect=[Response({'files':[{'id':'file1'}]}),Response(profile,etag=None)]
+ request.reset_mock();request.side_effect=[Response({'files':[{'id':'file1'}]}),Response({'id':'file1'}),Response(profile),Response({'id':'file1'})]
  try:CloudClient().save(owner,1,payload);raise AssertionError('unconditional write allowed')
  except CloudError:pass
- assert request.call_count==2
- request.reset_mock();request.side_effect=[Response({'files':[{'id':'file1'}]}),Response(profile),Response({},412)]
+ assert request.call_count==4
+ request.reset_mock();request.side_effect=[Response({'files':[{'id':'file1'}]}),Response({'id':'file1','etag':'"v1"'}),Response(profile),Response({'id':'file1','etag':'"v1"'}),Response({},412)]
  try:CloudClient().save(owner,1,payload);raise AssertionError('conflict overwritten')
  except CloudConflict:pass
+ request.reset_mock();request.side_effect=[Response({'files':[{'id':'file1'}]}),Response({'id':'file1','etag':'"v1"'}),Response(profile),Response({'id':'file1','etag':'"v2"'})]
+ try:CloudClient().save(owner,1,payload);raise AssertionError('download race accepted')
+ except CloudConflict:pass
+ assert request.call_count==4
  request.reset_mock();request.side_effect=[Response({'files':[]}),Response({'id':'new'})]
  assert CloudClient().save(owner,0,payload)==1
  assert b'"parents": ["appDataFolder"]' in request.call_args.kwargs['data']

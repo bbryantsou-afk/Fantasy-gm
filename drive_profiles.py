@@ -13,10 +13,10 @@ def locks():return {},threading.Lock()
 class CloudClient:
     NAME='fantasy-gm-profile-v1.json'
     def __init__(self,cfg=None):pass
-    def request(self,method,path,upload=False,**kwargs):
+    def request(self,method,path,upload=False,version=3,**kwargs):
         try:
             headers={'Authorization':'Bearer '+access_token(),**kwargs.pop('headers',{})}
-            root='https://www.googleapis.com/upload/drive/v3/' if upload else 'https://www.googleapis.com/drive/v3/'
+            root=('https://www.googleapis.com/upload/drive/' if upload else 'https://www.googleapis.com/drive/')+'v'+str(version)+'/'
             r=requests.request(method,root+path,headers=headers,timeout=25,**kwargs)
             if r.status_code==412:raise CloudConflict('另一個裝置已更新 Drive 資料。')
             if not r.ok:raise CloudError('Google Drive 暫時無法讀寫，請確認 Drive API 與授權；尚未保存。')
@@ -30,14 +30,19 @@ class CloudClient:
         fid=files[0].get('id','')
         if not re.fullmatch(r'[A-Za-z0-9_-]+',fid):raise CloudError('Drive 檔案識別不符。')
         return fid
-    def read(self,fid,owner):
-        # Get media and its ETag in the SAME response, so the validator matches these bytes.
+    def read(self,fid,owner,for_write=False):
+        # Drive v3 media omits ETag. v2 metadata exposes the validator used by v2 PUT.
+        # Bracket the content read to reject a resource changed while it was downloaded.
+        before=self.request('GET','files/'+fid,version=2,params={'fields':'id,etag'}).json().get('etag') if for_write else None
         r=self.request('GET','files/'+fid,params={'alt':'media'})
         if len(r.content)>4_100_000:raise CloudError('Drive 設定檔超過大小限制。')
         try:data=r.json()
         except ValueError:raise CloudError('Drive 設定檔不是有效 JSON。') from None
         if not isinstance(data,dict) or data.get('owner')!=owner or type(data.get('revision')) is not int or data['revision']<1 or not isinstance(data.get('payload'),dict):raise CloudError('Drive 設定檔歸屬或格式不符。')
-        return data,r.headers.get('ETag')
+        if for_write:
+            after=self.request('GET','files/'+fid,version=2,params={'fields':'id,etag'}).json().get('etag')
+            if before!=after:raise CloudConflict('讀取期間其他裝置已更新 Drive 資料。')
+        return data,before
     def load(self,owner):
         fid=self.lookup()
         if not fid:return None
@@ -49,13 +54,13 @@ class CloudClient:
         with lock:
             fid=self.lookup();current=0;etag=None
             if fid:
-                data,etag=self.read(fid,owner);current=data['revision']
+                data,etag=self.read(fid,owner,for_write=True);current=data['revision']
             if current!=revision:raise CloudConflict('另一個裝置已更新 Drive 資料。')
             body=json.dumps({'owner':owner,'revision':revision+1,'payload':payload},ensure_ascii=False).encode()
             if len(body)>4_100_000:raise CloudError('帳號資料超過大小限制，尚未保存。')
             if fid:
                 if not etag:raise CloudError('Drive 未提供版本驗證，已暫停自動寫入，避免覆蓋其他裝置。')
-                self.request('PATCH','files/'+fid,upload=True,params={'uploadType':'media'},headers={'If-Match':etag,'Content-Type':'application/json; charset=UTF-8'},data=body)
+                self.request('PUT','files/'+fid,upload=True,version=2,params={'uploadType':'media'},headers={'If-Match':etag,'Content-Type':'application/json; charset=UTF-8'},data=body)
             else:
                 import uuid
                 boundary='fgm_'+uuid.uuid4().hex
