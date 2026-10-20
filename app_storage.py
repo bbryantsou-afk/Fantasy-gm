@@ -4,6 +4,9 @@ from pathlib import Path
 import streamlit as st
 
 def private_path(local_path):
+    from mobile_share import shared_path
+    shared=shared_path(Path(local_path).name)
+    if shared is not None:return shared
     mode=os.environ.get("FANTASY_GM_STORAGE_MODE","local" if sys.platform=="darwin" else "session")
     if mode=="local":
         return Path(local_path)

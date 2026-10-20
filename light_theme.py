@@ -63,3 +63,12 @@ APP_CSS += '''
 .stApp [data-testid="stTable"],.stApp [data-testid="stTable"] th,.stApp [data-testid="stTable"] td,.stApp [data-testid="stJson"],.stApp pre {background:#fff !important;color:#263444 !important;border-color:#dce3e9 !important;}
 .stApp [data-testid="stJson"] span,.stApp pre code {color:#263444 !important;}
 '''
+
+APP_CSS += '''
+.stApp [data-testid="stMarkdownContainer"],.stApp [data-testid="stText"],.stApp [data-testid="stWidgetLabel"] p,.stApp [data-testid="stMetricValue"],.stApp [data-testid="stMetricLabel"] p,.stApp [data-testid="stExpander"] summary,.stApp [role="tab"],.stApp [role="tab"] p {color:#202a36 !important;}
+.stApp [data-testid="stCaptionContainer"] p,.stApp small {color:#526171 !important;}
+.stApp [data-baseweb="tag"],.stApp [data-baseweb="tag"] * {background:#e7f1ed !important;color:#214e43 !important;fill:#214e43 !important;}
+.stApp button:disabled,.stApp button:disabled * {color:#647181 !important;background:#edf0f4 !important;opacity:1 !important;}
+.stApp [data-testid="stCode"],.stApp [data-testid="stCode"] *, .stApp [data-testid="stTextInput"] input {color:#202a36 !important;}
+@media(max-width:640px){.stApp [data-testid="stMainBlockContainer"]{padding-left:1rem;padding-right:1rem}.stApp [data-testid="stMetricValue"]{font-size:1.5rem}.stApp [role="tab"]{min-height:44px}}
+'''

@@ -15,6 +15,10 @@ st.set_page_config(
     layout="wide",
 )
 
+from mobile_share import init_share,watch_share
+init_share()
+watch_share()
+
 DEMO_PLAYERS = [
     {
         "Player": "Nikola Jokic", "NBA Team": "DEN",
@@ -111,7 +115,7 @@ else:
     st.caption("球隊管理 · 球員資料 · 9-category 分析")
 import os,sys
 if os.environ.get("FANTASY_GM_STORAGE_MODE","local" if sys.platform=="darwin" else "session")=="session":
-    st.caption("雲端設定只保留於本次工作階段；重新部署或重開連線可能重置。重要名單請下載備份。")
+    st.caption("手機共用已連線，名單與比賽紀錄跨裝置更新。" if st.session_state.get("_mobile_share_token") else "到設定建立手機共用連結，即可跨裝置使用。雲端資料請定期備份。")
 if page not in ("9-Cat Strategy", "總覽 Dashboard", "模擬對局 Matchup Simulator", "Matchup Simulator Lite", "聯盟同步 League Sync", "比賽戰況", "Data Source 資料中心", "⚙️ 設定", "球員觀察室 Player Watch", "每週補強 Weekly Planner", "交易分析 Trade Lab"):
     st.info(
         "示範模式：目前資料僅用於測試網站功能，"
@@ -153,6 +157,8 @@ elif page == "Data Source 資料中心":
 
 elif page == "⚙️ 設定":
     st.subheader('⚙️ 設定')
+    from mobile_share import render_mobile_settings
+    render_mobile_settings()
     from court_theme import render_theme_settings
     render_theme_settings()
     from league_settings import render_league_settings
@@ -275,3 +281,8 @@ elif page == "模擬對局 Matchup Simulator":
 st.divider()
 st.caption("Fantasy NBA GM · 9-Cat 整合版" if page in ("9-Cat Strategy", "總覽 Dashboard", "模擬對局 Matchup Simulator", "Matchup Simulator Lite", "聯盟同步 League Sync", "比賽戰況", "Data Source 資料中心", "⚙️ 設定", "球員觀察室 Player Watch", "每週補強 Weekly Planner", "交易分析 Trade Lab") else "Fantasy NBA GM · Demo Version 0.2")
 
+
+# Apply the selected light palette after page-specific legacy styles.
+if st.session_state.get("visual_theme")=="簡約淺色":
+    from light_theme import APP_CSS
+    st.markdown("<style>"+APP_CSS+"</style>",unsafe_allow_html=True)
