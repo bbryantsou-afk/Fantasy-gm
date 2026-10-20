@@ -129,7 +129,10 @@ else:
     st.caption("球隊管理 · 球員資料 · 9-category 分析")
 import os,sys
 if os.environ.get("FANTASY_GM_STORAGE_MODE","local" if sys.platform=="darwin" else "session")=="session":
-    st.caption("手機共用已連線，名單與比賽紀錄跨裝置更新。" if st.session_state.get("_mobile_share_token") else "到設定建立手機共用連結，即可跨裝置使用。雲端資料請定期備份。")
+    if st.session_state.get("_account_id"):
+        st.caption("已連接個人 Google Drive；其他裝置用相同 Google 帳號登入即可載入紀錄。Yahoo 名單仍需同步。")
+    else:
+        st.caption("手機共用已連線，名單與比賽紀錄跨裝置更新。" if st.session_state.get("_mobile_share_token") else "到設定登入 Google，可將紀錄保存至個人 Drive 並跨裝置使用。")
 if page not in ("9-Cat Strategy", "總覽 Dashboard", "模擬對局 Matchup Simulator", "Matchup Simulator Lite", "聯盟同步 League Sync", "比賽戰況", "Data Source 資料中心", "⚙️ 設定", "球員觀察室 Player Watch", "每週補強 Weekly Planner", "交易分析 Trade Lab"):
     st.info(
         "示範模式：目前資料僅用於測試網站功能，"
