@@ -4,7 +4,7 @@ function post(type,extra={}){parent.postMessage({isStreamlitMessage:true,type,..
 window.addEventListener('message',event=>{
  if(event.source!==parent || event.data?.type!=='streamlit:render')return;
  args=event.data.args||{};
- if(!args.enabled)return;
+ if(!args.enabled){if(args.showStatus){document.getElementById('status').textContent='尚未收到手機名單。需要先在 Yahoo 執行同步書籤；此時還不會出現隊伍配對。';post('streamlit:setFrameHeight',{height:60});}return;}
  try{
    let hash='';let host=window;
    for(let i=0;i<4;i++){try{if(host.location.hash.startsWith('#yahoo-roster=')){hash=host.location.hash;break;}if(host.parent===host)break;host=host.parent;}catch(e){break;}}
@@ -16,7 +16,7 @@ window.addEventListener('message',event=>{
      localStorage.setItem('fgm-phone-roster',JSON.stringify(snapshot));
      try{host.history.replaceState(null,'',host.location.pathname+host.location.search);}catch(e){}
    }else{snapshot=JSON.parse(localStorage.getItem('fgm-phone-roster')||'null');}
-   if(!snapshot)return;
+   if(!snapshot){document.getElementById('status').textContent='等待手機名單：目前沒有回傳資料。請先在 Yahoo 執行同步書籤；成功讀取後應自動返回 App。';post('streamlit:setFrameHeight',{height:65});return;}
    const key='fgm-phone-map-'+snapshot.league;
    if(args.mapping)localStorage.setItem(key,JSON.stringify(args.mapping));
    const id=snapshot.capturedAt+'|'+snapshot.league;

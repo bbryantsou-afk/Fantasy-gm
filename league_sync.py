@@ -111,7 +111,7 @@ def render_sync_connection(full=False):
         return
     ack=st.session_state.get('_sync_mapping_ack') or (league.get('sync_mapping') if league.get('sync_league')==source else None)
     args=dict(league=source,date=str(day),mapping=ack,compact=not full,applied=st.session_state.get('_sync_browser_ack'),key='yahoo_browser_bridge',default=None)
-    phone_result=phone_bridge(enabled=bool(st.query_params.get('phone_sync')),mapping=ack,key='phone_roster_receiver',default=None)
+    phone_result=phone_bridge(enabled=bool(st.query_params.get('phone_sync')),showStatus=full,mapping=ack,key='phone_roster_receiver',default=None)
     if full:result=bridge(**args)
     else:
         with st.expander('名單同步狀態／立即更新',expanded=False):
@@ -123,6 +123,7 @@ def render_sync_connection(full=False):
         if isinstance(incoming,str) and re.fullmatch(r'\d{1,10}',incoming):
             source=incoming;st.session_state['_sync_requested_league']=source
     if result and isinstance(result,dict) and result.get('snapshot',{}).get('date')!=str(day):
+        if phone_result and full:st.warning('手機名單日期與目前選擇日期不同，尚未套用。請核對上方美東陣容日期後重新同步。')
         result=None  # Previous component value while the date selector changes.
     if result:
         try:
