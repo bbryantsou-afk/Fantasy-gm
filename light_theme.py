@@ -72,3 +72,8 @@ APP_CSS += '''
 .stApp [data-testid="stCode"],.stApp [data-testid="stCode"] *, .stApp [data-testid="stTextInput"] input {color:#202a36 !important;}
 @media(max-width:640px){.stApp [data-testid="stMainBlockContainer"]{padding-left:1rem;padding-right:1rem}.stApp [data-testid="stMetricValue"]{font-size:1.5rem}.stApp [role="tab"]{min-height:44px}}
 '''
+
+APP_CSS += '''
+.stApp [data-testid="stCaptionContainer"],.stApp [data-testid="stCaptionContainer"] * {color:#455466 !important;opacity:1 !important;}
+.stApp [data-testid="stMarkdownContainer"] small,.stApp [data-testid="stSidebar"] small {color:#455466 !important;opacity:1 !important;}
+'''
