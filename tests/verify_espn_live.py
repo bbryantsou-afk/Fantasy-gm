@@ -1,0 +1,28 @@
+import sys
+from pathlib import Path
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+from live_espn import parse_box
+from daily_evidence import observed_day,fantasy_period
+from datetime import date
+labels=['MIN','PTS','FG','3PT','FT','REB','AST','TO','STL','BLK']
+p={'athlete':{'id':'900','displayName':'Ausar Thompson'},'stats':['12','9','4-5','0-0','1-2','8','2','1','1','0'],'didNotPlay':False}
+d={'header':{'id':'1','competitions':[{'date':'2026-10-21T00:00Z','status':{'type':{'completed':False}}}]},'boxscore':{'players':[{'team':{'abbreviation':'DET'},'statistics':[{'labels':labels,'athletes':[p,dict(p,didNotPlay=True)]}]}]}}
+players=parse_box(d,'2026-10-20','2026-10-21T01:00Z',{})
+assert len(players)==1 and players['espn:900']['PTS']==9
+row={'id':'1630703','name':'Ausar Thompson','team':'DET','slot':'SF'}
+league={'daily_rosters':{'2026-10-20':{'captured_at':'2026-10-21T00:00Z','teams':{'A':[row]}}}}
+live={'players':players,'updated_at':'2026-10-21T01:00Z','source':'ESPN 即時暫存'}
+e=observed_day(league,'2026-10-20',live);assert e['players']['1630703']['PTS']==9
+r,missing,_,_=fantasy_period(league,'A',date(2026,10,20),date(2026,10,20),date(2026,10,20),live)
+assert len(r)==1 and r[0]['PTS']==9 and not missing
+finals={};d['header']['competitions'][0]['status']['type']['completed']=True
+live['players']=parse_box(d,'2026-10-20','2026-10-21T01:00Z',finals)
+row['daily_stats']=dict(players['espn:900'],PTS=7)
+# A stale Yahoo snapshot cannot override a game just observed final.
+assert observed_day(league,'2026-10-20',live)['players']['1630703']['PTS']==9
+league['daily_rosters']['2026-10-20']['captured_at']='2026-10-21T01:01Z'
+assert observed_day(league,'2026-10-20',live)['players']['1630703']['PTS']==7
+try:parse_box(d,'2026-10-19','',{})
+except ValueError:pass
+else:raise AssertionError('date mismatch')
+print('PASS ESPN provider identity, full nine-cat, DNP exclusion, Fantasy starters, final Yahoo precedence and date validation')

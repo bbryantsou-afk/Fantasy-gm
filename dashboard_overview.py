@@ -153,7 +153,7 @@ def render_dashboard():
         previous_records,_,_,_=fantasy_period(league,choice,max(monday-timedelta(days=7),first),monday-timedelta(days=1),today)
         if missing:st.warning('缺少部分日期的 Fantasy 排陣／單日數據：'+', '.join(missing)+ '。請到聯盟同步選該週任一天，讀取整週資料。')
         if source:st.caption('資料來源：'+source+' · 最近更新 '+stamp)
-        if live and live.get('error'):st.info('NBA 即時來源目前無法連線；顯示 Yahoo 最近同步的單日數據。請更新同步工具並同步本週，數據不會自行從賽季平均推算。')
+        if live and live.get('error'):st.info('即時比分來源暫時未完整取得；顯示 Yahoo 最近同步的單日數據。請更新同步工具並同步本週，數據不會自行從賽季平均推算。')
         # Historical additions/drops remain visible even if absent from the current roster.
         known={str(r.get('id')) for r in roster};known_names={norm(r['name']) for r in roster}
         for r in records+week_records+previous_records:
@@ -167,6 +167,9 @@ def render_dashboard():
     previous={r['name']:r for r in prev}
     trends={r['name']:trend(r,previous.get(r['name']),ref) for r in weekly}
     record_map={norm(r['PLAYER_NAME']):r for r in records}
+    if not logs:
+        for r in rows:
+            if not r['excluded'] and norm(r['name']) not in record_map:r.update(covered=False,reason='尚無單日實績／未開賽或待更新')
     known_names={norm(g['PLAYER_NAME']) for g in logs}
     for r in rows:
         if logs and norm(r['name']) not in known_names and not r['excluded']:
@@ -234,7 +237,7 @@ def render_dashboard():
               **{LABELS[c]:round(r['tot'][c],1) if r['covered'] else None for c in CATS if c not in ('FG','FT')}}
         for c in ('FG','FT'):
             item[LABELS[c]]=f"{r['tot'][c+'M']/r['tot'][c+'A']:.1%}" if r['covered'] and r['tot'][c+'A'] else '—'
-        item['週場均趨勢']=trends[r['name']]
+        item['週場均趨勢']=trends[r['name']] if r['covered'] else '— 資料待確認'
         item['MVP分']=round(score_map[r['name']],3) if r['name'] in score_map else None
         table.append(item)
     st.dataframe(pd.DataFrame(table),hide_index=True,width='stretch')

@@ -109,7 +109,7 @@ def render_matchup_simulator(lite=False):
         stamp=evidence['updated_at']
         st.caption(('今天：即時／最近同步實績' if selected_date==today else '過去：該日 Fantasy 排陣與實績')+' · '+(evidence['source'] or '尚無已同步數據')+(' · 更新 '+stamp if stamp else ''))
         if str(selected_date) not in official_lineups:st.warning('缺少這一天的 Fantasy 排陣；到聯盟同步選該日期，0.3.0 會一併讀取所屬整週。未取得資料前不會用現在名單假裝歷史先發。')
-        if live and live.get('error'):st.info('NBA 即時來源目前無法連線；使用 Yahoo 最近同步數據，更新時間如上。可在聯盟同步更新今日資料。')
+        if live and live.get('error'):st.info('即時比分來源暫時未完整取得；使用 Yahoo 最近同步數據，更新時間如上。可在聯盟同步更新今日資料。')
     elif selected_date>today:st.caption('未來：保留場均套用、自訂預測與排陣模擬。')
     st.caption('雙方使用共用名單，IL 不排入；此頁拖曳與新增屬於模擬，不會自動修改共用名單。')
     st.caption("賽程來源：NBA 例行賽快照；本季可按按鈕更新以反映改期。")

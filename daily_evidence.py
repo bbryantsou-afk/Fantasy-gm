@@ -11,7 +11,7 @@ def timestamp(value):
     except (ValueError,TypeError,AttributeError):return 0
 
 @st.cache_data(ttl=25,show_spinner=False)
-def nba_today(day):
+def nba_official_today(day):
     import requests
     base='https://cdn.nba.com/static/json/liveData/'
     try:
@@ -33,6 +33,18 @@ def nba_today(day):
     except Exception as exc:
         return {'players':{},'statuses':[],'updated_at':'','error':f'{type(exc).__name__}: '+str(exc)[:180]}
 
+@st.cache_data(ttl=25,show_spinner=False)
+def nba_today(day):
+    from live_espn import espn_day
+    try:
+        result=espn_day(str(day))
+        if not result.get('error'):return result
+    except Exception as exc:
+        result={'players':{},'statuses':[],'updated_at':'','error':type(exc).__name__}
+    fallback=nba_official_today(day)
+    if fallback['players']:return dict(fallback,source='NBA 即時暫存')
+    return result
+
 def roster_for_day(league,team,day):
     archive=league.get('daily_rosters',{}).get(str(day),{})
     return archive.get('teams',{}).get(team)
@@ -47,10 +59,23 @@ def observed_day(league,day,live=None):
             key=player_key(r)
             players[key]={'PLAYER_ID':key,'PLAYER_NAME':r['name'],'TEAM_ABBREVIATION':r.get('team',''),'GP':1,**r['daily_stats']}
     source='Yahoo 單日實績' if players or archive.get('stats_scope')=='day' else ''
-    if live and live.get('updated_at'):
-        # A newer NBA boxscore can update a running game; never add cumulative snapshots.
-        if not stamp or timestamp(live['updated_at'])>timestamp(stamp):
-            players.update(live['players']);stamp=live['updated_at'];source='NBA 即時比分'+('＋Yahoo 每日排陣' if archive else '')
+    if live and live.get('updated_at') and live.get('players'):
+        from live_espn import identity
+        # Match names unambiguously across providers. ESPN IDs differ from NBA IDs.
+        aliases={}
+        for rows in archive.get('teams',{}).values():
+            for r in rows:aliases.setdefault(identity(r['name']),set()).add(player_key(r))
+        used=False
+        for key,p in live['players'].items():
+            matches=aliases.get(identity(p.get('PLAYER_NAME','')),set())
+            if len(matches)>1:continue
+            target=next(iter(matches)) if matches else key
+            # Only Yahoo snapshots captured after this game was observed final can confirm it.
+            final=p.get('final_seen_at')
+            if target in players and ((final and timestamp(stamp)>=timestamp(final)) or timestamp(stamp)>=timestamp(live['updated_at'])):continue
+            players[target]=dict(p,PLAYER_ID=target);used=True
+        if used:
+            stamp=live['updated_at'];source=live.get('source','NBA 即時比分')+('＋Yahoo 每日排陣／已確認實績' if archive else '')
     return {'players':players,'source':source,'updated_at':stamp,'archive':archive}
 
 def fantasy_period(league,team,start,end,today,live=None):
