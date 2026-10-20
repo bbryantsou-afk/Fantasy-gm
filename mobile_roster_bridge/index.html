@@ -1,0 +1,30 @@
+<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;font:14px system-ui;color:#263444"><div id="status"></div><script>
+let args={},sent='';
+function post(type,extra={}){parent.postMessage({isStreamlitMessage:true,type,...extra},'*');}
+window.addEventListener('message',event=>{
+ if(event.source!==parent || event.data?.type!=='streamlit:render')return;
+ args=event.data.args||{};
+ if(!args.enabled)return;
+ try{
+   let hash='';let host=window;
+   for(let i=0;i<4;i++){try{if(host.location.hash.startsWith('#yahoo-roster=')){hash=host.location.hash;break;}if(host.parent===host)break;host=host.parent;}catch(e){break;}}
+   let snapshot;
+   if(hash){
+     const raw=atob(hash.slice('#yahoo-roster='.length));
+     snapshot=JSON.parse(new TextDecoder().decode(Uint8Array.from(raw,c=>c.charCodeAt(0))));
+     if(snapshot.schema!==1 || !/^\d{1,10}$/.test(snapshot.league))throw Error('資料格式不符。');
+     localStorage.setItem('fgm-phone-roster',JSON.stringify(snapshot));
+     try{host.history.replaceState(null,'',host.location.pathname+host.location.search);}catch(e){}
+   }else{snapshot=JSON.parse(localStorage.getItem('fgm-phone-roster')||'null');}
+   if(!snapshot)return;
+   const key='fgm-phone-map-'+snapshot.league;
+   if(args.mapping)localStorage.setItem(key,JSON.stringify(args.mapping));
+   const id=snapshot.capturedAt+'|'+snapshot.league;
+   if(id===sent)return;sent=id;
+   document.getElementById('status').textContent='已接收手機名單，等待網站驗證／套用。';
+   post('streamlit:setFrameHeight',{height:32});
+   post('streamlit:setComponentValue',{dataType:'json',value:{snapshot,mapping:JSON.parse(localStorage.getItem(key)||'{}')}});
+ }catch(e){document.getElementById('status').textContent='手機名單未讀取：'+e.message;post('streamlit:setFrameHeight',{height:55});}
+});
+post('streamlit:componentReady',{apiVersion:1});post('streamlit:setFrameHeight',{height:0});
+</script></body></html>

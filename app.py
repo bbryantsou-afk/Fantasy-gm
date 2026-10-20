@@ -98,7 +98,7 @@ with st.sidebar:
         ["總覽 Dashboard", "球員觀察室 Player Watch",
          "每週補強 Weekly Planner", "交易分析 Trade Lab",
      "9-Cat Strategy", "模擬對局 Matchup Simulator", "Matchup Simulator Lite", "聯盟同步 League Sync", "比賽戰況", "Data Source 資料中心", "⚙️ 設定"],
-        index=10 if st.query_params.get("code") or st.query_params.get("error") else 0
+        index=10 if st.query_params.get("code") or st.query_params.get("error") else 7 if st.query_params.get("phone_sync") else 0
     )
     st.divider()
     if page in ("9-Cat Strategy", "總覽 Dashboard", "模擬對局 Matchup Simulator", "Matchup Simulator Lite", "聯盟同步 League Sync", "比賽戰況", "Data Source 資料中心", "⚙️ 設定", "球員觀察室 Player Watch", "每週補強 Weekly Planner", "交易分析 Trade Lab"):

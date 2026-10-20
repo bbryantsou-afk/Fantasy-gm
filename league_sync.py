@@ -11,6 +11,7 @@ from roster_store import state,persist,identity,team_label,team_formatter
 from roster_import import match_rows,build_import,name_key
 ROOT=Path(__file__).resolve().parent
 bridge=components.declare_component('league_sync',path=str(ROOT/'sync_bridge'))
+phone_bridge=components.declare_component('mobile_roster',path=str(ROOT/'mobile_roster_bridge'))
 POSITIONS={'PG','SG','G','SF','PF','F','C','Util','UTIL','BN','IL','IL+','IR','IR+'}
 
 def validate_snapshot(payload,league,day,expected_teams):
@@ -88,6 +89,9 @@ def render_sync_connection(full=False):
     snapshot,entries=load_data();league=state(entries)
     today=datetime.now(ZoneInfo('America/New_York')).date()
     if full:
+        with st.expander('手機直接同步（不需電腦）',expanded=bool(st.query_params.get('phone_sync'))):
+            from mobile_roster import render_mobile_setup
+            render_mobile_setup()
         st.subheader('🔄 聯盟同步 · 每日陣容')
         source=st.text_input('Yahoo 聯盟 ID',value=str(st.session_state.get('_sync_requested_league',league.get('sync_league','71585'))),key='sync_league_input').strip()
         st.session_state['_sync_requested_league']=source
@@ -107,11 +111,17 @@ def render_sync_connection(full=False):
         return
     ack=st.session_state.get('_sync_mapping_ack') or (league.get('sync_mapping') if league.get('sync_league')==source else None)
     args=dict(league=source,date=str(day),mapping=ack,compact=not full,applied=st.session_state.get('_sync_browser_ack'),key='yahoo_browser_bridge',default=None)
+    phone_result=phone_bridge(enabled=bool(st.query_params.get('phone_sync')),mapping=ack,key='phone_roster_receiver',default=None)
     if full:result=bridge(**args)
     else:
         with st.expander('名單同步狀態／立即更新',expanded=False):
             st.caption('全站共用同一個同步接收器。已在此瀏覽器完成配對後，重新連線會自動載入已保存的今天名單。')
             result=bridge(**args)
+    if phone_result and st.query_params.get('phone_sync'):
+        result=phone_result
+        incoming=result.get('snapshot',{}).get('league')
+        if isinstance(incoming,str) and re.fullmatch(r'\d{1,10}',incoming):
+            source=incoming;st.session_state['_sync_requested_league']=source
     if result and isinstance(result,dict) and result.get('snapshot',{}).get('date')!=str(day):
         result=None  # Previous component value while the date selector changes.
     if result:
