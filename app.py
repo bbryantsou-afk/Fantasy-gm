@@ -102,7 +102,8 @@ with st.sidebar:
     if st.session_state.get("_account_id"):
         st.caption("Google 已登入 · "+st.session_state.get("_account_user_name", ""))
     elif account_config():
-        if st.button("使用 Google 登入",key="google_sidebar_login"):st.login("google")
+        from google_drive_auth import render_login
+        render_login("drive_sidebar_login")
     elif st.query_params.get("phone_sync"):
         st.caption("手機同步模式")
     st.caption("PERSONAL NBA ANALYTICS")

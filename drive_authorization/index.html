@@ -1,0 +1,31 @@
+<!doctype html><html><body style="margin:0;font:14px system-ui"><div id="ui"></div><script>
+const KEY='fgm-drive-login-v1',PENDING='fgm-drive-pending-v1';let lastRead='',lastSave='';
+function post(type,extra={}){parent.postMessage({isStreamlitMessage:true,type,...extra},'*')}
+function answer(value){post('streamlit:setComponentValue',{dataType:'json',value})}
+window.addEventListener('message',e=>{
+ if(e.source!==parent||e.data?.type!=='streamlit:render')return;
+ const a=e.data.args||{},ui=document.getElementById('ui');
+ try{
+  if(a.mode==='read'){
+   const signature=JSON.stringify(a.callback||null);
+   if(signature===lastRead)return;lastRead=signature;
+   let value={ready:true,envelope:localStorage.getItem(KEY)};
+   if(a.callback){
+    const p=JSON.parse(localStorage.getItem(PENDING)||'null');
+    if(!p||p.state!==a.callback.state||Date.now()-p.created>600000)value={ready:true,error:'state_mismatch'};
+    else value={ready:true,verifier:p.verifier};
+   }
+   answer(value);post('streamlit:setFrameHeight',{height:0});
+  }
+  if(a.mode==='save'&&a.envelope&&a.envelope!==lastSave){localStorage.setItem(KEY,a.envelope);localStorage.removeItem(PENDING);lastSave=a.envelope;post('streamlit:setFrameHeight',{height:0})}
+  if(a.mode==='login'){
+   ui.replaceChildren();const link=document.createElement('a');link.textContent='使用 Google 登入並連接個人 Drive';link.href=a.flow.url;link.target='_top';link.style='display:inline-block;padding:10px 13px;border:1px solid #8795a7;border-radius:8px;background:#fff;color:#182536;text-decoration:none;font-size:13px';
+   link.addEventListener('click',event=>{try{localStorage.setItem(PENDING,JSON.stringify({state:a.flow.state,verifier:a.flow.verifier,created:Date.now()}))}catch(_){event.preventDefault();ui.textContent='請允許此網站保存登入狀態。'}});ui.append(link);post('streamlit:setFrameHeight',{height:66});
+  }
+  if(a.mode==='logout'){
+   ui.replaceChildren();const b=document.createElement('button');b.textContent='登出 Google';b.style='padding:8px;border-radius:7px;border:1px solid #8795a7;background:#fff;color:#182536';b.onclick=()=>{localStorage.removeItem(KEY);localStorage.removeItem(PENDING);answer({logout:true})};ui.append(b);post('streamlit:setFrameHeight',{height:42});
+  }
+ }catch(_){answer({ready:true,error:'storage_unavailable'});ui.textContent='瀏覽器儲存不可用，請允許網站儲存後重試。';post('streamlit:setFrameHeight',{height:45})}
+});
+post('streamlit:componentReady',{apiVersion:1});post('streamlit:setFrameHeight',{height:0});
+</script></body></html>

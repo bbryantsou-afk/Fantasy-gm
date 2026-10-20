@@ -4,51 +4,15 @@ from pathlib import Path
 import requests
 import streamlit as st
 from profile_preferences import preference_key,capture_preferences
-
-class CloudError(Exception):pass
-class CloudConflict(CloudError):pass
-
-def config():
-    try:
-        a=st.secrets['auth'];g=a['google'];db=st.secrets['account_db']
-        if not all([a['redirect_uri'],a['cookie_secret'],g['client_id'],g['client_secret'],db['url'],db['server_key']]):return None
-        if g.get('server_metadata_url')!='https://accounts.google.com/.well-known/openid-configuration':return None
-        return {'url':db['url'],'key':db['server_key']}
-    except (KeyError,FileNotFoundError):return None
+from drive_profiles import CloudError,CloudConflict,CloudClient
+from google_drive_auth import config,init_auth,render_login,render_logout,finish_auth
 
 def signed_user():
-    if not st.user.is_logged_in:return None
-    return dict(st.user)
+    return st.session_state.get('_drive_user')
 
 def owner_id(user):
     if not isinstance(user,dict) or user.get('iss') not in ['https://accounts.google.com','accounts.google.com'] or not isinstance(user.get('sub'),str) or not user['sub']:raise CloudError('Google 身分驗證資料不完整，未載入帳號資料。')
     return hashlib.sha256(('google:'+user['sub']).encode()).hexdigest()
-
-class CloudClient:
-    def __init__(self,cfg):
-        if not re.fullmatch(r'https://[a-z0-9-]+\.supabase\.co',cfg['url'].rstrip('/')):raise CloudError('雲端資料庫網址設定不符。')
-        self.url=cfg['url'].rstrip('/')+'/rest/v1/'
-        self.headers={'apikey':cfg['key'],'Content-Type':'application/json'}
-        if cfg['key'].startswith('eyJ'):self.headers['Authorization']='Bearer '+cfg['key']
-    def request(self,method,path,**kwargs):
-        try:
-            r=requests.request(method,self.url+path,headers=self.headers,timeout=10,**kwargs)
-            if not r.ok:
-                try:code=r.json().get('code')
-                except ValueError:code=''
-                if code=='40001':raise CloudConflict('另一個裝置已更新資料。')
-                raise CloudError('雲端保存服務暫時不可用，請確認管理者設定；未覆寫資料。')
-            return r.json()
-        except (requests.RequestException,ValueError) as exc:raise CloudError('雲端連線失敗，請稍後重試；本次修改尚未保存到雲端。') from exc
-    def load(self,owner):
-        data=self.request('GET','fgm_profiles',params={'owner':'eq.'+owner,'select':'revision,payload,updated_at'})
-        if not isinstance(data,list) or len(data)>1:raise CloudError('雲端回傳格式不符。')
-        if data and (type(data[0].get('revision')) is not int or data[0]['revision']<1 or not isinstance(data[0].get('payload'),dict)):raise CloudError('雲端紀錄格式不符。')
-        return data[0] if data else None
-    def save(self,owner,revision,payload):
-        result=self.request('POST','rpc/fgm_save_profile',json={'p_owner':owner,'p_expected':revision,'p_payload':payload})
-        if type(result) is not int or result<1:raise CloudError('雲端儲存回應不符。')
-        return result
 
 def client():return CloudClient(config())
 
@@ -106,13 +70,16 @@ def apply_profile(payload,revision):
 
 def init_account():
     if not config():return
+    init_auth()
     user=signed_user()
     if not user:return
     try:owner=owner_id(user)
     except CloudError as exc:st.error(str(exc));st.stop()
     import uuid
     previous=st.session_state.get('_account_id')
-    if previous and previous!=owner:st.session_state.clear()
+    if previous and previous!=owner:
+        auth={k:v for k,v in st.session_state.items() if k.startswith('_drive_')}
+        st.session_state.clear();st.session_state.update(auth)
     st.session_state['_account_id']=owner
     st.session_state.setdefault('_account_workspace',uuid.uuid4().hex)
     st.session_state['_account_user_name']=str(user.get('name') or 'Google 使用者')
@@ -130,7 +97,7 @@ def init_account():
             st.session_state['_account_checked']=True
         except (CloudError,ValueError,KeyError,TypeError) as exc:
             st.error('無法載入帳號資料，暫停編輯以避免誤覆寫。'+str(exc))
-            st.button('重試載入帳號',on_click=st.rerun);st.button('登出 Google',on_click=st.logout);st.stop()
+            st.button('重試載入帳號',on_click=st.rerun);render_logout('drive_error_logout');finish_auth();st.stop()
 
 @st.fragment(run_every='30s')
 def poll_account():
@@ -145,17 +112,18 @@ def poll_account():
     except CloudError:pass
 
 def render_account():
-    st.markdown('### Google 帳號與雲端保存')
+    st.markdown('### Google 帳號與個人 Drive 保存')
     if not config():
-        st.info('Google 登入尚未啟用；管理者需先設定 Google 登入及永久資料庫。現有訪客功能仍可使用。')
+        st.info('個人 Drive 保存尚未啟用；管理者需先完成 Google 登入與 Drive 設定。現有訪客功能仍可使用。')
         st.caption('管理者設定檔：account_setup/README.md；不需把帳密或金鑰貼到聊天中。')
         return
     if not st.session_state.get('_account_id'):
         st.caption('登入後，手機、電腦與不同瀏覽器可載入同一份私人名單、觀察名單及分析設定。Google 登入不等於 Yahoo 同步。')
-        if st.button('使用 Google 登入',key='google_login'):st.login('google')
+        st.caption('資料保存在你的 Google Drive 隱藏 App 專用資料夾。App 伺服器仍會暫時處理資料；不使用集中式帳號資料庫。')
+        render_login('drive_settings_login')
         return
     st.write('已登入：'+st.session_state['_account_user_name'])
-    st.button('登出 Google',on_click=st.logout,key='google_logout')
+    render_logout()
     if st.session_state.get('_account_new'):
         st.info('帳號尚無資料。請選擇匯入本裝置既有紀錄，或建立新紀錄；未確認前不會自動上傳。')
         guest=st.session_state.get('_browser_guest_snapshot')
@@ -205,9 +173,10 @@ def persist_account(force_revision=None):
     except CloudError as exc:st.session_state['_account_save_error']=str(exc)
 
 def finish_account():
+    finish_auth()
     if not st.session_state.get('_account_id'):return
     try:persist_account()
     except (ValueError,KeyError,TypeError) as exc:st.session_state['_account_save_error']='資料未保存：'+str(exc)
     if st.session_state.get('_account_save_error'):st.error(st.session_state['_account_save_error'])
     elif st.session_state.get('_account_conflict'):st.warning('有跨裝置更新衝突，請到設定選擇保留版本。')
-    elif st.session_state.get('_account_loaded'):st.caption('✓ 帳號紀錄已保存至雲端。')
+    elif st.session_state.get('_account_loaded'):st.caption('✓ 帳號紀錄已保存至你的 Google Drive。')

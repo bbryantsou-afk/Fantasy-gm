@@ -28,7 +28,7 @@ class FakeDB:
 payload={'schema':1,'files':{'league_rosters.json':{'teams':{t:[] for t in teams},'team_names':{teams[0]:'Only account A'},'free':[],'capacity':14,'revision':1}},'prefs':{'_my_team':teams[0],'nc_weight_STL':1.0}}
 db=FakeDB();db.save(owner_id(A),0,payload)
 current=A
-with patch('account_store.config',return_value={'url':'https://test.supabase.co','key':'server-only'}),patch('account_store.client',return_value=db),patch('account_store.signed_user',side_effect=lambda:current):
+with patch('account_store.config',return_value={'configured':True}),patch('account_store.init_auth'),patch('account_store.client',return_value=db),patch('account_store.signed_user',side_effect=lambda:current):
  a=AppTest.from_file(str(ROOT/'app.py'),default_timeout=60).run();assert not a.exception,a.exception
  assert a.session_state['_league']['team_names'][teams[0]]=='Only account A'
  a.session_state['nc_weight_STL']=2.;a.run();assert not a.exception,a.exception
@@ -57,17 +57,7 @@ with patch('account_store.config',return_value={'url':'https://test.supabase.co'
  db.fail=True;same.session_state['nc_weight_STL']=1.9;same.run();assert not same.exception,same.exception
  assert same.session_state['_account_save_error']=='offline'
  assert same.session_state['nc_weight_STL']==1.9
-# Requests always carry the server key in headers, never in query strings or profile payloads.
-class Response:
- ok=True
- def json(self):return []
-with patch('account_store.requests.request',return_value=Response()) as request:
- assert CloudClient({'url':'https://test.supabase.co','key':'sb_secret_test'}).load(owner_id(A)) is None
- call=request.call_args
- assert call.kwargs['params']['owner']=='eq.'+owner_id(A)
- assert call.kwargs['headers']['apikey']=='sb_secret_test'
- assert 'sb_secret_test' not in call.args[1]
-print('PASS verified-sub identity, account isolation, same-account reload, first-use consent, stale-write prevention, offline retention and server-only credentials (mock database)')
+print('PASS verified-sub identity, account isolation, same-account reload, first-use consent, stale-write prevention and offline retention (mock profile store)')
 
 from profile_preferences import capture_preferences,hydrate_preferences
 state={'nc_weight_STL':1.7,'nc_ref_draft':['1641705']}
