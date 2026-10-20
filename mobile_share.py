@@ -35,6 +35,7 @@ def create_share(roster,results):
     return token
 
 def init_share():
+    if st.session_state.get("_account_id"):return
     token=st.query_params.get('mobile') or st.session_state.get('_mobile_share_token')
     if not token:return
     root=share_root(token)
@@ -64,6 +65,9 @@ def render_mobile_settings():
     st.link_button('電腦版入口',BASE+'?theme=light')
     st.link_button('手機版入口',BASE+'?theme=light&phone_sync=1')
     st.caption('兩個入口使用同一套網站程式，功能與版面同步發布。不同瀏覽器的私人名單不會自動互通；需開啟下方同一個共用連結，才能共用資料。')
+    if st.session_state.get('_account_id'):
+        st.info('已使用 Google 帳號保存資料。其他裝置登入同一帳號即可，不需要私人共用連結。')
+        return
     st.markdown('### 📱 手機共用連結')
     st.caption('先依上方指南完成同步，再建立連結並用其他裝置開啟。兩端共用名單與比賽紀錄，手機每 30 秒檢查更新，不需 Chrome 擴充功能。')
     st.info('持有連結的人可以查看與修改這份共用資料，請只傳給自己的裝置。沒有到期限制，可隨時手動停用；雲端重部署仍可能清除暫存資料。Yahoo 帳密與 API 金鑰不會分享。')

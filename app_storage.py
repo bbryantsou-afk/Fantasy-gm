@@ -4,6 +4,9 @@ from pathlib import Path
 import streamlit as st
 
 def private_path(local_path):
+    from account_store import account_path
+    account=account_path(Path(local_path).name)
+    if account is not None:return account
     from mobile_share import shared_path
     shared=shared_path(Path(local_path).name)
     if shared is not None:return shared

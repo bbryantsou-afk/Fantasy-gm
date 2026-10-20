@@ -7,3 +7,9 @@ const snapshot={schema:1,files:{'league_results.json':{weeks:{},days:{}}},prefs:
 a.send({mode:'write',enabled:true,snapshot});
 const b=page();b.send({mode:'read'});const m=b.messages.find(x=>x.type==='streamlit:setComponentValue');assert.deepEqual(m.value.snapshot,snapshot);
 console.log('PASS no write before hydration, persistent browser storage and independent-page reload recovery');
+
+const accountSnapshot={schema:1,files:{privateAccount:true},prefs:{}};
+const accountWriter=page();accountWriter.send({mode:'write',enabled:true,namespace:'account-a',snapshot:accountSnapshot});
+const guestPage=page();guestPage.send({mode:'read'});assert.deepEqual(guestPage.messages.find(x=>x.type==='streamlit:setComponentValue').value.snapshot,snapshot);
+const accountPage=page();accountPage.send({mode:'read',namespace:'account-a'});const read=accountPage.messages.find(x=>x.type==='streamlit:setComponentValue').value;assert.deepEqual(read.snapshot,accountSnapshot);assert.deepEqual(read.guestSnapshot,snapshot);
+console.log('PASS account-local backup isolation and explicit guest migration source');

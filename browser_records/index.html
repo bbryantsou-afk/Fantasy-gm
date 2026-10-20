@@ -6,12 +6,12 @@ window.addEventListener('message',e=>{
  const a=e.data.args||{};
  try{
   if(a.mode==='read' && !returned){
-   returned=true;const raw=localStorage.getItem(KEY);const snapshot=raw?JSON.parse(raw):null;
-   post('streamlit:setComponentValue',{dataType:'json',value:{ready:true,snapshot}});
+   returned=true;const storageKey=a.namespace && a.namespace!=='guest'?KEY+'-'+a.namespace:KEY;const raw=localStorage.getItem(storageKey);const snapshot=raw?JSON.parse(raw):null;const guestRaw=a.namespace && a.namespace!=='guest'?localStorage.getItem(KEY):null;const guestSnapshot=guestRaw?JSON.parse(guestRaw):null;
+   post('streamlit:setComponentValue',{dataType:'json',value:{ready:true,snapshot,guestSnapshot}});
   }
   if(a.mode==='write' && a.enabled && a.snapshot){
    const raw=JSON.stringify(a.snapshot);
-   if(raw!==last){localStorage.setItem(KEY,raw);last=raw;}
+   if(raw!==last){localStorage.setItem(a.namespace && a.namespace!=='guest'?KEY+'-'+a.namespace:KEY,raw);last=raw;}
    document.getElementById('status').textContent='✓ 紀錄已保存至此瀏覽器，重新整理可還原。';
    post('streamlit:setFrameHeight',{height:25});
   }

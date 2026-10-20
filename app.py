@@ -15,11 +15,16 @@ st.set_page_config(
     layout="wide",
 )
 
+from account_store import init_account,render_account,finish_account,poll_account,config as account_config
+init_account()
 from browser_records import restore_browser_records,save_browser_records
 restore_browser_records()
+from profile_preferences import hydrate_preferences
+hydrate_preferences(st.session_state)
 from mobile_share import init_share,watch_share
 init_share()
 watch_share()
+poll_account()
 
 DEMO_PLAYERS = [
     {
@@ -94,6 +99,12 @@ render_court_theme()
 
 with st.sidebar:
     st.title("🏀 Fantasy GM")
+    if st.session_state.get("_account_id"):
+        st.caption("Google 已登入 · "+st.session_state.get("_account_user_name", ""))
+    elif account_config():
+        if st.button("使用 Google 登入",key="google_sidebar_login"):st.login("google")
+    elif st.query_params.get("phone_sync"):
+        st.caption("手機同步模式")
     st.caption("PERSONAL NBA ANALYTICS")
     page = st.radio(
         "功能選單",
@@ -128,6 +139,8 @@ from league_sync import render_sync_connection
 render_sync_connection(full=page == "聯盟同步 League Sync")
 from roster_store import render_roster_source
 render_roster_source()
+if page!="⚙️ 設定" and (st.session_state.get("_account_new") or st.session_state.get("_account_conflict")):
+    render_account()
 
 if page == "總覽 Dashboard":
     from dashboard_overview import render_dashboard
@@ -159,6 +172,7 @@ elif page == "Data Source 資料中心":
 
 elif page == "⚙️ 設定":
     st.subheader('⚙️ 設定')
+    render_account()
     from setup_guide import render_setup_guide
     render_setup_guide()
     from mobile_share import render_mobile_settings
@@ -182,6 +196,8 @@ elif page == "⚙️ 設定":
             "找不到 Yahoo 憑證。請到 Streamlit Cloud 的 "
             "Manage app → Settings → Secrets 檢查設定。"
         )
+        save_browser_records()
+        finish_account()
         st.stop()
 
     # 初始化工作階段
@@ -296,3 +312,5 @@ render_compact_ui()
 st.caption("版本 2026.10.20-compact · 電腦／手機共用版本")
 
 save_browser_records()
+
+finish_account()
