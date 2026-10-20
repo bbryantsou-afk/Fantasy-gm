@@ -1,17 +1,26 @@
 <!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;font:14px system-ui;color:#263444"><div id="status"></div><script>
 let args={},sent='';
 function post(type,extra={}){parent.postMessage({isStreamlitMessage:true,type,...extra},'*');}
-window.addEventListener('message',event=>{
+window.addEventListener('message',async event=>{
  if(event.source!==parent || event.data?.type!=='streamlit:render')return;
  args=event.data.args||{};
  if(!args.enabled){if(args.showStatus){document.getElementById('status').textContent='尚未收到手機名單。需要先在 Yahoo 執行同步書籤；此時還不會出現隊伍配對。';post('streamlit:setFrameHeight',{height:60});}return;}
  try{
    let hash='';let host=window;
-   for(let i=0;i<4;i++){try{if(host.location.hash.startsWith('#yahoo-roster=')){hash=host.location.hash;break;}if(host.parent===host)break;host=host.parent;}catch(e){break;}}
+   for(let i=0;i<4;i++){try{if(/^#yahoo-roster(?:-gzip)?=/.test(host.location.hash)){hash=host.location.hash;break;}if(host.parent===host)break;host=host.parent;}catch(e){break;}}
    let snapshot;
    if(hash){
-     const raw=atob(hash.slice('#yahoo-roster='.length));
-     snapshot=JSON.parse(new TextDecoder().decode(Uint8Array.from(raw,c=>c.charCodeAt(0))));
+     const zipped=hash.startsWith('#yahoo-roster-gzip=');
+     const raw=atob(hash.slice(hash.indexOf('=')+1));
+     let bytes=Uint8Array.from(raw,c=>c.charCodeAt(0));
+     if(bytes.length>2000000)throw Error('資料過大。');
+     if(zipped){
+       const reader=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip')).getReader();
+       const chunks=[];let size=0;
+       while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>2000000){await reader.cancel();throw Error('解壓資料過大。');}chunks.push(value);}
+       bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}
+     }
+     snapshot=JSON.parse(new TextDecoder().decode(bytes));
      if(snapshot.schema!==1 || !/^\d{1,10}$/.test(snapshot.league))throw Error('資料格式不符。');
      localStorage.setItem('fgm-phone-roster',JSON.stringify(snapshot));
      try{host.history.replaceState(null,'',host.location.pathname+host.location.search);}catch(e){}

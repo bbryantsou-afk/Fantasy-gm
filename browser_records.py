@@ -10,8 +10,8 @@ ROOT=Path(__file__).parent
 FILES={'league_rosters.json','league_results.json','player_watchlist.json','ninecat_state.json','trade_preferences.json','trade_feedback.json','simulations.json'}
 bridge=components.declare_component('browser_records',path=str(ROOT/'browser_records'))
 
-def validate_records(snapshot,entries):
-    if not isinstance(snapshot,dict) or snapshot.get('schema')!=1 or len(json.dumps(snapshot))>4_000_000:raise ValueError('瀏覽器備份格式不符。')
+def validate_records(snapshot,entries,max_bytes=4_000_000):
+    if not isinstance(snapshot,dict) or snapshot.get('schema')!=1 or len(json.dumps(snapshot))>max_bytes:raise ValueError('備份格式或大小不符。')
     files=snapshot.get('files',{})
     if not isinstance(files,dict) or set(files)-FILES:raise ValueError('瀏覽器備份含未知檔案。')
     files=copy.deepcopy(files)
@@ -77,6 +77,8 @@ def restore_browser_records():
     st.session_state['_browser_records_ready']=True
 
 def save_browser_records():
+    # Signed-in profiles use Drive; do not duplicate a season of daily logs into localStorage.
+    if st.session_state.get('_account_loaded'):return
     if not st.session_state.get('_browser_records_ready'):return
     files={}
     for name in FILES:

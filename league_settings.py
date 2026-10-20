@@ -17,6 +17,9 @@ def validate_backup(data,teams,allow_history=True):
         for r in rows:
             if not isinstance(r,dict) or not isinstance(r.get('name'),str) or not r['name'].strip():raise ValueError('球員資料不完整。')
             if r.get('status','active') not in ('active','IL','bench'):raise ValueError('球員狀態不符。')
+            if r.get('daily_stats') is not None:
+                from data_center import validate_totals
+                validate_totals(r['daily_stats'])
             if r.get('eligible') and (not isinstance(r['eligible'],list) or any(p not in ['PG','SG','SF','PF','C'] for p in r['eligible'])):raise ValueError('位置資格不符。')
             k=identity(r)
             if k in seen:raise ValueError('同一球員出現在兩份名單。')
@@ -29,6 +32,10 @@ def validate_backup(data,teams,allow_history=True):
         if not isinstance(k,str) or not isinstance(v,dict) or not isinstance(v.get('eligible',[]),list) or any(p not in ['PG','SG','SF','PF','C'] for p in v.get('eligible',[])):raise ValueError('球員位置設定不符。')
         if not isinstance(v.get('team',''),str) or len(v.get('team',''))>3:raise ValueError('NBA 隊伍格式不符。')
     output={'player_meta':copy.deepcopy(meta),'teams':copy.deepcopy(data['teams']),'free':list(set(free)),'capacity':cap,'revision':int(data.get('revision',0))}
+    from data_center import validate_totals
+    for rs in output['teams'].values():
+        for r in rs:
+            if r.get('daily_stats') is not None:r['daily_stats']=validate_totals(r['daily_stats'])
     names=data.get('team_names',{})
     if not isinstance(names,dict) or any(t not in teams or not isinstance(n,str) or not n.strip() or len(n)>100 for t,n in names.items()):raise ValueError('隊名格式不符。')
     output['team_names']=copy.deepcopy(names)
@@ -48,6 +55,7 @@ def validate_backup(data,teams,allow_history=True):
             if not isinstance(archive,dict) or not isinstance(archive.get('captured_at'),str):raise ValueError('快照資料不完整。')
             checked=validate_backup({'teams':archive.get('teams'),'capacity':cap,'free':[]},teams,False)
             clean[day]={'teams':checked['teams'],'captured_at':archive['captured_at'],'source':'Yahoo browser snapshot'}
+            if archive.get('stats_scope')=='day':clean[day]['stats_scope']='day'
         output['daily_rosters']=clean
         for key in ['sync_league','sync_mapping','sync_updated_at']:output[key]=copy.deepcopy(data.get(key))
     if data.get('matchup_schedule'):

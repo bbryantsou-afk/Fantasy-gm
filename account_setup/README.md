@@ -40,3 +40,5 @@ App 伺服器仍會暫時處理資料與授權；這不是端對端加密服務�
 帳號隔離、過期與偽造 state、PKCE、封套加密、版本衝突、讀取競態、網路失敗與瀏覽器登出均通過模擬測試；實體 iPhone／Android 跨裝置及同時寫入衝突仍需實機驗收。目前 Google 專案是測試模式，只有已加入的測試帳號能登入，尚未向所有使用者開放。
 
 官方說明：https://developers.google.com/workspace/drive/api/guides/appdata
+
+每日 Fantasy 先發與單日實績隨名單保存到個人 Drive。登入後不再將整季歷史複製進瀏覽器 localStorage；個人 Drive 設定檔上限為 25 MB，訪客瀏覽器備份仍為 4 MB。今天更新取決於可連線的 NBA 來源或 Yahoo 同步工具，畫面保留來源與時間，不把舊資料稱為最新。

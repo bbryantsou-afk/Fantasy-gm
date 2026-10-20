@@ -17,6 +17,7 @@ for row in agg:
         assert row[c]==sum(float(g[c] or 0) for g in source)
 a=AppTest.from_file(str(root/'app.py'),default_timeout=60).run()
 a.sidebar.radio[0].set_value('總覽 Dashboard').run()
+a.selectbox(key='dash_season').set_value('2025-26').run()
 assert not a.exception
 assert len(a.get('vega_lite_chart'))==9
 a.date_input[0].set_value(date(2025,10,28)).run()
@@ -28,6 +29,7 @@ assert w['週場均趨勢'].startswith('📉')
 a.radio(key='dash_range').set_value('單日').run()
 assert not a.exception
 a.selectbox(key='dash_season').set_value('2026-27').run()
+a.date_input[0].set_value(date(2027,3,1)).run()
 assert not a.exception and any('尚未開始' in x.value for x in a.info)
 a.sidebar.radio[0].set_value('9-Cat Strategy').run()
 assert not a.exception

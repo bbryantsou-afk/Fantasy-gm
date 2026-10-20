@@ -31,6 +31,18 @@ checked=validate_backup(with_schedule,league['teams'])
 assert checked['matchup_schedule']['weeks'][0]['opponents']=={'球隊 01':'球隊 02','球隊 02':'球隊 01'}
 # Older extensions never erase a schedule already collected by a newer device.
 assert apply_snapshot(with_schedule,rows,mapping,payload,date(2026,10,20))['matchup_schedule']==checked['matchup_schedule']
+daily=copy.deepcopy(scheduled);daily['statsScope']='day'
+from ninecat_model import KEYS
+for t in daily['teams']:
+ for r in t['rows']:r['daily_stats']=dict(dict.fromkeys(KEYS,0),PTS=5)
+past=copy.deepcopy(daily);past['date']='2026-10-19';past.pop('matchupSchedule')
+for t in past['teams']:t['date']=past['date']
+daily['history']=[past]
+raw_daily=validate_snapshot(daily,'7',date(2026,10,20),2);matched_daily,_=match_snapshot(raw_daily,players,[])
+bundled=apply_snapshot(league,matched_daily,mapping,daily,date(2026,10,20))
+assert set(bundled['daily_rosters'])=={'2026-10-19','2026-10-20'}
+assert bundled['daily_rosters']['2026-10-20']['stats_scope']=='day'
+assert bundled['daily_rosters']['2026-10-19']['teams']['球隊 01'][0]['daily_stats']['PTS']==5
 for kind in ['missing','duplicate','date','league','position']:
  bad=copy.deepcopy(payload)
  if kind=='missing':bad['teams'].pop()

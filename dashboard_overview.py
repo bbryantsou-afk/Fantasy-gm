@@ -103,14 +103,14 @@ def render_dashboard():
     snapshot, entries = load_data()
     players = snapshot['players']
     ref = baseline(players,cohort_ids(players,entries,'draft'))
-    season = st.selectbox('賽季', ['2025-26','2026-27'], key='dash_season')
+    season = st.selectbox('賽季', ['2026-27','2025-26'], key='dash_season')
     logs = json.loads((ROOT/'ninecat_assets/game_logs_2025_26.json').read_text()) if season == '2025-26' else []
     first = date(2025,10,21) if logs else date(2026,10,20)
     last = date(2026,4,12) if logs else date(2027,4,11)
-    default_day = first
     schedule = {}
     today = datetime.now(ZoneInfo('America/New_York')).date()
-    from roster_store import choose_team,roster as shared_roster,editor
+    default_day=first if logs else max(first,min(last,today))
+    from roster_store import choose_team,roster as shared_roster,editor,state
     choice=choose_team(entries,'dash_team','查看球隊／我的球隊')
     editor(entries,players,choice,'dashboard_roster')
     roster=shared_roster(entries,choice)
@@ -125,11 +125,16 @@ def render_dashboard():
     monday,sunday = week_bounds(day)
     week = (monday-week_bounds(first)[0]).days//7+1
     start,end = (monday,sunday) if granularity == '當週' else (day,day)
+    league=state(entries)
+    if not logs and start<=today<=end:
+        from daily_evidence import refresh_live_page
+        refresh_live_page()
+        st.caption('今天的數據：頁面開啟時約每 30 秒重讀可用來源；Yahoo 新資料仍需同步工具讀取。')
     st.markdown(f'**{season} · Week {week}｜{start:%m/%d}–{end:%m/%d}**')
     with st.expander('手動排除／IL'):
         names=[r['name'] for r in roster]
-        excluded=st.multiselect('本期不納入圖表與MVP',names,default=[r['name'] for r in roster if r.get('status') in ('IL','bench')],key='dash_exclude_actual_'+choice)
-        st.caption('以目前這份名單回看 NBA 實際出賽；尚未重建歷史交易及每日 Fantasy 先發席位。')
+        excluded=st.multiselect('本期不納入圖表與MVP',names,default=[] if not logs and league.get('daily_rosters') else [r['name'] for r in roster if r.get('status') in ('IL','bench')],key='dash_exclude_actual_'+choice+('_fantasy' if not logs else '_nba'))
+        st.caption('本季有每日 Fantasy 快照時，僅計入當天先發；上季回看使用目前名單。')
     if logs:
         records = aggregate_logs(logs,start,end)
         week_records = aggregate_logs(logs,monday,sunday)
@@ -139,11 +144,24 @@ def render_dashboard():
         records,week_records,previous_records = [],[],[]
         st.info('所選期間尚未開始，沒有實績。')
     else:
-        refresh=st.button('更新NBA實績',key='dash_refresh')
-        records,_,_=actual_period(start,min(end,today),refresh)
-        week_records,_,_=actual_period(monday,min(sunday,today))
-        previous_records,_,_=actual_period(monday-timedelta(days=7),monday-timedelta(days=1))
+        from daily_evidence import fantasy_period,nba_today
+        refresh=st.button('更新當期實績',key='dash_refresh')
+        if refresh:nba_today.clear()
+        live=nba_today(str(today)) if monday<=today<=sunday else None
+        records,missing,source,stamp=fantasy_period(league,choice,max(start,first),end,today,live)
+        week_records,_,_,_=fantasy_period(league,choice,max(monday,first),sunday,today,live)
+        previous_records,_,_,_=fantasy_period(league,choice,max(monday-timedelta(days=7),first),monday-timedelta(days=1),today)
+        if missing:st.warning('缺少部分日期的 Fantasy 排陣／單日數據：'+', '.join(missing)+ '。請到聯盟同步選該週任一天，讀取整週資料。')
+        if source:st.caption('資料來源：'+source+' · 最近更新 '+stamp)
+        if live and live.get('error'):st.info('NBA 即時來源目前無法連線；顯示 Yahoo 最近同步的單日數據。請更新同步工具並同步本週，數據不會自行從賽季平均推算。')
+        # Historical additions/drops remain visible even if absent from the current roster.
+        known={str(r.get('id')) for r in roster};known_names={norm(r['name']) for r in roster}
+        for r in records+week_records+previous_records:
+            if str(r['PLAYER_ID']) not in known and norm(r['PLAYER_NAME']) not in known_names:
+                roster.append({'id':str(r['PLAYER_ID']),'name':r['PLAYER_NAME'],'team':r['TEAM_ABBREVIATION'],'status':'active'});known.add(str(r['PLAYER_ID']));known_names.add(norm(r['PLAYER_NAME']))
     rows=production(roster,players,schedule,start,end,excluded,actual=records)
+    if not logs and start<=today and not source and missing:
+        for r in rows:r.update(covered=False,reason='待同步單日實績')
     weekly=production(roster,players,schedule,monday,sunday,excluded,actual=week_records)
     prev=production(roster,players,schedule,monday-timedelta(days=7),monday-timedelta(days=1),excluded,actual=previous_records)
     previous={r['name']:r for r in prev}

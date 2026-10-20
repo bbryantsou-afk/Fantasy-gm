@@ -5,7 +5,7 @@ const snapshot={schema:1,league:'71585',date:'2026-10-20',capturedAt:'2026-10-20
 const values=new Map(),messages=[];let listener,cleared=false;
 const parent={postMessage:x=>messages.push(x),location:{hash:'#yahoo-roster='+Buffer.from(JSON.stringify(snapshot)).toString('base64'),pathname:'/',search:'?phone_sync=1'},history:{replaceState:()=>{cleared=true;parent.location.hash=''}}};parent.parent=parent;
 const win={parent,location:{hash:''},addEventListener:(type,fn)=>listener=fn};
-const context={window:win,parent,document:{getElementById:()=>({textContent:''})},localStorage:{getItem:k=>values.get(k)||null,setItem:(k,v)=>values.set(k,v)},atob:x=>Buffer.from(x,'base64').toString('binary'),TextDecoder,Uint8Array,JSON,Error};
+const context={window:win,parent,document:{getElementById:()=>({textContent:''})},localStorage:{getItem:k=>values.get(k)||null,setItem:(k,v)=>values.set(k,v)},atob:x=>Buffer.from(x,'base64').toString('binary'),TextDecoder,Uint8Array,JSON,Error,Blob,DecompressionStream};
 vm.runInNewContext(code,context);
 listener({source:parent,data:{type:'streamlit:render',args:{enabled:true,mapping:null}}});
 const result=messages.find(x=>x.type==='streamlit:setComponentValue');
@@ -14,7 +14,14 @@ const count=messages.length;
 listener({source:parent,data:{type:'streamlit:render',args:{enabled:true,mapping:{'71585:1':'team'}}}});
 assert.equal(messages.length,count);assert(values.has('fgm-phone-map-71585'));
 listener({source:{},data:{type:'streamlit:render',args:{enabled:true}}});assert.equal(messages.length,count);
-const source=fs.readFileSync('mobile_roster_sync.js','utf8').replace('__APP_URL__',JSON.stringify('https://example.test/?phone_sync=1')).replace('__PARSER__',fs.readFileSync('browser_sync_extension/parser.js','utf8'));
+const source=fs.readFileSync('mobile_roster_sync.js','utf8').replace('__APP_URL__',JSON.stringify('https://example.test/?phone_sync=1')).replace('__PARSER__',()=>fs.readFileSync('browser_sync_extension/parser.js','utf8'));
 new vm.Script(source);
 assert(!source.includes('document.cookie'));assert(source.includes("credentials:'same-origin'"));
 console.log('PASS Unicode fragment handoff, URL cleanup, private browser cache, mapping acknowledgement, sender validation and collector syntax');
+(async()=>{
+ const payload={...snapshot,capturedAt:'2026-10-20T00:01:00Z',history:[snapshot]};
+ parent.location.hash='#yahoo-roster-gzip='+require('zlib').gzipSync(JSON.stringify(payload)).toString('base64');
+ await listener({source:parent,data:{type:'streamlit:render',args:{enabled:true}}});
+ const rows=messages.filter(x=>x.type==='streamlit:setComponentValue');assert.equal(rows.at(-1).value.snapshot.history.length,1);assert.equal(parent.location.hash,'');
+ console.log('PASS compressed weekly mobile handoff and legacy uncompressed compatibility');
+})().catch(e=>{console.error(e);process.exit(1)});

@@ -15,6 +15,7 @@ const ctx={console,Date,Intl,setTimeout,URL,chrome:{
  tabs:{create:async o=>{url=o.url;return {id:1}},get:async()=>({status:'complete'}),update:async(id,o)=>{url=o.url},remove:async()=>{closed++}},
  scripting:{executeScript:async o=>{
   if(o.files){vm.runInContext(fs.readFileSync('browser_sync_extension/parser.js','utf8'),ctx);return [];}
+  if(o.args?.length===4){return [{result:{ok:true,primary:{schema:1,league:'7',date:'2026-10-20',capturedAt:new Date().toISOString(),teams:['1','2'].map(id=>({id,...ctx.parseYahooDocument(fixture('2026-10-20',id==='1'?'Jimmy Butler III':'Unknown Rookie',id==='1'?'4912':'9999'),'2026-10-20')}))},history:[],archives:{}}}];}
   ctx.location={pathname:new URL(url).pathname};
   if(url.endsWith('/7'))ctx.document={querySelector:()=>({}),querySelectorAll:()=>['1','2'].map(i=>({href:'https://basketball.fantasysports.yahoo.com/nba/7/'+i}))};
   else ctx.document=fixture('2026-10-20',url.includes('/1/')?'Jimmy Butler III':'Unknown Rookie',url.includes('/1/')?'4912':'9999');

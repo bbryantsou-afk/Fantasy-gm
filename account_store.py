@@ -43,7 +43,7 @@ def snapshot():
 def clean(payload):
     from ninecat_strategy import load_data
     from browser_records import validate_records
-    _,entries=load_data();files,prefs=validate_records(payload,entries)
+    _,entries=load_data();files,prefs=validate_records(payload,entries,max_bytes=25_000_000)
     return {'schema':1,'files':files,'prefs':prefs}
 
 def apply_profile(payload,revision):

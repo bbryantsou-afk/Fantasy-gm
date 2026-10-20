@@ -12,7 +12,7 @@ def render_matchup_simulator(lite=False):
         st.markdown('<style>[data-testid="stMainBlockContainer"]{padding-top:2rem}</style>',unsafe_allow_html=True)
     else:
         st.title("🏀 Fantasy GM — Matchup Simulator")
-    st.caption("可依隊名直接載入共用名單。上季場均使用本機快照；未完賽可套用場均，已完賽強制採實績。")
+    st.caption("過去與今天載入該日 Fantasy 先發及實績；未來可套用上季場均或自訂預測。日期採美東比賽日。")
 
     today = datetime.now(ZoneInfo("America/New_York")).date()
     PLAYERS = {}
@@ -36,6 +36,7 @@ def render_matchup_simulator(lite=False):
             st.session_state['sim_date_'+season]=max(begin,min(end,date.fromisoformat(payload['week_dates'][payload['selected_day']])))
             st.session_state['_sim_restore']=payload
             st.session_state['_sim_restore_name']=saved_name
+            st.session_state['_sim_restore_nonce']=__import__('uuid').uuid4().hex
             st.session_state['_sim_manual_restore']=True
     teams=list(state(draft)['teams'])
     recent_sources = st.checkbox("載入本季最近 7／14／30 天場均（需連線）", value=False)
@@ -58,9 +59,18 @@ def render_matchup_simulator(lite=False):
     def historical_logs():
         return json.loads((root_path/'ninecat_assets/game_logs_2025_26.json').read_text())
     logs = historical_logs() if selected_season=='2025-26' else []
+    default_date=season_begin if selected_season=='2025-26' else max(season_begin,min(season_end,today))
+    date_key='sim_date_'+selected_season
+    current_date=st.session_state.get(date_key,default_date)
+    st.session_state['sim_date_mode']='過去' if current_date<today else '今天' if current_date==today else '未來'
+    def choose_date_mode():
+        mode=st.session_state['sim_date_mode']
+        target=today+timedelta(days={'過去':-1,'今天':0,'未來':1}[mode])
+        st.session_state[date_key]=max(season_begin,min(season_end,target))
+    st.radio('日期類型',['過去','今天','未來'] if selected_season=='2026-27' else ['過去'],horizontal=True,key='sim_date_mode',on_change=choose_date_mode)
     selected_date = st.date_input(
         "📅 Yahoo 比賽日期（美東日期）",
-        value=None if 'sim_date_'+selected_season in st.session_state else season_begin,
+        value=None if date_key in st.session_state else default_date,
         min_value=season_begin, max_value=season_end, key="sim_date_"+selected_season,
     )
     week_start = selected_date - timedelta(days=selected_date.weekday())
@@ -84,8 +94,23 @@ def render_matchup_simulator(lite=False):
         for r in shared_roster(draft,team):
             if r.get('status')=='IL':continue
             PLAYERS[side].append(dict(id=f"{side}-{r.get('id') or r['name']}",
+                evidence_id=str(r.get('id') or ('fantasy:'+str(r.get('yahoo_id') or r['name']))),
                 nba_id=int(r['id']) if r.get('id') and str(r['id']).isdigit() else None,
                 name=r['name'],team=r.get('team',''),eligible=r.get('eligible',[]),rank=len(PLAYERS[side])+1,stats={}))
+    from daily_evidence import simulator_defaults,observed_day,nba_today
+    league_state=state(draft)
+    PLAYERS,official_lineups=simulator_defaults(league_state,my_team,opp_team,[d for d in week_dates if d<=today],PLAYERS) if selected_season=='2026-27' else (PLAYERS,{})
+    live=nba_today(str(today)) if selected_season=='2026-27' and today in week_dates else None
+    if selected_season=='2026-27' and today in week_dates:
+        from daily_evidence import refresh_live_page
+        refresh_live_page()
+    if selected_date<=today and selected_season=='2026-27':
+        evidence=observed_day(league_state,selected_date,live if selected_date==today else None)
+        stamp=evidence['updated_at']
+        st.caption(('今天：即時／最近同步實績' if selected_date==today else '過去：該日 Fantasy 排陣與實績')+' · '+(evidence['source'] or '尚無已同步數據')+(' · 更新 '+stamp if stamp else ''))
+        if str(selected_date) not in official_lineups:st.warning('缺少這一天的 Fantasy 排陣；到聯盟同步選該日期，0.3.0 會一併讀取所屬整週。未取得資料前不會用現在名單假裝歷史先發。')
+        if live and live.get('error'):st.info('NBA 即時來源目前無法連線；使用 Yahoo 最近同步數據，更新時間如上。可在聯盟同步更新今日資料。')
+    elif selected_date>today:st.caption('未來：保留場均套用、自訂預測與排陣模擬。')
     st.caption('雙方使用共用名單，IL 不排入；此頁拖曳與新增屬於模擬，不會自動修改共用名單。')
     st.caption("賽程來源：NBA 例行賽快照；本季可按按鈕更新以反映改期。")
     if selected_season=="2026-27" and st.button("更新 NBA 官方賽程", key="v15_schedule_refresh"):
@@ -255,7 +280,8 @@ def render_matchup_simulator(lite=False):
         failures = []
         for offset in range(7):
             d=begin+timedelta(days=offset)
-            if d>now or not any(d in days for days in schedule.values()): continue
+            if d>=now or not any(d in days for days in schedule.values()): continue
+            if str(d) in official_lineups:continue
             try:
                 frames=scoreboardv2.ScoreboardV2(game_date=d.strftime("%m/%d/%Y"),
                         league_id="00",day_offset=0,timeout=12).get_data_frames()
@@ -290,7 +316,7 @@ def render_matchup_simulator(lite=False):
             final_games.setdefault(d,set()).add(str(r['GAME_ID']))
             final_teams.setdefault(d,set()).add(r['TEAM_ABBREVIATION'])
         final_teams={d:sorted(v) for d,v in final_teams.items()}
-    elif NBA_API_READY and any(d <= today and any(d in days for days in schedule.values()) for d in week_dates):
+    elif NBA_API_READY and any(d < today and str(d) not in official_lineups and any(d in days for days in schedule.values()) for d in week_dates):
         with st.spinner("正在確認 NBA 官方已完賽狀態及球員單場 Box Score..."):
             try:
                 final_games,game_rows,final_errors,final_teams=fetch_week_finals(week_dates[0].isoformat())
@@ -315,6 +341,13 @@ def render_matchup_simulator(lite=False):
             actual_by_player.setdefault(pid,{})[day]=values
         except (KeyError,ValueError,TypeError):
             continue
+
+    if selected_season=='2026-27':
+        for d in week_dates:
+            if d>today:continue
+            for pid,row in observed_day(league_state,d,live if d==today else None)['players'].items():
+                key=int(pid) if str(pid).isdigit() else pid
+                actual_by_player.setdefault(key,{})[str(d)]={('3PM' if k=='FG3M' else 'TO' if k=='TOV' else k):float(row[k]) for k in ['PTS','FG3M','REB','AST','STL','BLK','TOV','FGM','FGA','FTM','FTA']}
 
     for player in CANDIDATES:
         player['actual_by_day'] = actual_by_player.get(player.get('nba_id'), {})
@@ -489,6 +522,12 @@ def render_matchup_simulator(lite=False):
       const empty = () => ({my:Object.fromEntries(positions.map(p=>[p,null])),
                            opp:Object.fromEntries(positions.map(p=>[p,null]))});
       const state = weekDates.map(empty);
+      function applyOfficialLineups(){
+        for(let i=0;i<weekDates.length;i++)for(const side of ['my','opp']){
+          const slots=data.official_lineups?.[weekDates[i]]?.[side];
+          if(slots)state[i][side]=Object.fromEntries(positions.map(pos=>[pos,slots[pos]??null]));
+        }
+      }
       const searches={my:"",opp:""};
       let dayIndex = Math.max(0, weekDates.indexOf(data.selected_date));
       let dragging = null;
@@ -500,7 +539,8 @@ def render_matchup_simulator(lite=False):
       // One record per matchup week, not tied to the selected day.
       const storageKey="fantasy-gm-v12-simulations:"+(data.owner??"guest");
       let savedDB=structuredClone(data.saved_simulations??{});
-      const snapshot=()=>({format:"fantasy-gm-simulation",version:1,week_dates:[...weekDates],
+      const workingKey=storageKey+":"+JSON.stringify(data.context)+":"+weekDates[0];
+      const snapshot=()=>({controller_date:data.selected_date,format:"fantasy-gm-simulation",version:1,week_dates:[...weekDates],
         players:structuredClone(players),lineups:structuredClone(state),
         daily_choices:structuredClone(dailyChoices),selected_day:dayIndex,
         context:data.context,saved_at:new Date().toISOString()});
@@ -512,6 +552,11 @@ def render_matchup_simulator(lite=False):
            !payload.daily_choices) throw Error("檔案格式不符，或不是目前這一週的模擬。請先切換到對應週次。");
         for(const side of ["my","opp"]){
           players[side].splice(0,players[side].length,...structuredClone(payload.players[side]));
+          const officialIds=new Set(Object.values(data.official_lineups??{}).flatMap(day=>Object.values(day[side]??{})));
+          for(const current of data.players[side])if(officialIds.has(current.id)){
+            const index=players[side].findIndex(p=>p.id===current.id);
+            if(index<0)players[side].push(structuredClone(current));else players[side][index]=structuredClone(current);
+          }
           players[side].forEach(p=>p.week=teamWeeks[p.team]??Array(7).fill("OFF"));
           dailyChoices[side]=structuredClone(payload.daily_choices[side]??{});
         }
@@ -580,13 +625,13 @@ def render_matchup_simulator(lite=False):
         return profileLabels[setting.profile]?setting:{profile:'season',custom:null};
       };
       // Server records remain authoritative, including after JSON restore.
-      const actual=(p,idx)=>data.actual_by_player?.[p.nba_id]?.[weekDates[idx]]??null;
+      const actual=(p,idx)=>data.actual_by_player?.[p.evidence_id??p.nba_id]?.[weekDates[idx]]??data.actual_by_player?.[p.nba_id]?.[weekDates[idx]]??null;
       const past=(p,idx)=>Boolean(data.final_teams?.[weekDates[idx]]?.includes(p.team)) || weekDates[idx]<data.today || (data.uncertain_days??[]).includes(weekDates[idx]);
 
       const isLocked=(p,idx)=>actual(p,idx)!==null;
       const dailyStats=(p,side,idx)=>{
         if(isLocked(p,idx))return actual(p,idx);
-        if(past(p,idx))return {}; // Never replace missing completed production with predictions.
+        if(past(p,idx)||weekDates[idx]<=data.today)return {}; // Missing past/today evidence is not a prediction.
         const setting=daySetting(p,side,idx);
         return setting.profile==="manual"?(setting.custom??{}):(p.profiles?.[setting.profile]??{});
       };
@@ -594,7 +639,7 @@ def render_matchup_simulator(lite=False):
 
       const getPlayer = (side,id) => players[side].find(p=>p.id===id);
       const location = (side,id,idx=dayIndex) => positions.find(p=>state[idx][side][p]===id);
-      const status = (p,idx=dayIndex) => data.historical ? (actual(p,idx)!==null?'GAME':'OFF') : (p.week?.[idx] ?? "OFF");
+      const status = (p,idx=dayIndex) => actual(p,idx)!==null?'GAME':data.historical?'OFF':(p.week?.[idx] ?? "OFF");
       const plays = (p,idx=dayIndex) => ["GAME","B2B"].includes(status(p,idx));
       const eligible = (p,pos) => {
         if(pos.startsWith("UTIL")) return true;
@@ -615,10 +660,10 @@ def render_matchup_simulator(lite=False):
         editing={id:p.id,side,idx:dayIndex};
         const modal=root.querySelector("#editor");
         const dateLabel=weekDates[dayIndex];
-        const locked=isLocked(p,dayIndex);
+        const locked=isLocked(p,dayIndex)||weekDates[dayIndex]<=data.today;
         root.querySelector("#editor-title").textContent=`${p.name} · ${dateLabel} · 每日 9-Cat`;
         root.querySelector("#editor-description").textContent=locked
-          ? `🔒 NBA 官方已完賽 Box Score（${dateLabel}），不可修改。`
+          ? `🔒 單日實績／即時數據（${dateLabel}），唯讀；未取得時留白。`
           : `${p.team} · ${p.eligible.join("/")}。這天的預測獨立設定，不影響其他日期。`;
         const select=root.querySelector("#editor-profile");select.replaceChildren();
         for(const [value,label] of Object.entries(profileLabels)) {
@@ -635,7 +680,7 @@ def render_matchup_simulator(lite=False):
           const holder=root.querySelector("#editor-fields");holder.replaceChildren();
           if(locked){
             const note=document.createElement("div");note.className="locked";
-            note.textContent="🔒 已完賽，數據自動鎖定。";holder.appendChild(note);
+            note.textContent="🔒 已取得的實績自動更新；缺少數據不以預測代替。";holder.appendChild(note);
           }
           for(const stat of requiredStats) {
             const label=document.createElement("label");label.textContent=stat;
@@ -652,7 +697,7 @@ def render_matchup_simulator(lite=False):
         if(!editing)return;
         const p=getPlayer(editing.side,editing.id);if(!p)return;
         const idx=editing.idx;
-        if(isLocked(p,idx)){setMessage("已完賽 Box Score 不可修改。");return;}
+        if(isLocked(p,idx)||weekDates[idx]<=data.today){setMessage("過去與今天使用實績，請選未來日期編輯預測。");return;}
         const key=root.querySelector("#editor-profile").value;
         const values={};
         if(key==="manual"&&!clear){
@@ -703,7 +748,7 @@ def render_matchup_simulator(lite=False):
         el.appendChild(weekStrip);
         if (inSlot) {
           if(isLocked(p,dayIndex))el.style.outline="2px solid #83b9e8";
-          el.title=isLocked(p,dayIndex)?"🔒 已完賽真實 Box Score（不可修改）":"點擊設定這位球員當天的預測數據";
+          el.title=isLocked(p,dayIndex)?"🔒 單日實績／即時數據（唯讀）":"點擊設定這位球員當天的預測數據";
           el.addEventListener("click",()=>openEditor(p,side));
           const nine=document.createElement("div");
           nine.className="nine";
@@ -862,7 +907,7 @@ def render_matchup_simulator(lite=False):
           if(!valid)return;
         }
         const note=document.createElement("div");note.className="analysis-note";
-        note.textContent="已完賽採官方 Box Score；未完賽依每天獨立選定的平均數預測，不是比賽勝率。FG%／FT% 以 FGM/FGA、FTM/FTA 加權；TO 越少越好。";
+        note.textContent="過去／今天採已讀取的單日實績；未來依每天選定的場均預測，不是比賽勝率。FG%／FT% 以 FGM/FGA、FTM/FTA 加權；TO 越少越好。";
         analysis.appendChild(note);
       }
 
@@ -960,6 +1005,8 @@ def render_matchup_simulator(lite=False):
       }
 
       function render() {
+        applyOfficialLineups();
+        try{localStorage.setItem(workingKey,JSON.stringify(snapshot()));}catch{}
         const days=root.querySelector("#days");days.replaceChildren();
         weekDates.forEach((d,i)=>{
           const btn=document.createElement("button");
@@ -1018,16 +1065,23 @@ def render_matchup_simulator(lite=False):
         const target=root.querySelector('#bulk-side').value;
         let changed=0,skipped=0;
         for(const side of target==='both'?['my','opp']:[target])for(const p of players[side])for(let i=0;i<7;i++){
-          if(isLocked(p,i)||past(p,i)||!plays(p,i))continue;
+          if(isLocked(p,i)||past(p,i)||weekDates[i]<=data.today||!plays(p,i))continue;
           if(!completeStats(p.profiles?.[bulk.value])){skipped++;continue;}
           dailyChoices[side][dailyKey(p,i)]={profile:bulk.value,custom:null};changed++;
         }
         render();setMessage(`已套用 ${changed} 場；${skipped} 場缺少來源而保留。已完賽一律使用實績。`);
       };
-      render();
-      if(data.restore && JSON.stringify(data.restore.week_dates)===JSON.stringify(weekDates)){
-        try{restore(data.restore);root.querySelector('#sim-name').value=data.restore_name??'';}catch(e){setMessage('還原失敗：'+e.message);}
-      }
+      let working=null;try{working=JSON.parse(localStorage.getItem(workingKey)||'null');}catch{}
+      const nonce=data.restore_nonce??'';
+      let seenNonce='';try{seenNonce=localStorage.getItem(workingKey+':restore')??'';}catch{}
+      const restored=nonce && nonce!==seenNonce ? data.restore : (working??data.restore);
+      if(restored && JSON.stringify(restored.week_dates)===JSON.stringify(weekDates)){
+        try{
+          if(restored===working && working.controller_date!==data.selected_date)restored.selected_day=Math.max(0,weekDates.indexOf(data.selected_date));
+          restore(restored);root.querySelector('#sim-name').value=data.restore_name??'';
+          try{localStorage.setItem(workingKey+':restore',nonce);}catch{}
+        }catch(e){render();setMessage('還原失敗：'+e.message);}
+      }else render();
     }
     """
 
@@ -1061,12 +1115,14 @@ def render_matchup_simulator(lite=False):
             "saved_simulations":saved_simulations,
             "context":context,
             "restore":restore_payload,
+            "restore_nonce":st.session_state.get("_sim_restore_nonce",""),
             "restore_name":st.session_state.get('_sim_restore_name',''),
             "selected_date":selected_date.isoformat(),
             "today":today.isoformat(),
             "historical":selected_season=="2025-26",
             "uncertain_days":[d.isoformat() for d in week_dates if d<=today and d.isoformat() not in final_games and any(d in days for days in schedule.values())],
             "actual_by_player":actual_by_player,
+            "official_lineups":official_lineups,
             "final_teams":final_teams,
             "week_dates":[d.isoformat() for d in week_dates],
             "players":PLAYERS,
@@ -1092,4 +1148,4 @@ def render_matchup_simulator(lite=False):
         except (ValueError,TypeError,KeyError) as exc:st.error('模擬未保存：'+str(exc))
     if st.session_state.pop('_sim_saved_notice',False):
         st.success('模擬已保存'+('至個人 Google Drive。' if st.session_state.get('_account_loaded') else '於本裝置。'))
-    st.caption("已完賽一律採 NBA 單場實績。上季回測只計入實際出賽的球員；未完賽可使用場均或自訂數據，資料缺失不以預測冒充實績。")
+    st.caption("過去／今天採已同步的 Fantasy 單日實績或 NBA 單場數據，顯示更新時間；未來可使用場均與自訂預測。資料缺失會留白。")

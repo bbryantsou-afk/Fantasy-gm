@@ -39,6 +39,11 @@ def validate_snapshot(payload,league,day,expected_teams):
             if r.get('position') not in POSITIONS:raise ValueError('先發／板凳位置不符。')
             if not isinstance(r.get('eligible'),list) or not r['eligible'] or any(p not in ['PG','SG','SF','PF','C'] for p in r['eligible']):raise ValueError('球員位置資格不符。')
             if not re.fullmatch(r'[A-Z]{2,3}',str(r.get('nbaTeam',''))):raise ValueError('NBA 隊伍不符。')
+            if payload.get('statsScope')=='day':
+                if 'daily_stats' not in r:raise ValueError('單日數據欄位缺失。')
+                if r['daily_stats'] is not None:
+                    from data_center import validate_totals
+                    validate_totals(r['daily_stats'])
             result.append(dict(r,source_team=source,source_name=str(t.get('name') or t['id'])[:100]))
     return result
 
@@ -49,7 +54,9 @@ def match_snapshot(rows,players,entries):
         exported.append({'ID':r['yahooPlayerId'],'First Name':first,'Last Name':last,'Team ID':r['source_team'],
                          'Team Name':r['source_name'],'Position':r['position'],'Eligible Positions':','.join(r['eligible'])})
     matched,pool=match_rows(exported,players,entries)
-    for r,source in zip(matched,rows):r.update(team=source['nbaTeam'],slot=source['position'])
+    for r,source in zip(matched,rows):
+        r.update(team=source['nbaTeam'],slot=source['position'])
+        if 'daily_stats' in source:r.update(daily_stats=source['daily_stats'],game_status=source.get('game_status',''))
     return matched,pool
 
 def suggested_mapping(rows,league):
@@ -63,11 +70,26 @@ def suggested_mapping(rows,league):
     return mapping
 
 def apply_snapshot(league,rows,mapping,payload,today):
+    if payload.get('history'):
+        history=payload['history']
+        if not isinstance(history,list) or len(history)>6:raise ValueError('歷史日期包格式不符。')
+        main=date.fromisoformat(payload['date']);begin=main-timedelta(days=main.weekday());seen={payload['date']}
+        snapshot,entries=load_data();prepared=[]
+        for h in history:
+            d=date.fromisoformat(h['date'])
+            if h.get('history') or h['date'] in seen or not begin<=d<=min(begin+timedelta(days=6),today):raise ValueError('歷史日期包週次不符。')
+            seen.add(h['date']);raw=validate_snapshot(h,payload['league'],d,len(league['teams']))
+            matched,_=match_snapshot(raw,snapshot['players'],entries);prepared.append((h,matched))
+        primary={k:v for k,v in payload.items() if k!='history'}
+        prepared.append((primary,rows));new=league
+        for p,rs in sorted(prepared,key=lambda x:x[0]['date']):new=apply_snapshot(new,rs,mapping,p,today)
+        return new
     new=build_import(league,rows,mapping)
     captured=payload['capturedAt'];day=payload['date'];source=payload['league']
     archives=copy.deepcopy(league.get('daily_rosters',{}))
     if archives and league.get('sync_league')!=source:raise ValueError('此工作階段已有另一個聯盟快照，請先下載備份並重開工作階段。')
     archive={'captured_at':captured,'source':'Yahoo browser snapshot','teams':copy.deepcopy(new['teams'])}
+    if payload.get('statsScope')=='day':archive['stats_scope']='day'
     archives[day]=archive
     new['daily_rosters']=archives;new['sync_mapping']=dict(mapping);new['sync_league']=source
     new['sync_updated_at']=captured
@@ -93,7 +115,7 @@ def extension_zip():
 def render_sync_connection(full=False):
     """Always mounted before every analysis page so a fresh cloud session restores its private cache."""
     snapshot,entries=load_data();league=state(entries)
-    if full:st.caption('對戰排程同步需要擴充功能 0.2.0，或最新手機同步書籤。首次讀取整季會較久，當天後續同步使用快取。')
+    if full:st.caption('0.3.0：一次讀取所選整週已發生的每日排陣與單日實績；包含正在進行的比賽。需更新擴充功能或手機書籤。')
     today=datetime.now(ZoneInfo('America/New_York')).date()
     if full:
         with st.expander('手機直接同步（不需電腦）',expanded=bool(st.query_params.get('phone_sync'))):
@@ -102,12 +124,13 @@ def render_sync_connection(full=False):
         st.subheader('🔄 聯盟同步 · 每日陣容')
         source=st.text_input('Yahoo 聯盟 ID',value=str(st.session_state.get('_sync_requested_league',league.get('sync_league','71585'))),key='sync_league_input').strip()
         st.session_state['_sync_requested_league']=source
-        day=st.date_input('陣容日期（美東）',value=today,min_value=date(2025,1,1),max_value=today,key='sync_roster_day')
+        if st.session_state.get('_sync_requested_day'):st.session_state['sync_roster_day']=st.session_state.pop('_sync_requested_day')
+        day=st.date_input('陣容日期（美東）',value=None if 'sync_roster_day' in st.session_state else today,min_value=date(2025,1,1),max_value=today,key='sync_roster_day')
         st.caption('今天的資料可能隨排陣改變；歷史日期只保存快照，不取代目前持有名單。')
         with st.expander('首次安裝／同步說明',expanded=False):
             st.download_button('下載同步擴充功能 ZIP',extension_zip(),'fantasy-gm-sync.zip','application/zip')
             st.markdown('1. 解壓縮 ZIP。\n2. 在桌面 Chrome 開啟 `chrome://extensions`，開啟「開發人員模式」。\n3. 按「載入未封裝項目」，選取含 manifest.json 的 fantasy-gm-sync 資料夾。\n4. 在同一個 Chrome 登入 Yahoo，再開啟這個 App，重新整理後按同步。')
-            st.caption('目前版本 0.2.0：新增整季對手排程。舊版仍能同步名單；要讀對戰表，請下載新版替換原資料夾，在 chrome://extensions 按重新載入，再重新整理 App。')
+            st.caption('目前版本 0.3.0：新增整週每日先發、單日實績及進行中數據。下載新版替換原資料夾，在 chrome://extensions 按重新載入，再重新整理 App。開啟自動檢查後約每分鐘更新一次。')
             st.caption('本機保存最近 14 個日期。網站重開後會自動讀取此瀏覽器已保存的今天名單；若沒有今天快照，請按同步。')
         if re.fullmatch(r'\d{1,10}',source):st.link_button('先登入／查看 Yahoo 聯盟',f'https://basketball.fantasysports.yahoo.com/nba/{source}')
     else:
@@ -130,7 +153,12 @@ def render_sync_connection(full=False):
         if isinstance(incoming,str) and re.fullmatch(r'\d{1,10}',incoming):
             source=incoming;st.session_state['_sync_requested_league']=source
     if result and isinstance(result,dict) and result.get('snapshot',{}).get('date')!=str(day):
-        if phone_result and full:st.warning('手機名單日期與目前選擇日期不同，尚未套用。請核對上方美東陣容日期後重新同步。')
+        if phone_result and full:
+            try:
+                incoming_day=date.fromisoformat(result['snapshot']['date'])
+                if date(2025,1,1)<=incoming_day<=today:
+                    st.session_state['_sync_requested_day']=incoming_day;st.rerun()
+            except (ValueError,KeyError,TypeError):pass
         result=None  # Previous component value while the date selector changes.
     if result:
         try:
