@@ -26,10 +26,12 @@ def save_stars(ids):
 
 def star_picker(players,key):
     ids={str(p['PLAYER_ID']):p['PLAYER_NAME'] for p in players}
-    selected=st.multiselect('⭐ 加星追蹤球員（輸入姓名，可多選）',sorted(ids,key=lambda k:norm(ids[k])),default=[k for k in load_stars() if k in ids],format_func=ids.get,key=key)
-    if st.button('儲存加星名單',key=key+'_save'):
-        save_stars(selected)
-        st.success('已儲存在本機；觀察室會一起顯示我的球員與加星球員。')
+    def changed():
+        selected=list(st.session_state[key]);save_stars(selected)
+        for other in ('watch_stars','nc_watch_stars'):
+            if other!=key:st.session_state[other]=selected
+    selected=st.multiselect('⭐ 加星追蹤球員（輸入姓名，可多選）',sorted(ids,key=lambda k:norm(ids[k])),default=[k for k in load_stars() if k in ids],format_func=ids.get,key=key,on_change=changed)
+    st.caption('選取或移除後自動保存。登入同一 Google 帳號的其他裝置開著網站時，也會自動更新。' if st.session_state.get('_account_id') else '選取或移除後自動保存於此瀏覽器；登入 Google 可跨裝置同步。')
     return selected
 
 def choose_roster(entries,key):

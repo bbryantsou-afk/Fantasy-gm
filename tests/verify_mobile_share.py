@@ -3,10 +3,12 @@ from pathlib import Path
 os.environ['FANTASY_GM_STORAGE_MODE']='session'
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
 from streamlit.testing.v1 import AppTest
-from mobile_share import share_root,write_json
+from mobile_share import share_root,write_json,create_share
 app=AppTest.from_file(str(ROOT/'app.py'),default_timeout=60).run()
 app.sidebar.radio[0].set_value('⚙️ 設定').run()
-next(b for b in app.button if b.label=='建立手機共用連結').click().run()
+assert not any(b.label=='建立手機共用連結' for b in app.button)
+token=create_share(app.session_state['_league'],{'weeks':{},'days':{}})
+app.query_params['mobile']=token;app.run()
 assert not app.exception,app.exception
 token=app.session_state['_mobile_share_token'];root=share_root(token)
 assert root and {p.name for p in root.iterdir()}=={'access.json','league_rosters.json','league_results.json'}
@@ -22,4 +24,4 @@ assert share_root('bad') is None and share_root('a'*64) is None
 write_json(root/'access.json',{'expires':1});assert share_root(token) is not None
 write_json(root/'access.json',{'revoked':True});assert share_root(token) is None
 phone.run();assert any('已停用' in e.value for e in phone.error)
-print('PASS independent phone/desktop sessions, shared updates, two-file allowlist, invalid-token rejection and link revocation')
+print('PASS legacy-link recovery and revocation; new link creation is absent from settings')

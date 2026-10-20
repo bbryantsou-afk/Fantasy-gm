@@ -55,7 +55,7 @@ def apply_profile(payload,revision):
             temp=path.with_suffix('.restore.tmp');temp.write_text(json.dumps(payload['files'][name],ensure_ascii=False));temp.replace(path)
         elif path.exists():path.unlink()
     for key in list(st.session_state):
-        if preference_key(key) or key in ['_league','_results','nc_roster','nc_weeks','watch_open','watch_stars'] or key.startswith('auto_protect_'):st.session_state.pop(key,None)
+        if preference_key(key) or key in ['_league','_results','nc_roster','nc_weeks','watch_open','watch_stars','nc_watch_stars'] or key.startswith('auto_protect_'):st.session_state.pop(key,None)
     if 'league_rosters.json' in payload['files']:st.session_state['_league']=payload['files']['league_rosters.json']
     if 'league_results.json' in payload['files']:st.session_state['_results']=payload['files']['league_results.json']
     st.session_state['_portable_preferences']=copy.deepcopy(payload['prefs'])
@@ -99,11 +99,12 @@ def init_account():
             st.error('無法載入帳號資料，暫停編輯以避免誤覆寫。'+str(exc))
             st.button('重試載入帳號',on_click=st.rerun);render_logout('drive_error_logout');finish_auth();st.stop()
 
-@st.fragment(run_every='30s')
+@st.fragment(run_every='5s')
 def poll_account():
     if not st.session_state.get('_account_loaded') or st.session_state.get('_account_conflict'):return
     try:
-        remote=client().load(st.session_state['_account_id'])
+        service=client()
+        remote=getattr(service,'load_if_changed',service.load)(st.session_state['_account_id'])
         if remote and remote['revision']!=st.session_state['_account_revision']:
             if digest(snapshot())!=st.session_state.get('_account_base'):
                 st.session_state['_account_conflict']=remote['revision']
@@ -135,7 +136,7 @@ def render_account():
         if st.button('建立新的帳號紀錄',key='account_new'):
             create_profile(snapshot())
     if st.session_state.get('_account_loaded'):
-        st.caption('帳號資料已載入；變更後自動保存，其他裝置每 30 秒檢查更新。')
+        st.caption('變更後自動保存至個人 Drive；其他裝置開著網站時每 5 秒檢查更新，無需配對連結或手動重新整理。手機在背景或鎖定時，更新可能暫停。')
     if st.session_state.get('_account_conflict'):
         st.warning('其他裝置已保存較新版本，目前不會覆寫。請先下載這台裝置的版本，再選擇保留哪一份。')
         st.download_button('下載此裝置待處理資料',json.dumps(snapshot(),ensure_ascii=False,indent=2),'account_unsaved.json','application/json')

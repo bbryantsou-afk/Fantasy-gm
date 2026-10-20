@@ -36,6 +36,10 @@ with patch('drive_profiles.access_token',return_value='private-access'),patch('d
  try:CloudClient().save(owner,1,payload);raise AssertionError('unconditional write allowed')
  except CloudError:pass
  assert request.call_count==4
+ request.reset_mock();request.side_effect=[Response({'files':[{'id':'file1','version':'10'}]}),Response(profile),Response({'files':[{'id':'file1','version':'10'}]})]
+ assert CloudClient().load(owner)['revision']==1
+ assert CloudClient().load_if_changed(owner) is None
+ assert request.call_count==3 # unchanged checks fetch only metadata, not the whole roster
  request.reset_mock();request.side_effect=[Response({'files':[{'id':'file1'}]}),Response({'id':'file1','etag':'"v1"'}),Response(profile),Response({'id':'file1','etag':'"v1"'}),Response({},412)]
  try:CloudClient().save(owner,1,payload);raise AssertionError('conflict overwritten')
  except CloudConflict:pass

@@ -23,12 +23,13 @@ class CloudClient:
             return r
         except (requests.RequestException,AuthError) as exc:raise CloudError('無法連線或 Drive 授權已失效；修改尚未保存，請重試或重新登入。') from exc
     def lookup(self):
-        r=self.request('GET','files',params={'spaces':'appDataFolder','q':"name = '"+self.NAME+"' and trashed = false",'fields':'files(id),nextPageToken','pageSize':100}).json()
+        r=self.request('GET','files',params={'spaces':'appDataFolder','q':"name = '"+self.NAME+"' and trashed = false",'fields':'files(id,version),nextPageToken','pageSize':100}).json()
         files=r.get('files')
         if not isinstance(files,list) or r.get('nextPageToken') or len(files)>1:raise CloudError('Drive 存在多份帳號設定，已暫停寫入以免覆寫。請先下載備份並處理重複紀錄。')
         if not files:return None
         fid=files[0].get('id','')
         if not re.fullmatch(r'[A-Za-z0-9_-]+',fid):raise CloudError('Drive 檔案識別不符。')
+        self.stamp=(fid,files[0].get('version'))
         return fid
     def read(self,fid,owner,for_write=False):
         # Drive v3 media omits ETag. v2 metadata exposes the validator used by v2 PUT.
@@ -46,7 +47,16 @@ class CloudClient:
     def load(self,owner):
         fid=self.lookup()
         if not fid:return None
-        data,_=self.read(fid,owner);return data
+        data,_=self.read(fid,owner)
+        st.session_state['_drive_profile_seen']=(owner,self.stamp)
+        return data
+    def load_if_changed(self,owner):
+        fid=self.lookup()
+        if not fid:return None
+        if self.stamp[1] is not None and st.session_state.get('_drive_profile_seen')==(owner,self.stamp):return None
+        data,_=self.read(fid,owner)
+        st.session_state['_drive_profile_seen']=(owner,self.stamp)
+        return data
     def save(self,owner,revision,payload):
         mapping,guard=locks()
         with guard:lock=mapping.setdefault(owner,threading.RLock())

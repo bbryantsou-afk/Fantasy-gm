@@ -40,7 +40,7 @@ def init_share():
     if not token:return
     root=share_root(token)
     if not root:
-        st.error('手機共用連結已停用，或雲端重部署後資料已清除。請在電腦建立新連結。')
+        st.error('舊共用連結已停用或資料已清除。請離開此連結，回一般入口登入 Google 使用個人 Drive 紀錄。')
         if st.button('離開此共用連結'):
             st.query_params.pop('mobile',None);st.session_state.pop('_mobile_share_token',None);st.rerun()
         st.stop()
@@ -58,27 +58,11 @@ def watch_share():
     if version!=st.session_state.get('_mobile_seen'):st.rerun()
 
 def render_mobile_settings():
-    from ninecat_strategy import load_data
-    from roster_store import state
-    from data_center import store
     st.markdown('### 電腦／手機入口')
     st.link_button('電腦版入口',BASE+'?theme=light')
     st.link_button('手機版入口',BASE+'?theme=light&phone_sync=1')
-    st.caption('兩個入口使用同一套網站程式，功能與版面同步發布。不同瀏覽器的私人名單不會自動互通；需開啟下方同一個共用連結，才能共用資料。')
+    st.caption('兩個入口使用同一套網站程式，功能與版面同步發布。電腦、手機登入同一個 Google 帳號即可共用資料，不需產生或傳送配對連結。')
     if st.session_state.get('_account_id'):
-        st.info('已使用 Google 帳號保存資料。其他裝置登入同一帳號即可，不需要私人共用連結。')
+        st.info('已連接個人 Drive。任何一端保存星號、權重或名單後，其他開啟的裝置每 5 秒檢查更新。')
         return
-    st.markdown('### 📱 手機共用連結')
-    st.caption('先依上方指南完成同步，再建立連結並用其他裝置開啟。兩端共用名單與比賽紀錄，手機每 30 秒檢查更新，不需 Chrome 擴充功能。')
-    st.info('持有連結的人可以查看與修改這份共用資料，請只傳給自己的裝置。沒有到期限制，可隨時手動停用；雲端重部署仍可能清除暫存資料。Yahoo 帳密與 API 金鑰不會分享。')
-    token=st.session_state.get('_mobile_share_token')
-    if not token and st.button('建立手機共用連結',key='create_mobile_share'):
-        _,entries=load_data();token=create_share(state(entries),store())
-        st.session_state['_mobile_share_token']=token;st.query_params['mobile']=token;st.rerun()
-    if token and share_root(token):
-        link=BASE+'?theme='+st.query_params.get('theme','light')+'&mobile='+token
-        st.text_input('複製連結到手機（請勿公開）',value=link,key='mobile_share_url_'+token)
-        st.caption('日常請使用這條連結。Yahoo 名單更新可使用電腦擴充功能，或從本連結取得的手機同步書籤。重要資料仍請定期備份。')
-        if st.button('停用此共用連結',key='revoke_mobile_share'):
-            root=share_root(token);write_json(root/'access.json',{'revoked':True})
-            st.query_params.pop('mobile',None);st.session_state.pop('_mobile_share_token',None);st.rerun()
+    st.info('請在上方登入 Google，啟用個人 Drive 跨裝置保存。訪客紀錄僅保存在這個瀏覽器。')
