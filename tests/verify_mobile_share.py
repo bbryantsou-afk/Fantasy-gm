@@ -19,6 +19,7 @@ phone.run();app.run()
 assert phone.session_state['_league']['team_names'][team]=='Shared Device Team'
 assert app.session_state['_league']['team_names'][team]=='Shared Device Team'
 assert share_root('bad') is None and share_root('a'*64) is None
-write_json(root/'access.json',{'expires':0});assert share_root(token) is None
-phone.run();assert any('已到期' in e.value for e in phone.error)
+write_json(root/'access.json',{'expires':1});assert share_root(token) is not None
+write_json(root/'access.json',{'revoked':True});assert share_root(token) is None
+phone.run();assert any('已停用' in e.value for e in phone.error)
 print('PASS independent phone/desktop sessions, shared updates, two-file allowlist, invalid-token rejection and link revocation')
