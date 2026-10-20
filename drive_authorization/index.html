@@ -19,7 +19,7 @@ window.addEventListener('message',e=>{
   }
   if(a.mode==='save'&&a.envelope&&a.envelope!==lastSave){localStorage.setItem(KEY,a.envelope);localStorage.removeItem(PENDING);lastSave=a.envelope;post('streamlit:setFrameHeight',{height:0})}
   if(a.mode==='login'){
-   ui.replaceChildren();const link=document.createElement('a');link.textContent='使用 Google 登入並連接個人 Drive';link.href=a.flow.url;link.target='_top';link.style='display:inline-block;padding:10px 13px;border:1px solid #8795a7;border-radius:8px;background:#fff;color:#182536;text-decoration:none;font-size:13px';
+   ui.replaceChildren();const link=document.createElement('a');link.textContent='使用 Google 登入並連接個人 Drive ↗';link.href=a.flow.url;link.target='_blank';link.rel='noopener';link.style='display:inline-block;padding:10px 13px;border:1px solid #8795a7;border-radius:8px;background:#fff;color:#182536;text-decoration:none;font-size:13px';
    link.addEventListener('click',event=>{try{localStorage.setItem(PENDING,JSON.stringify({state:a.flow.state,verifier:a.flow.verifier,created:Date.now()}))}catch(_){event.preventDefault();ui.textContent='請允許此網站保存登入狀態。'}});ui.append(link);post('streamlit:setFrameHeight',{height:66});
   }
   if(a.mode==='logout'){
