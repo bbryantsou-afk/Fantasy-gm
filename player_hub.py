@@ -102,16 +102,16 @@ def render_watchroom():
     names={**{str(p['PLAYER_ID']):p['PLAYER_NAME'] for p in players},**mine}
     st.caption('頭像卡只顯示重點；按「⋯ 展開」才讀取新聞與完整資料。歸屬依這份共用聯盟紀錄，不代表已與 Yahoo 同步。')
     if not ids:st.info('目前沒有球員；可先選擇球隊或加星追蹤。');return
-    columns=st.columns(3)
-    for i,k in enumerate(ids):
-        p=pool.get(k);name=names.get(k,'未知球員')
-        with columns[i%3],st.container(border=True):
-            if k.isdigit():st.image(f'https://cdn.nba.com/headshots/nba/latest/260x190/{k}.png',width=105)
-            else:st.markdown('### 🏀')
-            st.markdown('**'+name+(' ⭐' if k in stars else '')+'**')
-            st.caption((p['team']+' · '+('/'.join(sorted(p['eligible'])) or '位置待確認')) if p else '新秀／資料待補')
-            st.caption(availability(entries,team,k))
-            if st.button('⋯ 展開 '+name,key='watch_expand_'+k):st.session_state['watch_open']=k
+    with st.container(key='watch_grid'):
+        for i,k in enumerate(ids):
+            p=pool.get(k);name=names.get(k,'未知球員')
+            with st.container(border=True,key="watch_card_"+str(i)):
+                if k.isdigit():st.image(f'https://cdn.nba.com/headshots/nba/latest/260x190/{k}.png',width=85)
+                else:st.markdown('### 🏀')
+                st.markdown('**'+name+(' ⭐' if k in stars else '')+'**')
+                st.caption((p['team']+' · '+('/'.join(sorted(p['eligible'])) or '位置待確認')) if p else '新秀／資料待補')
+                st.caption(availability(entries,team,k))
+                if st.button('⋯ 展開',key='watch_expand_'+k):st.session_state['watch_open']=k
     selected=st.session_state.get('watch_open')
     if selected in ids:
         with st.container(border=True):

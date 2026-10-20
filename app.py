@@ -286,3 +286,7 @@ st.caption("Fantasy NBA GM · 9-Cat 整合版" if page in ("9-Cat Strategy", "�
 if st.session_state.get("visual_theme")=="簡約淺色":
     from light_theme import APP_CSS
     st.markdown("<style>"+APP_CSS+"</style>",unsafe_allow_html=True)
+
+from compact_ui import render_compact_ui
+render_compact_ui()
+st.caption("版本 2026.10.20-compact · 電腦／手機共用版本")

@@ -89,13 +89,13 @@ def pie_chart(rows, cat, names, ref):
         tooltip += [alt.Tooltip('命中率:Q',format='.1%'),alt.Tooltip('命中率Impact:Q',format='+.2f')]
     light = st.session_state.get('visual_theme') == '簡約淺色'
     chart_bg = '#ffffff' if light else '#0b1020'
-    arcs = base.mark_arc(innerRadius=48,outerRadius=95,stroke=chart_bg,strokeWidth=1).encode(tooltip=tooltip)
-    labels = base.mark_text(radius=73,size=11,color='#ffffff',fontWeight=600).encode(
+    arcs = base.mark_arc(innerRadius=alt.ExprRef(expr='min(width/2-5,66)*0.5'),outerRadius=alt.ExprRef(expr='min(width/2-5,66)'),stroke=chart_bg,strokeWidth=1).encode(tooltip=tooltip)
+    labels = base.mark_text(radius=alt.ExprRef(expr='min(width/2-5,66)*0.77'),size=9,color='#ffffff',fontWeight=600).encode(
         text=alt.condition('datum.占比 >= 0.08',alt.Text('占比:Q',format='.0%'),alt.value('')),color=alt.value('#ffffff'))
     center = value(totals(rows),cat) if cat in ('FG','FT') else total
     text = f'{center:.1%}' if cat in ('FG','FT') else f'{total:,.1f}'
-    middle = alt.Chart(pd.DataFrame([{'text':text}])).mark_text(color='#243746' if light else '#f1f5f9',fontSize=17,fontWeight=700).encode(text='text:N')
-    return (arcs+labels+middle).properties(height=220).configure_view(stroke=None).configure(background=chart_bg)
+    middle = alt.Chart(pd.DataFrame([{'text':text}])).mark_text(color='#243746' if light else '#f1f5f9',fontSize=12,fontWeight=700).encode(text='text:N')
+    return (arcs+labels+middle).properties(height=150).configure_view(stroke=None).configure(background=chart_bg)
 
 
 def render_dashboard():
@@ -190,20 +190,21 @@ def render_dashboard():
     st.markdown(legend,unsafe_allow_html=True)
     chart_names=[r['name'] for r in rows]
     for offset in range(0,9,3):
-        columns=st.columns(3)
-        for container,cat in zip(columns,CATS[offset:offset+3]):
-            with container:
-                title=LABELS[cat]+({'FG':' · 投籃命中占比','FT':' · 罰球命中占比','TOV':' · 失誤負擔'}.get(cat,''))
-                st.markdown('**'+title+'**')
-                chart=pie_chart(rows,cat,chart_names,ref)
-                if chart is None:
-                    st.caption('本期沒有可計算的產量。')
-                else:
-                    st.altair_chart(chart,width='stretch',theme=None)
-                if cat=='TOV':
-                    st.caption('占比越大＝失誤負擔越多；MVP評分會反向計算。')
-                elif cat in ('FG','FT'):
-                    st.caption('圓心為全隊命中率；扇形為命中數占比。滑鼠移上可看個人命中率及Impact。')
+        with st.container(key='pie_row_'+str(offset)):
+            columns=st.columns(3)
+            for container,cat in zip(columns,CATS[offset:offset+3]):
+                with container:
+                    title=LABELS[cat]+({'FG':' · 投籃命中占比','FT':' · 罰球命中占比','TOV':' · 失誤負擔'}.get(cat,''))
+                    st.markdown('**'+title+'**')
+                    chart=pie_chart(rows,cat,chart_names,ref)
+                    if chart is None:
+                        st.caption('本期沒有可計算的產量。')
+                    else:
+                        st.altair_chart(chart,width='stretch',theme=None)
+                    if cat=='TOV':
+                        st.caption('占比越大＝失誤負擔越多；MVP評分會反向計算。')
+                    elif cat in ('FG','FT'):
+                        st.caption('圓心為全隊命中率；扇形為命中數占比。滑鼠移上可看個人命中率及Impact。')
     with st.expander('MVP票選依據 · 各項貢獻分'):
         st.dataframe(pd.DataFrame([{'球員':s['name'],'場次':s['gp'],'綜合分':round(s['score'],3),
                                     **{LABELS[c]:round(s['parts'][c],3) for c in CATS}} for s in scores]),hide_index=True,width='stretch')
