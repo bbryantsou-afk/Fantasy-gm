@@ -15,6 +15,8 @@ st.set_page_config(
     layout="wide",
 )
 
+from browser_records import restore_browser_records,save_browser_records
+restore_browser_records()
 from mobile_share import init_share,watch_share
 init_share()
 watch_share()
@@ -292,3 +294,5 @@ if st.session_state.get("visual_theme")=="簡約淺色":
 from compact_ui import render_compact_ui
 render_compact_ui()
 st.caption("版本 2026.10.20-compact · 電腦／手機共用版本")
+
+save_browser_records()

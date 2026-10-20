@@ -1,0 +1,25 @@
+<!doctype html><html><body style="margin:0;font:12px system-ui;color:#536272"><div id="status"></div><script>
+const KEY='fantasy-gm-private-records-v1';let returned=false,last='';
+function post(type,extra={}){parent.postMessage({isStreamlitMessage:true,type,...extra},'*');}
+window.addEventListener('message',e=>{
+ if(e.source!==parent || e.data?.type!=='streamlit:render')return;
+ const a=e.data.args||{};
+ try{
+  if(a.mode==='read' && !returned){
+   returned=true;const raw=localStorage.getItem(KEY);const snapshot=raw?JSON.parse(raw):null;
+   post('streamlit:setComponentValue',{dataType:'json',value:{ready:true,snapshot}});
+  }
+  if(a.mode==='write' && a.enabled && a.snapshot){
+   const raw=JSON.stringify(a.snapshot);
+   if(raw!==last){localStorage.setItem(KEY,raw);last=raw;}
+   document.getElementById('status').textContent='✓ 紀錄已保存至此瀏覽器，重新整理可還原。';
+   post('streamlit:setFrameHeight',{height:25});
+  }
+ }catch(error){
+  document.getElementById('status').textContent='瀏覽器未能保存／讀取紀錄，請先下載備份。';
+  post('streamlit:setFrameHeight',{height:40});
+  if(a.mode==='read' && returned)post('streamlit:setComponentValue',{dataType:'json',value:{ready:false,error:'瀏覽器儲存不可用'}});
+ }
+});
+post('streamlit:componentReady',{apiVersion:1});post('streamlit:setFrameHeight',{height:0});
+</script></body></html>
