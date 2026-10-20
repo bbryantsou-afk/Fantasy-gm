@@ -29,6 +29,7 @@ function parseYahooDocument(doc, expectedDate, requireDaily=false) {
       const hasStats=Object.values(counts).some(s=>numeric(s)!==null);
       row.daily_stats=null;
       if(hasStats){
+        try {
         const stats={};for(const [k,v] of Object.entries(counts)){stats[k]=numeric(v);if(stats[k]===null)throw Error('單日計數不完整，未套用。');}
         for(const [label,prefix] of [['FGM/A*','FG'],['FTM/A*','FT']]){
           const values=text(label).split('/');
@@ -38,6 +39,11 @@ function parseYahooDocument(doc, expectedDate, requireDaily=false) {
           stats[prefix+'M']=pair[0];stats[prefix+'A']=pair[1];
         }
         row.daily_stats=stats;
+        } catch (error) {
+          // Keep verified ownership/slots even when a live stat cell is unavailable.
+          // Do not turn missing counts into zero or reject every team in the league.
+          row.daily_stats=null;row.stats_warning=String(error.message);
+        }
       }
       row.game_status=cell.querySelector?.('.ysf-game-status')?.textContent.trim().slice(0,100)??'';
     }
