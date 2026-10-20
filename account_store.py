@@ -105,6 +105,7 @@ def init_account():
 @st.fragment(run_every='5s')
 def poll_account():
     if not st.session_state.get('_account_loaded'):return
+    if st.session_state.pop('_sim_skip_poll_once',False):return
     force=st.button('重新檢查 Google Drive',key='account_check_now',help='重新讀取雲端版本，不會直接覆蓋此裝置未保存的修改。')
     st.caption('跨裝置同步 · 雲端版本 '+str(st.session_state.get('_account_revision','—')))
     if st.session_state.get('_account_conflict'):

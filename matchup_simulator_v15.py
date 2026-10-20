@@ -6,6 +6,25 @@ import streamlit as st
 from team_schedule import load_team_schedule, get_game_status
 
 
+def process_simulation_save(change):
+    """Run before page/network rendering when invoked by the component callback."""
+    from matchup_records import save
+    from account_store import persist_account,digest
+    marker=digest(change)
+    if st.session_state.get('_sim_processed_event')==marker:return
+    try:
+        save(change['records'])
+        st.session_state['_sim_restore']=change.get('active')
+        st.session_state['_sim_restore_name']=str(change.get('name',''))[:80]
+        st.session_state['_sim_active_name']=st.session_state['_sim_restore_name']
+        persist_account()
+        problem=st.session_state.get('_account_save_error') or ('跨裝置版本衝突，請到設定處理。' if st.session_state.get('_account_conflict') else '')
+        st.session_state['_sim_save_status']=('此裝置已保存；Google 尚未保存：'+problem) if problem else ('已保存至 Google Drive。' if st.session_state.get('_account_loaded') else '已保存於本裝置。')
+    except (ValueError,TypeError,KeyError) as exc:
+        st.session_state['_sim_save_status']='保存失敗：'+str(exc)
+    st.session_state['_sim_processed_event']=marker
+
+
 def render_matchup_simulator(lite=False):
     if lite:
         st.subheader("🏀 Matchup Simulator Lite")
@@ -593,7 +612,7 @@ def render_matchup_simulator(lite=False):
         if(!name){setMessage("請先輸入模擬名稱。");return;}
         const db=readSaved();
         if(db[name]&&!confirm(`「${name}」已存在，要覆蓋嗎？`))return;
-        db[name]=snapshot();if(writeSaved(db)){refreshSaved();root.querySelector("#sim-list").value=name;setMessage(`正在保存「${name}」…`);}
+        db[name]=snapshot();if(writeSaved(db)){refreshSaved();root.querySelector("#sim-list").value=name;setMessage(`正在保存「${name}」…`);setTimeout(()=>{const msg=root.querySelector('#message');if(msg?.textContent.includes('正在保存'))setMessage('保存尚未獲網站確認；請保留此頁，可先匯出 JSON 備份。');},20000);}
       };
       root.querySelector("#sim-load").onclick=()=>{
         const name=root.querySelector("#sim-list").value;
@@ -1083,6 +1102,7 @@ def render_matchup_simulator(lite=False):
           if(data.restore)try{localStorage.setItem(workingKey+':restore',nonce);}catch{}
         }catch(e){render();setMessage('還原失敗：'+e.message);}
       }else render();
+      if(data.save_status)setMessage(data.save_status);
     }
     """
 
@@ -1114,12 +1134,19 @@ def render_matchup_simulator(lite=False):
         candidate=saved_simulations[active_name]
         if candidate.get('context')==context and candidate.get('week_dates')==[d.isoformat() for d in week_dates]:
             restore_payload=candidate
+    board_key='matchup_board_'+('lite' if lite else 'desktop')
+    def save_immediately():
+        change=st.session_state.get(board_key,{}).get('simulation_change')
+        if change:
+            process_simulation_save(change)
+            st.session_state['_sim_skip_poll_once']=True
     result=lineup(
-        on_simulation_change_change=lambda:None,
-        key='matchup_board_'+('lite' if lite else 'desktop'),
+        on_simulation_change_change=save_immediately,
+        key=board_key,
         data={
             "owner":st.session_state.get('_account_id','guest'),
             "saved_simulations":saved_simulations,
+            "save_status":st.session_state.get("_sim_save_status",""),
             "context":context,
             "restore":restore_payload,
             "restore_nonce":st.session_state.get("_sim_restore_nonce",""),
@@ -1140,20 +1167,7 @@ def render_matchup_simulator(lite=False):
     )
     change=result.get('simulation_change')
     if change:
-        try:
-            save_simulations(change['records'])
-            st.session_state['_sim_restore']=change.get('active')
-            st.session_state['_sim_restore_name']=str(change.get('name',''))[:80]
-            st.session_state['_sim_active_name']=st.session_state['_sim_restore_name']
-            from browser_records import save_browser_records
-            from account_store import finish_account
-            save_browser_records();finish_account()
-            if st.session_state.get('_account_conflict') or st.session_state.get('_account_save_error'):
-                st.warning('此裝置已保存，但 Google 同步尚未完成，請到設定查看狀態。')
-            else:
-                st.session_state['_sim_saved_notice']=True
-                st.rerun()
-        except (ValueError,TypeError,KeyError) as exc:st.error('模擬未保存：'+str(exc))
-    if st.session_state.pop('_sim_saved_notice',False):
-        st.success('模擬已保存'+('至個人 Google Drive。' if st.session_state.get('_account_loaded') else '於本裝置。'))
+        process_simulation_save(change)
+        st.rerun() if saved_simulations!=load_simulations() else None
+    if st.session_state.get('_sim_save_status'):st.info(st.session_state['_sim_save_status'])
     st.caption("過去／今天採已同步的 Fantasy 單日實績或 NBA 單場數據，顯示更新時間；未來可使用場均與自訂預測。資料缺失會留白。")
