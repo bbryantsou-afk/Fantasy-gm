@@ -60,6 +60,9 @@ def apply_profile(payload,revision):
     if 'league_results.json' in payload['files']:st.session_state['_results']=payload['files']['league_results.json']
     st.session_state['_portable_preferences']=copy.deepcopy(payload['prefs'])
     for k,v in payload['prefs'].items():st.session_state[k]=v
+    for key in ['_sim_restore','_sim_restore_name','sim_open_name']:
+        st.session_state.pop(key,None)
+    st.session_state['_sim_restore_nonce']=__import__('uuid').uuid4().hex
     st.session_state['_account_revision']=revision
     st.session_state['_account_base']=digest(payload)
     st.session_state['_account_loaded']=True
@@ -101,16 +104,25 @@ def init_account():
 
 @st.fragment(run_every='5s')
 def poll_account():
-    if not st.session_state.get('_account_loaded') or st.session_state.get('_account_conflict'):return
+    if not st.session_state.get('_account_loaded'):return
+    force=st.button('重新檢查 Google Drive',key='account_check_now',help='重新讀取雲端版本，不會直接覆蓋此裝置未保存的修改。')
+    st.caption('跨裝置同步 · 雲端版本 '+str(st.session_state.get('_account_revision','—')))
+    if st.session_state.get('_account_conflict'):
+        st.warning('跨裝置更新衝突，請到設定選擇保留版本。');return
     try:
         service=client()
-        remote=getattr(service,'load_if_changed',service.load)(st.session_state['_account_id'])
+        remote=(service.load if force else getattr(service,'load_if_changed',service.load))(st.session_state['_account_id'])
+        st.session_state['_account_poll_at']=time.time()
+        st.session_state.pop('_account_poll_error',None)
         if remote and remote['revision']!=st.session_state['_account_revision']:
-            if digest(snapshot())!=st.session_state.get('_account_base'):
+            if digest(clean(snapshot()))!=st.session_state.get('_account_base'):
                 st.session_state['_account_conflict']=remote['revision']
             else:st.session_state['_account_reload']=True
             st.rerun()
-    except CloudError:pass
+    except (CloudError,ValueError,KeyError,TypeError) as exc:
+        st.session_state['_account_poll_error']=str(exc)
+    if st.session_state.get('_account_poll_error'):
+        st.warning('跨裝置更新暫停：'+st.session_state['_account_poll_error'])
 
 def render_account():
     st.markdown('### Google 帳號與個人 Drive 保存')
@@ -183,4 +195,6 @@ def finish_account():
     except (ValueError,KeyError,TypeError) as exc:st.session_state['_account_save_error']='資料未保存：'+str(exc)
     if st.session_state.get('_account_save_error'):st.error(st.session_state['_account_save_error'])
     elif st.session_state.get('_account_conflict'):st.warning('有跨裝置更新衝突，請到設定選擇保留版本。')
-    elif st.session_state.get('_account_loaded'):st.caption('✓ 帳號紀錄已保存至你的 Google Drive。')
+    elif st.session_state.get('_account_loaded'):
+        st.caption('✓ Google Drive 已保存 · 版本 '+str(st.session_state.get('_account_revision','—'))+' · '+st.session_state.get('_account_user_name',''))
+        if st.session_state.get('_account_poll_error'):st.warning('目前無法讀取其他裝置更新：'+st.session_state['_account_poll_error'])

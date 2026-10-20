@@ -36,6 +36,7 @@ def render_matchup_simulator(lite=False):
             st.session_state['sim_date_'+season]=max(begin,min(end,date.fromisoformat(payload['week_dates'][payload['selected_day']])))
             st.session_state['_sim_restore']=payload
             st.session_state['_sim_restore_name']=saved_name
+            st.session_state['_sim_active_name']=saved_name
             st.session_state['_sim_restore_nonce']=__import__('uuid').uuid4().hex
             st.session_state['_sim_manual_restore']=True
     teams=list(state(draft)['teams'])
@@ -1079,7 +1080,7 @@ def render_matchup_simulator(lite=False):
         try{
           if(restored===working && working.controller_date!==data.selected_date)restored.selected_day=Math.max(0,weekDates.indexOf(data.selected_date));
           restore(restored);root.querySelector('#sim-name').value=data.restore_name??'';
-          try{localStorage.setItem(workingKey+':restore',nonce);}catch{}
+          if(data.restore)try{localStorage.setItem(workingKey+':restore',nonce);}catch{}
         }catch(e){render();setMessage('還原失敗：'+e.message);}
       }else render();
     }
@@ -1107,6 +1108,12 @@ def render_matchup_simulator(lite=False):
     context={'season':selected_season,'my_team':my_team,'opp_team':opp_team}
     restore_payload=st.session_state.get('_sim_restore')
     if restore_payload and restore_payload.get('context')!=context:restore_payload=None
+    # Re-open the same named save after a newer cloud profile arrives.
+    active_name=st.session_state.get('_sim_active_name','')
+    if restore_payload is None and active_name in saved_simulations:
+        candidate=saved_simulations[active_name]
+        if candidate.get('context')==context and candidate.get('week_dates')==[d.isoformat() for d in week_dates]:
+            restore_payload=candidate
     result=lineup(
         on_simulation_change_change=lambda:None,
         key='matchup_board_'+('lite' if lite else 'desktop'),
@@ -1137,6 +1144,7 @@ def render_matchup_simulator(lite=False):
             save_simulations(change['records'])
             st.session_state['_sim_restore']=change.get('active')
             st.session_state['_sim_restore_name']=str(change.get('name',''))[:80]
+            st.session_state['_sim_active_name']=st.session_state['_sim_restore_name']
             from browser_records import save_browser_records
             from account_store import finish_account
             save_browser_records();finish_account()

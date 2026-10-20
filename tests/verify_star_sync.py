@@ -40,4 +40,10 @@ with patch('account_store.config',return_value={'configured':True}),patch('accou
  desktop.multiselect[0].set_value(['2']).run();phone.run()
  assert phone.multiselect[0].value==['2']
  assert not any(b.label=='儲存加星名單' for b in desktop.button)
+ from account_store import CloudError
+ with patch.object(db,'load',side_effect=CloudError('offline test')):
+  phone.run();assert any('跨裝置更新暫停' in w.value for w in phone.warning)
+ phone.run();assert not any('跨裝置更新暫停' in w.value for w in phone.warning)
+ next(b for b in phone.button if b.label=='重新檢查 Google Drive').click().run()
+ assert not phone.exception
 print('PASS automatic star add/remove save, two-way independent-session refresh and both star-picker cache invalidation')
