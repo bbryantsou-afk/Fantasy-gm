@@ -30,7 +30,8 @@ function parseYahooDocument(doc, expectedDate, requireDaily=false) {
       row.daily_stats=null;
       if(hasStats){
         try {
-        const stats={};for(const [k,v] of Object.entries(counts)){stats[k]=numeric(v);if(stats[k]===null)throw Error('單日計數不完整，未套用。');}
+        const shotEvidence=['FGM/A*','FTM/A*'].some(k=>/^\d+\/\d+$/.test(text(k)));
+        const stats={};for(const [k,v] of Object.entries(counts)){stats[k]=(v==='-'&&shotEvidence)?0:numeric(v);if(stats[k]===null)throw Error('單日計數不完整，未套用。');}
         for(const [label,prefix] of [['FGM/A*','FG'],['FTM/A*','FT']]){
           const values=text(label).split('/');
           if(values.length!==2)throw Error('單日命中／出手格式不符。');

@@ -81,7 +81,9 @@ def observed_day(league,day,live=None):
 def fantasy_period(league,team,start,end,today,live=None):
     grouped={};missing=[];sources=set();stamp=''
     for i in range(max(0,(min(end,today)-start).days+1)):
-        day=start+timedelta(days=i);evidence=observed_day(league,day,live if day==today else None)
+        day=start+timedelta(days=i)
+        dated_live=live.get('by_date',{}).get(str(day)) if live and 'by_date' in live else (live if day==today else None)
+        evidence=observed_day(league,day,dated_live)
         rows=roster_for_day(league,team,day)
         if rows is None:missing.append(str(day));continue
         if not evidence['source']:missing.append(str(day));continue

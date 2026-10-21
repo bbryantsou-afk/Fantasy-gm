@@ -26,3 +26,13 @@ try:parse_box(d,'2026-10-19','',{})
 except ValueError:pass
 else:raise AssertionError('date mismatch')
 print('PASS ESPN provider identity, full nine-cat, DNP exclusion, Fantasy starters, final Yahoo precedence and date validation')
+# Yesterday's boxscore must count for every Fantasy team after Eastern midnight.
+from ninecat_model import KEYS
+second={'id':'2','name':'Second Player','team':'BOS','slot':'PG'}
+league['daily_rosters']['2026-10-20']['teams']['B']=[second]
+live['players']['espn:901']={'PLAYER_ID':'espn:901','PLAYER_NAME':'Second Player','TEAM_ABBREVIATION':'BOS','GP':1,**dict.fromkeys(KEYS,0.),'PTS':22}
+dated={'by_date':{'2026-10-20':live}}
+for team,expected in [('A',7),('B',22)]:
+ rows,_,_,_=fantasy_period(league,team,date(2026,10,20),date(2026,10,21),date(2026,10,21),dated)
+ assert sum(r['PTS'] for r in rows)==expected,(team,rows)
+print('PASS both Fantasy teams retain prior-day totals after midnight')

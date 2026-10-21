@@ -147,7 +147,12 @@ def render_dashboard():
         from daily_evidence import fantasy_period,nba_today
         refresh=st.button('更新當期實績',key='dash_refresh')
         if refresh:nba_today.clear()
-        live=nba_today(str(today)) if monday<=today<=sunday else None
+        # Fetch each elapsed date, not just today: a completed game remains visible tomorrow.
+        days=[max(monday,first)+timedelta(days=i) for i in range(max(0,(min(sunday,today)-max(monday,first)).days+1))]
+        if refresh:nba_today.clear()
+        by_date={str(d):nba_today(str(d)) for d in days}
+        live={'by_date':by_date,'error':'／'.join(sorted({v.get('error','') for v in by_date.values() if v.get('error')}))}
+
         records,missing,source,stamp=fantasy_period(league,choice,max(start,first),end,today,live)
         week_records,_,_,_=fantasy_period(league,choice,max(monday,first),sunday,today,live)
         previous_records,_,_,_=fantasy_period(league,choice,max(monday-timedelta(days=7),first),monday-timedelta(days=1),today)

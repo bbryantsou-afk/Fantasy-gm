@@ -17,7 +17,8 @@ assert.throws(()=>parseYahooDocument(fixture('2026-10-20','1',null,false),'2026-
 assert.throws(()=>parseYahooDocument(fixture('2026-10-20'),'2026-10-21',true),/日期/);
 const partial=['C','Player','3/7','3/3','0','9','8','-','1','0','1'];
 const partialRow=parseYahooDocument(fixture('2026-10-20','1',partial),'2026-10-20',true).rows[0];
-assert.equal(partialRow.daily_stats,null);assert.equal(partialRow.yahooPlayerId,'1');assert(partialRow.stats_warning);
+assert.equal(partialRow.daily_stats.AST,0);assert.equal(partialRow.yahooPlayerId,'1');
+const malformed=[...partial];malformed[7]='unavailable';assert.equal(parseYahooDocument(fixture('2026-10-20','1',malformed),'2026-10-20',true).rows[0].daily_stats,null);
 (async()=>{
  const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
  const v=t=>parts.find(p=>p.type===t).value;const today=v('year')+'-'+v('month')+'-'+v('day');

@@ -120,12 +120,13 @@ def render_matchup_simulator(lite=False):
     from daily_evidence import simulator_defaults,observed_day,nba_today
     league_state=state(draft)
     PLAYERS,official_lineups=simulator_defaults(league_state,my_team,opp_team,[d for d in week_dates if d<=today],PLAYERS) if selected_season=='2026-27' else (PLAYERS,{})
-    live=nba_today(str(today)) if selected_season=='2026-27' and today in week_dates else None
+    live_days={str(d):nba_today(str(d)) for d in week_dates if selected_season=='2026-27' and date(2026,10,20)<=d<=today}
+    live=live_days.get(str(today))
     if selected_season=='2026-27' and today in week_dates:
         from daily_evidence import refresh_live_page
         refresh_live_page()
     if selected_date<=today and selected_season=='2026-27':
-        evidence=observed_day(league_state,selected_date,live if selected_date==today else None)
+        evidence=observed_day(league_state,selected_date,live_days.get(str(selected_date)))
         stamp=evidence['updated_at']
         st.caption(('今天：即時／最近同步實績' if selected_date==today else '過去：該日 Fantasy 排陣與實績')+' · '+(evidence['source'] or '尚無已同步數據')+(' · 更新 '+stamp if stamp else ''))
         if str(selected_date) not in official_lineups:st.warning('缺少這一天的 Fantasy 排陣；到聯盟同步選該日期，0.3.0 會一併讀取所屬整週。未取得資料前不會用現在名單假裝歷史先發。')
@@ -365,7 +366,7 @@ def render_matchup_simulator(lite=False):
     if selected_season=='2026-27':
         for d in week_dates:
             if d>today:continue
-            for pid,row in observed_day(league_state,d,live if d==today else None)['players'].items():
+            for pid,row in observed_day(league_state,d,live_days.get(str(d)))['players'].items():
                 key=int(pid) if str(pid).isdigit() else pid
                 actual_by_player.setdefault(key,{})[str(d)]={('3PM' if k=='FG3M' else 'TO' if k=='TOV' else k):float(row[k]) for k in ['PTS','FG3M','REB','AST','STL','BLK','TOV','FGM','FGA','FTM','FTA']}
 
