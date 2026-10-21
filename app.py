@@ -126,6 +126,9 @@ with st.sidebar:
         st.warning("Demo Data：非即時球員數據")
         st.caption("Yahoo 帳號尚未連線")
 
+with st.container(key='current_feature'):
+    st.markdown('**'+page+'**')
+
 with st.container(key='app_status_bar'):
     brand,display,cloud=st.columns([1.15,1.85,1.5])
     brand.markdown('**🏀 Fantasy GM**')
@@ -319,7 +322,7 @@ if st.session_state.get("visual_theme")=="簡約淺色":
 
 from compact_ui import render_compact_ui
 render_compact_ui()
-st.caption("版本 2026.10.21-ui3 · 電腦／手機共用版本")
+st.caption("版本 2026.10.21-ui4 · 電腦／手機共用版本")
 
 save_browser_records()
 

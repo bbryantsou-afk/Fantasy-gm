@@ -2,6 +2,19 @@
 import streamlit as st
 import streamlit.components.v1 as components
 CSS='''
+/* Stick the outer layout wrapper so its containing block spans the entire page. */
+[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"]:has(.st-key-current_feature){
+ position:sticky!important;top:2.875rem;z-index:990;
+}
+.st-key-current_feature{
+ background:var(--fgm-feature-bg,#0b1020)!important;color:var(--fgm-feature-fg,#edf2f7)!important;
+ border-bottom:1px solid var(--fgm-feature-border,#384152);padding:8px 12px!important;
+ border-radius:0 0 8px 8px;
+}
+.st-key-current_feature p,.st-key-current_feature strong{
+ background:transparent!important;color:inherit!important;margin:0!important;font-size:15px!important;line-height:1.4!important;
+}
+
 .st-key-app_status_bar [data-testid="stVerticalBlock"]{gap:2px!important}
 .st-key-app_status_bar [data-testid="stHorizontalBlock"]{align-items:center;flex-wrap:nowrap!important;gap:8px!important}
 .st-key-app_status_bar [data-testid="stColumn"]{min-width:0!important;flex:1 1 0!important}
@@ -59,5 +72,8 @@ try{
 </script>'''
 
 def render_compact_ui():
-    st.markdown('<style>'+CSS+'</style>',unsafe_allow_html=True)
+    theme=st.session_state.get('visual_theme','黑色鏡面')
+    bg,fg,border={'簡約淺色':('#f7f8fa','#202936','#d5dce5'),'戰術板草圖':('#142b29','#f0eee3','#54736a')}.get(theme,('#0b1020','#edf2f7','#384152'))
+    variables=f'.stApp{{--fgm-feature-bg:{bg};--fgm-feature-fg:{fg};--fgm-feature-border:{border};}}'
+    st.markdown('<style>'+variables+CSS+'</style>',unsafe_allow_html=True)
     components.html(NAV,height=0)
