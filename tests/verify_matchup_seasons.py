@@ -60,7 +60,15 @@ const p={id:'x',nba_id:1,team:'SAS',profiles:{season:{PTS:20}},actual_by_day:{'2
 assert.equal(dailyStats(p,'my',0).PTS,42); // server actual overrides manual / restored data
 assert.deepEqual(dailyStats(p,'my',1),{}); // final but missing log must not become forecast
 assert.equal(dailyStats(p,'my',2).PTS,20); // future still uses profile
-console.log('PASS JS real-game locking and missing-final safety');
+const pending={...p,id:'pending',nba_id:2,team:'DET'};
+data.scheduled_teams=['DET'];
+assert.equal(dailyStats(pending,'my',1).PTS,20); // today's confirmed unstarted game uses last season
+assert.deepEqual(dailyStats(pending,'my',0),{}); // yesterday remains observed-only
+data.actual_by_player[2]={'2026-10-22':{PTS:7}};
+assert.equal(dailyStats(pending,'my',1).PTS,7); // real stats always override the forecast
+delete data.actual_by_player[2];data.scheduled_teams=[];
+assert.deepEqual(dailyStats(pending,'my',1),{}); // missing/started game never silently predicts
+console.log('PASS JS real-game locking, scheduled-today projection and missing-final safety');
 """
     subprocess.run([node,'-e',test],check=True)
 print('PASS 14 teams, season switching, historical actuals, offline default:',round(time.monotonic()-start,2),'seconds')

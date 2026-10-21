@@ -578,7 +578,7 @@ def render_matchup_simulator(lite=False):
             const index=players[side].findIndex(p=>p.id===current.id);
             if(index<0)players[side].push(structuredClone(current));else players[side][index]=structuredClone(current);
           }
-          players[side].forEach(p=>p.week=teamWeeks[p.team]??Array(7).fill("OFF"));
+          players[side].forEach(p=>{p.week=teamWeeks[p.team]??Array(7).fill('OFF');const current=data.players[side].find(x=>x.id===p.id);if(current?.profiles)p.profiles=structuredClone(current.profiles);});
           dailyChoices[side]=structuredClone(payload.daily_choices[side]??{});
         }
         for(let i=0;i<7;i++){
@@ -650,9 +650,10 @@ def render_matchup_simulator(lite=False):
       const past=(p,idx)=>Boolean(data.final_teams?.[weekDates[idx]]?.includes(p.team)) || weekDates[idx]<data.today || (data.uncertain_days??[]).includes(weekDates[idx]);
 
       const isLocked=(p,idx)=>actual(p,idx)!==null;
+      const requiresActual=(p,idx)=>weekDates[idx]<data.today || (weekDates[idx]===data.today && !(data.scheduled_teams??[]).includes(p.team));
       const dailyStats=(p,side,idx)=>{
         if(isLocked(p,idx))return actual(p,idx);
-        if(past(p,idx)||weekDates[idx]<=data.today)return {}; // Missing past/today evidence is not a prediction.
+        if(past(p,idx)||requiresActual(p,idx))return {}; // Missing past/today evidence is not a prediction.
         const setting=daySetting(p,side,idx);
         return setting.profile==="manual"?(setting.custom??{}):(p.profiles?.[setting.profile]??{});
       };
@@ -681,7 +682,7 @@ def render_matchup_simulator(lite=False):
         editing={id:p.id,side,idx:dayIndex};
         const modal=root.querySelector("#editor");
         const dateLabel=weekDates[dayIndex];
-        const locked=isLocked(p,dayIndex)||weekDates[dayIndex]<=data.today;
+        const locked=isLocked(p,dayIndex)||requiresActual(p,dayIndex);
         root.querySelector("#editor-title").textContent=`${p.name} · ${dateLabel} · 每日 9-Cat`;
         root.querySelector("#editor-description").textContent=locked
           ? `🔒 單日實績／即時數據（${dateLabel}），唯讀；未取得時留白。`
@@ -718,7 +719,7 @@ def render_matchup_simulator(lite=False):
         if(!editing)return;
         const p=getPlayer(editing.side,editing.id);if(!p)return;
         const idx=editing.idx;
-        if(isLocked(p,idx)||weekDates[idx]<=data.today){setMessage("過去與今天使用實績，請選未來日期編輯預測。");return;}
+        if(isLocked(p,idx)||requiresActual(p,idx)){setMessage("過去與今天使用實績，請選未來日期編輯預測。");return;}
         const key=root.querySelector("#editor-profile").value;
         const values={};
         if(key==="manual"&&!clear){
@@ -782,6 +783,9 @@ def render_matchup_simulator(lite=False):
             item.append(label,val);nine.appendChild(item);
           }
           el.appendChild(nine);
+          const source=document.createElement('div');source.style.cssText='font-size:10px;margin-top:4px';
+          source.textContent=isLocked(p,dayIndex)?'🔒 單日實績':requiresActual(p,dayIndex)?'待取得單日實績':(completeStats(dailyStats(p,side,dayIndex))?'預測 · '+profileLabels[daySetting(p,side,dayIndex).profile]:'此來源尚無完整數據');
+          el.appendChild(source);
         } else {
           const info=document.createElement("div");
           info.style.cssText="font-size:9px;color:#e0e8f6;margin-top:3px";
@@ -1076,7 +1080,7 @@ def render_matchup_simulator(lite=False):
         render();setMessage(`整週已排完：我方 ${my}、對手 ${opp} 球員場次；策略：名單排名。`);
       });
 
-      const bulk=root.querySelector('#bulk-profile');
+      const bulk=root.querySelector('#bulk-profile');bulk.replaceChildren();
       for(const [value,label] of Object.entries(profileLabels)){
         if(value==='manual')continue;
         const option=document.createElement('option');option.value=value;option.textContent=label;bulk.appendChild(option);
@@ -1086,7 +1090,7 @@ def render_matchup_simulator(lite=False):
         const target=root.querySelector('#bulk-side').value;
         let changed=0,skipped=0;
         for(const side of target==='both'?['my','opp']:[target])for(const p of players[side])for(let i=0;i<7;i++){
-          if(isLocked(p,i)||past(p,i)||weekDates[i]<=data.today||!plays(p,i))continue;
+          if(isLocked(p,i)||past(p,i)||requiresActual(p,i)||!plays(p,i))continue;
           if(!completeStats(p.profiles?.[bulk.value])){skipped++;continue;}
           dailyChoices[side][dailyKey(p,i)]={profile:bulk.value,custom:null};changed++;
         }
@@ -1154,6 +1158,7 @@ def render_matchup_simulator(lite=False):
             "restore_name":st.session_state.get('_sim_restore_name',''),
             "selected_date":selected_date.isoformat(),
             "today":today.isoformat(),
+            "scheduled_teams":(live or {}).get("scheduled_teams",[]),
             "historical":selected_season=="2025-26",
             "uncertain_days":[d.isoformat() for d in week_dates if d<=today and d.isoformat() not in final_games and any(d in days for days in schedule.values())],
             "actual_by_player":actual_by_player,
