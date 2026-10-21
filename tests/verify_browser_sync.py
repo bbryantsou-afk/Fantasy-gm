@@ -43,6 +43,15 @@ bundled=apply_snapshot(league,matched_daily,mapping,daily,date(2026,10,20))
 assert set(bundled['daily_rosters'])=={'2026-10-19','2026-10-20'}
 assert bundled['daily_rosters']['2026-10-20']['stats_scope']=='day'
 assert bundled['daily_rosters']['2026-10-19']['teams']['球隊 01'][0]['daily_stats']['PTS']==5
+# Older/mixed cached snapshots may advertise day scope but omit one row's stats.
+legacy=copy.deepcopy(payload);legacy['statsScope']='day'
+clean_rows=validate_snapshot(legacy,'7',date(2026,10,20),2)
+assert all(r['daily_stats'] is None for r in clean_rows)
+assert all(r['_daily_stats_missing'] for r in clean_rows)
+assert all('daily_stats' not in r for t in legacy['teams'] for r in t['rows']) # no mutation of browser payload
+legacy_matched,_=match_snapshot(clean_rows,players,[])
+legacy_applied=apply_snapshot(league,legacy_matched,mapping,legacy,date(2026,10,20))
+assert legacy_applied['daily_rosters']['2026-10-20']['teams']['球隊 01'][0]['daily_stats'] is None
 for kind in ['missing','duplicate','date','league','position']:
  bad=copy.deepcopy(payload)
  if kind=='missing':bad['teams'].pop()

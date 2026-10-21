@@ -39,8 +39,9 @@ def validate_snapshot(payload,league,day,expected_teams):
             if r.get('position') not in POSITIONS:raise ValueError('先發／板凳位置不符。')
             if not isinstance(r.get('eligible'),list) or not r['eligible'] or any(p not in ['PG','SG','SF','PF','C'] for p in r['eligible']):raise ValueError('球員位置資格不符。')
             if not re.fullmatch(r'[A-Z]{2,3}',str(r.get('nbaTeam',''))):raise ValueError('NBA 隊伍不符。')
+            r=copy.deepcopy(r)
             if payload.get('statsScope')=='day':
-                if 'daily_stats' not in r:raise ValueError('單日數據欄位缺失。')
+                if 'daily_stats' not in r:r.update(daily_stats=None,_daily_stats_missing=True)
                 if r['daily_stats'] is not None:
                     from data_center import validate_totals
                     validate_totals(r['daily_stats'])
@@ -167,9 +168,12 @@ def render_sync_connection(full=False):
         result=None  # Previous component value while the date selector changes.
     if result:
         try:
-            payload=result['snapshot'];raw=validate_snapshot(payload,source,day,len(league['teams']))
+            payload=result['snapshot']
             token=hashlib.sha256(('name-match-v2:'+json.dumps(payload,sort_keys=True)).encode()).hexdigest()
             if token!=st.session_state.get('_sync_applied_token'):
+                raw=validate_snapshot(payload,source,day,len(league['teams']))
+                missing_stats=sum(bool(r.get('_daily_stats_missing')) for r in raw)
+                if missing_stats:st.warning(f'有 {missing_stats} 位球員未提供單日數據；名單可同步，缺少的實績留空，不當作 0。觀察名單保存不受影響。')
                 rows,pool=match_snapshot(raw,snapshot['players'],entries)
                 remembered=league.get('sync_mapping') if league.get('sync_league')==source else None
                 valid_mapping=(isinstance(remembered,dict) and set(remembered)==set(r['source_team'] for r in rows) and set(remembered.values())==set(league['teams']) and len(remembered)==len(league['teams']))
