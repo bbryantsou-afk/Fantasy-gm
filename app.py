@@ -205,113 +205,115 @@ elif page == "⚙️ 設定":
     render_theme_settings()
     from league_settings import render_league_settings
     render_league_settings()
-    st.divider()
-    st.subheader("Yahoo Fantasy Sports API")
-    st.write("連接你的 Yahoo Fantasy Basketball 帳號。")
+    # Official Yahoo API settings are hidden until access is available.
+    if False:
+        st.divider()
+        st.subheader("Yahoo Fantasy Sports API")
+        st.write("連接你的 Yahoo Fantasy Basketball 帳號。")
 
-    # 確認 OAuth 憑證已設定
-    try:
-        yahoo_config = st.secrets["yahoo"]
-        client_id = yahoo_config["client_id"]
-        client_secret = yahoo_config["client_secret"]
-        redirect_uri = yahoo_config["redirect_uri"]
-    except Exception:
-        st.error(
-            "找不到 Yahoo 憑證。請到 Streamlit Cloud 的 "
-            "Manage app → Settings → Secrets 檢查設定。"
-        )
-        save_browser_records()
-        finish_account()
-        st.stop()
-
-    # 初始化工作階段
-    if "yahoo_oauth_state" not in st.session_state:
-        st.session_state.yahoo_oauth_state = None
-
-    if "yahoo_access_token" not in st.session_state:
-        st.session_state.yahoo_access_token = None
-
-    # 接收 Yahoo OAuth 回傳
-    query_params = st.query_params
-    code = query_params.get("code")
-    returned_state = query_params.get("state")
-    oauth_error = query_params.get("error")
-
-    if oauth_error:
-        st.error(f"Yahoo 授權未完成：{oauth_error}")
-        clear_oauth_query()
-        st.session_state.yahoo_oauth_state = None
-
-    elif code:
-        expected_state = st.session_state.yahoo_oauth_state
-
+        # 確認 OAuth 憑證已設定
         try:
-            token_data = exchange_code_for_token(
-                code=code,
-                returned_state=returned_state,
-                expected_state=expected_state,
-                client_id=client_id,
-                client_secret=client_secret,
-                redirect_uri=redirect_uri,
+            yahoo_config = st.secrets["yahoo"]
+            client_id = yahoo_config["client_id"]
+            client_secret = yahoo_config["client_secret"]
+            redirect_uri = yahoo_config["redirect_uri"]
+        except Exception:
+            st.error(
+                "找不到 Yahoo 憑證。請到 Streamlit Cloud 的 "
+                "Manage app → Settings → Secrets 檢查設定。"
             )
+            save_browser_records()
+            finish_account()
+            st.stop()
 
-            st.session_state.yahoo_access_token = token_data[
-                "access_token"
-            ]
+        # 初始化工作階段
+        if "yahoo_oauth_state" not in st.session_state:
             st.session_state.yahoo_oauth_state = None
+
+        if "yahoo_access_token" not in st.session_state:
+            st.session_state.yahoo_access_token = None
+
+        # 接收 Yahoo OAuth 回傳
+        query_params = st.query_params
+        code = query_params.get("code")
+        returned_state = query_params.get("state")
+        oauth_error = query_params.get("error")
+
+        if oauth_error:
+            st.error(f"Yahoo 授權未完成：{oauth_error}")
             clear_oauth_query()
+            st.session_state.yahoo_oauth_state = None
 
-            st.success("Yahoo 授權完成！")
+        elif code:
+            expected_state = st.session_state.yahoo_oauth_state
 
-        except Exception as e:
-            st.error(f"授權處理失敗：{e}")
-
-    # 顯示連線狀態
-    if st.session_state.yahoo_access_token:
-        st.success("目前工作階段已取得 Yahoo Access Token。")
-
-        if st.button("測試 Yahoo Fantasy API"):
             try:
-                data = yahoo_api_get(
-                    st.session_state.yahoo_access_token
+                token_data = exchange_code_for_token(
+                    code=code,
+                    returned_state=returned_state,
+                    expected_state=expected_state,
+                    client_id=client_id,
+                    client_secret=client_secret,
+                    redirect_uri=redirect_uri,
                 )
-                st.success("Yahoo Fantasy API 回應成功！")
-                st.json(data)
+
+                st.session_state.yahoo_access_token = token_data[
+                    "access_token"
+                ]
+                st.session_state.yahoo_oauth_state = None
+                clear_oauth_query()
+
+                st.success("Yahoo 授權完成！")
 
             except Exception as e:
-                st.error(f"API 測試失敗：{e}")
+                st.error(f"授權處理失敗：{e}")
 
-        if st.button("解除目前工作階段連線"):
-            st.session_state.yahoo_access_token = None
-            st.session_state.yahoo_oauth_state = None
-            st.rerun()
+        # 顯示連線狀態
+        if st.session_state.yahoo_access_token:
+            st.success("目前工作階段已取得 Yahoo Access Token。")
 
-    else:
-        st.info(
-            "尚未連接 Yahoo。按下按鈕後，"
-            "系統會導向 Yahoo 官方網站進行授權。"
+            if st.button("測試 Yahoo Fantasy API"):
+                try:
+                    data = yahoo_api_get(
+                        st.session_state.yahoo_access_token
+                    )
+                    st.success("Yahoo Fantasy API 回應成功！")
+                    st.json(data)
+
+                except Exception as e:
+                    st.error(f"API 測試失敗：{e}")
+
+            if st.button("解除目前工作階段連線"):
+                st.session_state.yahoo_access_token = None
+                st.session_state.yahoo_oauth_state = None
+                st.rerun()
+
+        else:
+            st.info(
+                "尚未連接 Yahoo。按下按鈕後，"
+                "系統會導向 Yahoo 官方網站進行授權。"
+            )
+
+            if st.button("連接 Yahoo Fantasy"):
+                auth_url, expected_state = build_authorization_url(
+                    theme=theme_slug(),
+                    client_id=client_id,
+                    client_secret=client_secret,
+                    redirect_uri=redirect_uri,
+                )
+
+                st.session_state.yahoo_oauth_state = expected_state
+
+                st.link_button(
+                    "前往 Yahoo 授權",
+                    auth_url,
+                    type="primary",
+                )
+
+        st.caption(
+            "目前 Token 僅保存在這個 Streamlit 工作階段。"
+            "重新啟動或工作階段結束後，可能需要重新授權。"
         )
-
-        if st.button("連接 Yahoo Fantasy"):
-            auth_url, expected_state = build_authorization_url(
-                theme=theme_slug(),
-                client_id=client_id,
-                client_secret=client_secret,
-                redirect_uri=redirect_uri,
-            )
-
-            st.session_state.yahoo_oauth_state = expected_state
-
-            st.link_button(
-                "前往 Yahoo 授權",
-                auth_url,
-                type="primary",
-            )
-
-    st.caption(
-        "目前 Token 僅保存在這個 Streamlit 工作階段。"
-        "重新啟動或工作階段結束後，可能需要重新授權。"
-    )
 
 elif page == "9-Cat Strategy":
     from ninecat_strategy import render_ninecat_strategy
@@ -333,7 +335,7 @@ if st.session_state.get("visual_theme")=="簡約淺色":
 
 from compact_ui import render_compact_ui
 render_compact_ui()
-st.caption("版本 2026.10.21-ui10 · 電腦／手機共用版本")
+st.caption("版本 2026.10.21-ui11 · 電腦／手機共用版本")
 
 save_browser_records()
 
