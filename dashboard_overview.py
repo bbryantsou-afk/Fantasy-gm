@@ -168,6 +168,7 @@ def render_dashboard():
         names=[r['name'] for r in roster]
         excluded=st.multiselect('本期不納入圖表與MVP',names,default=[] if not logs and league.get('daily_rosters') else [r['name'] for r in roster if r.get('status') in ('IL','bench')],key='dash_exclude_actual_'+choice+('_fantasy' if not logs else '_nba'))
         st.caption('本季有每日 Fantasy 快照時，僅計入當天先發；上季回看使用目前名單。')
+    unverified=[];reference_mode=False
     if logs:
         records = aggregate_logs(logs,start,end)
         week_records = aggregate_logs(logs,monday,sunday)
@@ -191,7 +192,7 @@ def render_dashboard():
         unverified=unverified_period(league,choice,max(start,first),end,today,by_date)
         if unverified:
             with st.expander('已取得 NBA 實績 · Fantasy 先發尚未確認',expanded=True):
-                st.info('以下是目前名單球員的 NBA 真實數據；該日先發尚未同步，因此暫不計入圓餅圖、總計及 MVP。請完成下方／聯盟同步的首次隊伍確認。')
+                st.info('以下是目前名單球員的 NBA 真實數據；該日先發尚未同步，因此尚未計入 Fantasy 結算；若無先發實績，下方會顯示清楚標記的 NBA 名單參考及暫定 MVP。請完成下方／聯盟同步的首次隊伍確認。')
                 st.dataframe(pd.DataFrame(unverified).rename(columns={'FG3M':'3PM','TOV':'TO'}),hide_index=True,width='stretch')
         week_records,_,_,_=fantasy_period(league,choice,max(monday,first),sunday,today,live)
         previous_records,_,_,_=fantasy_period(league,choice,max(monday-timedelta(days=7),first),monday-timedelta(days=1),today)
@@ -203,13 +204,27 @@ def render_dashboard():
         for r in records+week_records+previous_records:
             if str(r['PLAYER_ID']) not in known and norm(r['PLAYER_NAME']) not in known_names:
                 roster.append({'id':str(r['PLAYER_ID']),'name':r['PLAYER_NAME'],'team':r['TEAM_ABBREVIATION'],'status':'active'});known.add(str(r['PLAYER_ID']));known_names.add(norm(r['PLAYER_NAME']))
+    if not logs and not records and unverified:
+        # NBA roster reference is explicit; never claim these were Fantasy starters.
+        reference_mode=True
+        from daily_evidence import unverified_period
+        ids={norm(r['name']):r.get('id') for r in roster}
+        def reference_records(items):
+            return [{'PLAYER_ID':ids.get(norm(r['球員'])) or 'reference:'+norm(r['球員']),'PLAYER_NAME':r['球員'],'TEAM_ABBREVIATION':r['NBA球隊'],'GP':r['場次'],**{k:r[k] for k in KEYS}} for r in items]
+        records=reference_records(unverified)
+        week_records=reference_records(unverified_period(league,choice,max(monday,first),sunday,today,by_date))
+        st.warning('NBA 名單參考模式：尚未取得這些日期的 Fantasy 先發。以下圓餅圖、產量及暫定 MVP 使用目前名單的 NBA 實績，不代表聯盟計分結果；完成該週排陣同步後會自動改用先發貢獻。')
     rows=production(roster,players,schedule,start,end,excluded,actual=records)
-    if not logs and start<=today and not source and missing:
+    if not logs and not reference_mode and start<=today and not source and missing:
         for r in rows:r.update(covered=False,reason='待同步單日實績')
     weekly=production(roster,players,schedule,monday,sunday,excluded,actual=week_records)
     prev=production(roster,players,schedule,monday-timedelta(days=7),monday-timedelta(days=1),excluded,actual=previous_records)
     previous={r['name']:r for r in prev}
     trends={r['name']:trend(r,previous.get(r['name']),ref) for r in weekly}
+    if reference_mode:
+        trends={r['name']:'前週 Fantasy 資料未確認' for r in weekly}
+        for r in rows:
+            if r['gp']>0:r['reason']='NBA實績・先發未確認'
     record_map={norm(r['PLAYER_NAME']):r for r in records}
     if not logs:
         for r in rows:
@@ -240,7 +255,7 @@ def render_dashboard():
 .mvp-photo img{{width:100%;height:148px;object-fit:contain;border-radius:10px}}
 @media(max-width:600px){{.mvp-body{{gap:8px}}.mvp-photo{{flex-basis:30%;min-width:85px}}.mvp-photo img{{height:130px}}}}
 </style><div style="background:linear-gradient(120deg,#17243e,#183d42);border:1px solid #c8ad61;border-radius:14px;padding:16px 18px;margin:8px 0;color:#f3f6fc"><div class="mvp-body"><div class="mvp-copy">
-<div style="color:#edcd79;font-size:10px;letter-spacing:2px">🏆 PLAYER OF THE {'WEEK' if granularity=='當週' else 'DAY'}</div>
+<div style="color:#edcd79;font-size:10px;letter-spacing:2px">🏆 {'暫定 MVP · NBA 名單實績' if reference_mode else 'PLAYER OF THE '+('WEEK' if granularity=='當週' else 'DAY')}</div>
 <div style="font-size:25px;font-weight:800;margin:6px 0;overflow-wrap:anywhere">{html.escape(winner['name'])}</div>
 <div style="color:#c8e6e3;font-size:12px">{html.escape(statline)}</div>
 <div style="margin-top:8px;color:#f3d987;font-size:12px">貢獻分 {winner['score']:+.3f}　｜　{winner['gp']} 場　｜　全隊 {total['g']} 球員出賽場次</div>
