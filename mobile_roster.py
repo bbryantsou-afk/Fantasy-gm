@@ -7,6 +7,8 @@ ROOT=Path(__file__).parent
 
 def mobile_script(shared_token=None):
     target='https://fantasy-gm-bgjfjwjnxx8mbxjvajm2nk.streamlit.app/?theme=light&phone_sync=1'
+    league=str(st.session_state.get('_account_scope') or st.query_params.get('league',''))
+    if league.isdigit():target+='&league='+quote(league,safe='')
     if shared_token:target+='&mobile='+quote(shared_token,safe='')
     parser=(ROOT/'browser_sync_extension/parser.js').read_text()
     code=(ROOT/'mobile_roster_sync.js').read_text().replace('__PARSER__',parser).replace('__APP_URL__',json.dumps(target))

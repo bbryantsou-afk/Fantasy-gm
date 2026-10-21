@@ -2,6 +2,18 @@
 import streamlit as st
 import streamlit.components.v1 as components
 CSS='''
+
+.mobile-player-rows{width:100%;min-width:0}
+.mobile-stat-player{padding:6px 0;border-bottom:1px solid #84939b55;min-width:0}
+.mobile-stat-heading{display:flex;justify-content:space-between;gap:6px;font-size:12px;line-height:1.4}
+.mobile-stat-heading b{min-width:0;overflow-wrap:anywhere}.mobile-stat-heading span{white-space:nowrap;font-size:11px}
+.mobile-stat-values{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;margin-top:4px}
+.mobile-stat-values>span{display:flex;flex-direction:column;min-width:0;text-align:center}
+.mobile-stat-values small{font-size:9px;opacity:.8}.mobile-stat-values b{font-size:11px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.mobile-rank-list{max-height:340px;overflow-y:auto;width:100%}
+.mobile-rank-list>div{display:grid;grid-template-columns:30px minmax(0,1fr) 65px;gap:5px;padding:5px 0;border-bottom:1px solid #84939b44;font-size:12px}
+.mobile-rank-list>div>span{overflow-wrap:anywhere}
+
 .st-key-background_sync{display:none!important}
 [data-testid="stLayoutWrapper"]:has(> .st-key-background_sync){display:none!important}
 
@@ -84,12 +96,15 @@ CSS='''
  [data-testid="stMetricValue"]{font-size:1.3rem!important}
  [data-testid="stExpander"] summary{padding:7px 9px!important}
  [data-testid="stVerticalBlockBorderWrapper"]{padding:8px!important}
- .st-key-watch_grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px!important}
- .st-key-watch_grid img{max-height:60px;width:75px!important}
+ .st-key-watch_grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px!important}
+ .st-key-watch_grid [class*="st-key-watch_card_"] p{font-size:9px!important;line-height:1.2!important;overflow-wrap:anywhere}
+ .st-key-watch_grid [class*="st-key-watch_card_"] [data-testid="stCaptionContainer"] p{font-size:8px!important}
+ .st-key-watch_grid [class*="st-key-watch_card_"]{padding:3px!important}
+ .st-key-watch_grid img{max-height:40px;width:42px!important}
  .st-key-watch_grid [data-testid="stVerticalBlock"]{gap:.25rem!important}
- .st-key-watch_grid button{font-size:12px!important;white-space:normal!important;width:100%;padding:4px!important}
+ .st-key-watch_grid button{font-size:12px!important;white-space:normal!important;width:100%;padding:2px!important}
  [class*="st-key-pie_row_"] [data-testid="stHorizontalBlock"]{flex-wrap:nowrap!important;gap:4px!important}
- [class*="st-key-pie_row_"] [data-testid="stColumn"]{min-width:0!important;width:calc(33.33% - 3px)!important;flex:1 1 0!important}
+ [class*="st-key-pie_row_"] [data-testid="stColumn"]{min-width:0!important;width:calc(20% - 3px)!important;flex:1 1 0!important}
  [class*="st-key-pie_row_"] p{font-size:11px!important}
  .mvp-photo img{height:85px!important}
 }
@@ -114,5 +129,6 @@ def render_compact_ui():
     theme=st.session_state.get('visual_theme','黑色鏡面')
     bg,fg,border={'簡約淺色':('#f7f8fa','#202936','#d5dce5'),'戰術板草圖':('#142b29','#f0eee3','#54736a')}.get(theme,('#0b1020','#edf2f7','#384152'))
     variables=f'.stApp{{--fgm-feature-bg:{bg};--fgm-feature-fg:{fg};--fgm-feature-border:{border};}}'
-    st.markdown('<style>'+variables+CSS+'</style>',unsafe_allow_html=True)
+    responsive=CSS.replace('@media(max-width:640px)','@media(max-width:100000px)') if st.session_state.get('device_view')=='手機版' else CSS
+    st.markdown('<style>'+variables+responsive+'</style>',unsafe_allow_html=True)
     components.html(NAV,height=0)

@@ -133,6 +133,7 @@ def pie_details(rows,cat,ref):
 
 def render_dashboard():
     st.subheader('球隊總覽 · 九項貢獻')
+    mobile=st.session_state.get('device_view')=='手機版'
     snapshot, entries = load_data()
     players = snapshot['players']
     ref = baseline(players,cohort_ids(players,entries,'draft'))
@@ -195,7 +196,10 @@ def render_dashboard():
         if unverified:
             with st.expander('已取得 NBA 實績 · Fantasy 先發尚未確認',expanded=True):
                 st.info('以下是目前名單球員的 NBA 真實數據；該日先發尚未同步，因此尚未計入 Fantasy 結算；若無先發實績，下方會顯示清楚標記的 NBA 名單參考及暫定 MVP。先發確認請至聯盟同步。')
-                st.dataframe(pd.DataFrame(unverified).rename(columns={'FG3M':'3PM','TOV':'TO'}),hide_index=True,width='stretch')
+                if mobile:
+                    from mobile_stat_cards import player_rows
+                    st.markdown(player_rows(unverified),unsafe_allow_html=True)
+                else:st.dataframe(pd.DataFrame(unverified).rename(columns={'FG3M':'3PM','TOV':'TO'}),hide_index=True,width='stretch')
         week_records,_,_,_=fantasy_period(league,choice,max(monday,first),sunday,today,live)
         previous_records,_,_,_=fantasy_period(league,choice,max(monday-timedelta(days=7),first),monday-timedelta(days=1),today)
         if missing:st.warning('缺少部分日期的 Fantasy 排陣／單日數據：'+', '.join(missing)+ '。更新請至聯盟同步。')
@@ -272,23 +276,24 @@ def render_dashboard():
     st.markdown(legend,unsafe_allow_html=True)
     chart_names=[r['name'] for r in rows]
     mobile=st.session_state.get('device_view')=='手機版'
-    for offset in range(0,9,3):
+    charts_per_row=5 if mobile else 3
+    for offset in range(0,9,charts_per_row):
         with st.container(key='pie_row_'+str(offset)):
-            columns=st.columns(3)
-            for container,cat in zip(columns,CATS[offset:offset+3]):
+            columns=st.columns(charts_per_row)
+            for container,cat in zip(columns,CATS[offset:offset+charts_per_row]):
                 with container:
-                    title=LABELS[cat]+({'FG':' · 投籃命中占比','FT':' · 罰球命中占比','TOV':' · 失誤負擔'}.get(cat,''))
+                    title=LABELS[cat]+({} if mobile else {'FG':' · 投籃命中占比','FT':' · 罰球命中占比','TOV':' · 失誤負擔'}).get(cat,'')
                     st.markdown('**'+title+'**')
                     chart=mobile_pie(rows,cat,ref,chart_names) if mobile else pie_chart(rows,cat,chart_names,ref)
                     if chart is None:
-                        st.caption('本期沒有可計算的產量。')
+                        st.caption('—' if mobile else '本期沒有可計算的產量。')
                     elif mobile:
                         st.markdown(chart,unsafe_allow_html=True)
                     else:
                         st.altair_chart(chart,width='stretch',theme=None)
-                    if cat=='TOV':
+                    if not mobile and cat=='TOV':
                         st.caption('占比越大＝失誤負擔越多；MVP評分會反向計算。')
-                    elif cat in ('FG','FT'):
+                    elif not mobile and cat in ('FG','FT'):
                         st.caption('圓心為全隊命中率；扇形為命中數占比。'+('下方可展開數據明細。' if mobile else '滑鼠移上可看個人命中率及Impact。'))
     if mobile:
         with st.expander('查看圓餅圖數據 · 點開／收起'):
@@ -311,7 +316,10 @@ def render_dashboard():
         item['週場均趨勢']=trends[r['name']] if r['covered'] else '— 資料待確認'
         item['MVP分']=round(score_map[r['name']],3) if r['name'] in score_map else None
         table.append(item)
-    st.dataframe(pd.DataFrame(table),hide_index=True,width='stretch')
+    if mobile:
+        from mobile_stat_cards import player_rows
+        st.markdown(player_rows(table),unsafe_allow_html=True)
+    else:st.dataframe(pd.DataFrame(table),hide_index=True,width='stretch')
     with st.expander('各項場均與前週比較 📈 / 📉'):
         comparison=[]
         for r in weekly:
@@ -330,6 +338,9 @@ def render_dashboard():
                     icon='📈' if better>0.00001 else '📉' if better < -0.00001 else '➖'
                     item[LABELS[c]]=(f'{x:.1%} ({d*100:+.1f}pp)' if c in ('FG','FT') else f'{x:.2f} ({d:+.2f})')+' '+icon
             comparison.append(item)
-        st.dataframe(pd.DataFrame(comparison),hide_index=True,width='stretch')
+        if mobile:
+            from mobile_stat_cards import player_rows
+            st.markdown(player_rows([dict(r,場次=r['本週場次']) for r in comparison]),unsafe_allow_html=True)
+        else:st.dataframe(pd.DataFrame(comparison),hide_index=True,width='stretch')
         st.caption('每項以本週總數÷實際出賽場次；FG/FT為總命中÷總出手。TO越低越好。pp代表百分點。')
     st.download_button('下載本期名單與貢獻CSV',pd.DataFrame(table).to_csv(index=False).encode('utf-8-sig'),f'overview_{start}_{end}.csv','text/csv')

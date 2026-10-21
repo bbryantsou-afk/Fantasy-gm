@@ -266,7 +266,20 @@ def render_ninecat_strategy():
     ranked = [{'排名': i+1, **rec} for i, (_, _, rec) in enumerate(records) if norm(query) in norm(rec['球員']+' '+rec['NBA球隊'])]
     if fit_ranking:
         st.caption('每列比較加入該球員對現有球隊的幫助；若選了加入／釋出包裹，則一併試算。排名可直接瀏覽，套用名單才檢查人數。缺資料者不排名。')
-    st.dataframe(pd.DataFrame(ranked), hide_index=True, width='stretch')
+    if st.session_state.get('device_view')=='手機版':
+        score_key=('包裹＋此人適配分' if additions or drops else '加入適配分') if fit_ranking else 'Weighted Z'
+        import html
+        summary='<div class="mobile-rank-list"><div><b>排名</b><b>球員</b><b>適配分</b></div>'
+        for r in ranked[:100]:
+            summary+='<div><span>'+str(r['排名'])+'</span><span>'+html.escape(r['球員'])+'</span><b>'+f"{r[score_key]:.3f}"+'</b></div>'
+        st.markdown(summary+'</div>',unsafe_allow_html=True)
+        if len(ranked)>100:st.caption('先顯示前 100 位；可輸入球員名稱搜尋其他人選。')
+        with st.expander('查看球員九項數據'):
+            if ranked:
+                detail=st.selectbox('球員',range(len(ranked)),format_func=lambda i:ranked[i]['球員'],key='nc_mobile_detail')
+                from mobile_stat_cards import player_rows
+                st.markdown(player_rows([ranked[detail]]),unsafe_allow_html=True)
+    else:st.dataframe(pd.DataFrame(ranked), hide_index=True, width='stretch')
 
     with st.expander('進階：輸入某週實際總數'):
         st.caption('七項計數總數÷球員計分出賽場次；FG/FT用總命中÷總出手。此區僅紀錄與比較，不取代上方歷史估算。')

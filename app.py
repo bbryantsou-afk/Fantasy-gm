@@ -102,7 +102,12 @@ if 'device_view' not in st.session_state:
     st.session_state['device_view']='手機版' if requested=='mobile' or (not requested and st.query_params.get('phone_sync')) else '電腦版'
 
 with st.sidebar:
-    st.markdown('### 🏀 Fantasy GM')
+    if st.session_state.get('device_view')=='手機版':
+        brand_col,sync_col=st.columns([3,1])
+        brand_col.markdown('### 🏀 Fantasy GM')
+        def open_mobile_sync():st.session_state['main_navigation']='聯盟同步 League Sync'
+        sync_col.button('🔄',help='開啟手機同步',on_click=open_mobile_sync,key='mobile_sync_shortcut')
+    else:st.markdown('### 🏀 Fantasy GM')
     if st.session_state.get("_account_id"):
         st.caption("Google 已登入 · "+st.session_state.get("_account_user_name", ""))
     elif account_config():
@@ -115,7 +120,7 @@ with st.sidebar:
         ["總覽 Dashboard", "球員觀察室 Player Watch",
          "每週補強 Weekly Planner", "交易分析 Trade Lab",
      "9-Cat Strategy", "模擬對局 Matchup Simulator", "比賽戰況", "Data Source 資料中心", "聯盟同步 League Sync", "⚙️ 設定"],
-        format_func=lambda name:dict(zip(
+        key="main_navigation",format_func=lambda name:dict(zip(
             ["總覽 Dashboard","球員觀察室 Player Watch","每週補強 Weekly Planner","交易分析 Trade Lab","9-Cat Strategy","模擬對局 Matchup Simulator","聯盟同步 League Sync","比賽戰況","Data Source 資料中心","⚙️ 設定"],
             ["📊 總覽","⭐ 球員觀察室","📅 每週補強","🤝 交易分析","🎯 九項策略","🏀 模擬對局","🔄 聯盟同步","🏆 比賽戰況","🗂️ 資料中心","⚙️ 設定"])).get(name,name),
         index=9 if st.query_params.get("code") or st.query_params.get("error") else 8 if st.query_params.get("phone_sync") else 0
@@ -327,7 +332,7 @@ if st.session_state.get("visual_theme")=="簡約淺色":
 
 from compact_ui import render_compact_ui
 render_compact_ui()
-st.caption("版本 2026.10.22-ui14 · 電腦／手機共用版本")
+st.caption("版本 2026.10.22-ui15 · 電腦／手機共用版本")
 
 save_browser_records()
 

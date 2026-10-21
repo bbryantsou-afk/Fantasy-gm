@@ -119,6 +119,10 @@ def render_sync_connection(full=False):
     if full:st.caption('0.3.1：電腦自動同步每 5 分鐘更新；手動同步立即執行。電腦請更新擴充功能，手機書籤不需因這次頻率調整而更換。')
     today=datetime.now(ZoneInfo('America/New_York')).date()
     if full:
+        if st.session_state.get('device_view')=='手機版':
+            mobile_league=st.session_state.get('_sync_requested_league',league.get('sync_league','71585'))
+            st.link_button('🔄 前往 Yahoo 更新名單',f'https://basketball.fantasysports.yahoo.com/nba/{mobile_league}')
+            st.caption('開啟 Yahoo 後點「Fantasy GM 同步」書籤，完成後返回此網站。')
         with st.expander('手機直接同步（不需電腦）',expanded=bool(st.query_params.get('phone_sync'))):
             from mobile_roster import render_mobile_setup
             render_mobile_setup()

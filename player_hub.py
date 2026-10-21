@@ -110,7 +110,7 @@ def render_watchroom():
     names={**{str(p['PLAYER_ID']):p['PLAYER_NAME'] for p in players},**mine}
     st.caption('頭像卡只顯示重點；按「⋯ 展開」才讀取新聞與完整資料。歸屬依這份共用聯盟紀錄，不代表已與 Yahoo 同步。')
     if not ids:st.info('目前沒有球員；可先選擇球隊或加星追蹤。');return
-    per_row=2 if st.session_state.get('device_view')=='手機版' else 10
+    per_row=5 if st.session_state.get('device_view')=='手機版' else 10
     def open_player(player):st.session_state['watch_open']=player
     st.markdown(f'<style>.st-key-watch_grid{{grid-template-columns:repeat({per_row},minmax(0,1fr))!important}}</style>',unsafe_allow_html=True)
     with st.container(key='watch_grid'):
@@ -121,8 +121,8 @@ def render_watchroom():
                 else:st.markdown('🏀')
                 st.markdown('**'+name+(' ⭐' if k in stars else '')+'**')
                 st.caption((p['team']+' · '+('/'.join(sorted(p['eligible'])) or '位置待確認')) if p else '新秀／資料待補')
-                st.caption(availability(entries,team,k))
-                st.button('⋯ 展開',key='watch_expand_'+k,on_click=open_player,args=(k,))
+                if per_row!=5:st.caption(availability(entries,team,k))
+                st.button('⋯' if per_row==5 else '⋯ 展開',help='展開 '+name+' 的新聞與資料',key='watch_expand_'+k,on_click=open_player,args=(k,))
             # Insert details immediately after the row containing the selected card.
             if (i+1)%per_row==0 or i==len(ids)-1:
                 selected=st.session_state.get('watch_open')
