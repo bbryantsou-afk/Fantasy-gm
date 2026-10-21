@@ -98,3 +98,15 @@ APP_CSS += """
 .stApp [data-testid="stLinkButton"] a :is(div,p,span,strong),
 .stApp [data-baseweb="select"] :is(span,p){background:transparent!important;background-image:none!important;}
 """
+
+# Sidebar options have their own surface rules; keep their text layers transparent.
+APP_CSS += """
+.stApp [data-testid="stSidebar"] label[data-testid="stRadioOption"]{background:#f7f8fa!important;}
+.stApp [data-testid="stSidebar"] label[data-testid="stRadioOption"]:has(input:checked){background:#e8f4f0!important;}
+.stApp [data-testid="stSidebar"] label[data-testid="stRadioOption"]:hover{background:#eef2f5!important;}
+.stApp [data-testid="stSidebar"] label[data-testid="stRadioOption"] > div,
+.stApp [data-testid="stSidebar"] label[data-testid="stRadioOption"] [data-testid="stMarkdownContainer"],
+.stApp [data-testid="stSidebar"] label[data-testid="stRadioOption"] [data-testid="stMarkdownContainer"] *,
+.stApp button[data-testid^="stBaseButton"] [data-testid="stMarkdownContainer"],
+.stApp button[data-testid^="stBaseButton"] [data-testid="stMarkdownContainer"] *{background-color:transparent!important;background-image:none!important;}
+"""
