@@ -50,7 +50,7 @@ COMPONENT_CSS = '''
 '''
 APP_CSS += '''
 .stApp [data-heading-text],.stApp [data-testid="stHeadingWithActionElements"] span {color:#202a36 !important;}
-.stApp [data-testid="stRadioOption"]:not(:has(input:checked)) > div > div {background:#fff !important;border-color:#94a6b7 !important;}
+
 '''
 COMPONENT_CSS += '''
 #lineup-app {color-scheme:light;}
@@ -87,4 +87,14 @@ APP_CSS += """
 
 APP_CSS += """
 .stApp [data-testid="stSelectbox"] [role="group"],.stApp [data-testid="stMultiSelect"] [role="group"]{background:#f7f8fa!important;}
+"""
+
+# Text wrappers must inherit the control surface, including sidebar radio labels.
+APP_CSS += """
+.stApp [data-testid="stRadioOption"] [data-testid="stMarkdownContainer"],
+.stApp [data-testid="stRadioOption"] > div:has([data-testid="stMarkdownContainer"]),
+.stApp [data-testid="stRadioOption"] :is(p,span,strong),
+.stApp button[kind] :is(div,p,span,strong),
+.stApp [data-testid="stLinkButton"] a :is(div,p,span,strong),
+.stApp [data-baseweb="select"] :is(span,p){background:transparent!important;background-image:none!important;}
 """
