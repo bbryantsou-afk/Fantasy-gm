@@ -13,13 +13,18 @@ def render_planner():
     from team_workbench import lineup_week,team_value,matchup_score
     st.subheader('📅 每週補強')
     snapshot,entries=load_data();players=snapshot['players'];pool=profiles(players,entries)
-    roster=choose_roster(entries,'stream_team');team=active_team(entries);league=state(entries)
-    mode=st.radio('補強目標',['本週對局','長期適配'],horizontal=True,key='stream_mode')
-    teams=[t for t in league['teams'] if t!=team]
-    opponent=st.selectbox('本週對手',teams,key='stream_opponent',format_func=team_formatter())
+    with st.container(key='planner_teams'):
+        mine,theirs=st.columns(2)
+        with mine:roster=choose_roster(entries,'stream_team')
+        team=active_team(entries);league=state(entries)
+        teams=[t for t in league['teams'] if t!=team]
+        with theirs:opponent=st.selectbox('本週對手',teams,key='stream_opponent',format_func=team_formatter())
     opp=shared_roster(entries,opponent)
     today=datetime.now(ZoneInfo('America/New_York')).date()
-    day=st.date_input('從哪一天開始規劃（美東）',max(date(2026,10,20),min(today,date(2027,4,11))),min_value=date(2026,10,20),max_value=date(2027,4,11),key='stream_day')
+    with st.container(key='planner_period'):
+        goal,start,quota=st.columns([1.2,1.3,1])
+        with goal:mode=st.radio('補強目標',['本週對局','長期適配'],horizontal=True,key='stream_mode')
+        with start:day=st.date_input('開始日期（美東）',max(date(2026,10,20),min(today,date(2027,4,11))),min_value=date(2026,10,20),max_value=date(2027,4,11),key='stream_day')
     monday,sunday=week_bounds(day);days=[day+timedelta(days=i) for i in range((sunday-day).days+1)]
     weights={c:float(st.session_state.get('nc_weight_'+c,1)) for c in CATS}
     if not any(weights.values()):st.info('請先在 9-Cat 至少保留一項權重。');return
@@ -27,7 +32,7 @@ def render_planner():
     schedule,_=regular_schedule(json.loads((ROOT/'nba_schedule_2026_27.json').read_text()))
     add_key='stream_adds_'+team+'_'+str(monday)
     if add_key not in st.session_state:st.session_state[add_key]=4
-    remaining=st.number_input('本週剩餘加人次數',0,4,key=add_key)
+    with quota:remaining=st.number_input('本週剩餘加人次數',0,4,key=add_key)
     st.caption(f'{day:%m/%d}–{sunday:%m/%d} 剩餘賽程。歷史場均 × 可排入先發場次；不是實績或勝率。已結束日比分尚未納入，傷病與輪休由你排除。每個方案獨立使用 1 次 add，不能直接把三個方案相加。')
     editor(entries,players,team,'stream_roster')
     before=lineup_week(roster,pool,schedule,days,weights,ref);enemy=lineup_week(opp,pool,schedule,days,weights,ref)
@@ -65,12 +70,14 @@ def render_planner():
     st.caption('自由球員的 NBA 隊伍與 Yahoo 位置可在上方確認；未確認位置者只會安排 UTIL。')
     st.caption('自動候選至少有上季 20 場樣本，避免少量出賽的極端場均；仍可手動指定其他球員。')
     suggested=sorted([k for k in allowed if float(pool[k].get('GP',0))>=20],key=lambda k:weighted_z(pool[k],ref,weights),reverse=True)[:36]
-    available=st.multiselect('候選球員（留空自動比較最多 36 位，可輸入指定）',allowed,format_func=lambda k:pool[k]['PLAYER_NAME'],key='stream_available') or suggested
+    with st.container(key='planner_candidates'):
+        candidates,droppable=st.columns(2)
+    with candidates:available=st.multiselect('候選球員（留空自動比較最多 36 位，可輸入指定）',allowed,format_func=lambda k:pool[k]['PLAYER_NAME'],key='stream_available') or suggested
     active=[r for r in roster if r.get('status')!='IL']
     vacancy=len(active)<league['capacity']
     drop_options=[str(r['id']) for r in active if r.get('id') and str(r['id']) in pool]
     weakest=sorted(drop_options,key=lambda k:weighted_z(pool[k],ref,weights))[:3]
-    drops=st.multiselect('允許列入釋出方案的球員',drop_options,default=weakest if not vacancy else [],format_func=lambda k:pool[k]['PLAYER_NAME'],key='stream_drops_'+team+'_'+str(league['revision']))
+    with droppable:drops=st.multiselect('允許列入釋出方案的球員',drop_options,default=weakest if not vacancy else [],format_func=lambda k:pool[k]['PLAYER_NAME'],key='stream_drops_'+team+'_'+str(league['revision']))
     if not vacancy and not drops:st.info('名單已滿，請先選擇願意考慮釋出的人。');return
     if not remaining:st.info('本週沒有剩餘 add 次數，仍可查看上方比較。');return
     if not available:st.info('先確認自由球員，或開啟「歸屬未確認」研究候選。');return
@@ -97,12 +104,13 @@ def render_planner():
         st.session_state[key]=count-1
     for i,r in enumerate(chosen):
         key=r['key'];p=pool[key];after=r['after'];confirmed=key in league['free']
-        with st.container(border=True):
-            photo,content=st.columns([1,5]);photo.image(f'https://cdn.nba.com/headshots/nba/latest/260x190/{key}.png',width=85)
+        with st.container(border=True,key='planner_plan_'+str(i)):
+            photo,content,a,b,c=st.columns([.8,2.3,1,1,1])
+            photo.image(f'https://cdn.nba.com/headshots/nba/latest/260x190/{key}.png',width=85)
             content.markdown(f"**{i+1}. 加入 {p['PLAYER_NAME']}**")
             content.write('釋出 '+pool[r['drop']]['PLAYER_NAME'] if r['drop'] else '使用空位，不需釋出')
             content.caption('✅ 已確認自由球員' if confirmed else '⚠️ 歸屬未確認，僅供研究')
-            a,b,c=st.columns(3);a.metric('候選可排場次',after['counts'].get(key,0));b.metric('全隊淨增場次',f"{after['g']-before['g']:+d}");c.metric('對局適配提升',f"{r['gain']:+.2f}")
+            a.metric('候選可排場次',after['counts'].get(key,0));b.metric('全隊淨增場次',f"{after['g']-before['g']:+d}");c.metric('對局適配提升',f"{r['gain']:+.2f}")
             st.write('改善最多：'+(LABELS[r['best']] if r['gain']>0 else '尚無整體改善'))
             if mode=='長期適配':st.caption(f"每場加權 Z 淨變化 {r['long']:+.2f}；尚未預測成長、健康或交易市價。")
             with st.expander('查看九項變化'):

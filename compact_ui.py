@@ -28,6 +28,16 @@ CSS='''
 .st-key-app_status_bar [data-testid="stRadio"]{margin:0!important}
 .st-key-app_status_bar [role="radiogroup"]{gap:10px!important;flex-wrap:nowrap!important}
 
+[class*="st-key-planner_plan_"]{padding:10px!important}
+[class*="st-key-planner_plan_"] [data-testid="stVerticalBlock"]{gap:5px!important}
+[class*="st-key-planner_plan_"] [data-testid="stMetric"]{padding:8px!important;min-height:85px!important;height:85px!important;box-sizing:border-box}
+[class*="st-key-planner_plan_"] [data-testid="stMetricValue"]{font-size:24px!important}
+[class*="st-key-planner_plan_"] [data-testid="stMetricLabel"] p{font-size:12px!important}
+[class*="st-key-planner_plan_"] p{margin-bottom:0!important}
+@media(min-width:900px){
+ .st-key-planner_teams [data-testid="stHorizontalBlock"],.st-key-planner_period [data-testid="stHorizontalBlock"],.st-key-planner_candidates [data-testid="stHorizontalBlock"],
+ [class*="st-key-planner_plan_"] > [data-testid="stHorizontalBlock"]{flex-wrap:nowrap!important;gap:10px!important}
+}
 .st-key-watch_grid{display:grid!important;grid-template-columns:repeat(10,minmax(0,1fr));gap:6px!important;align-items:start}
 .st-key-watch_grid>[data-testid="stLayoutWrapper"]{min-width:0}
 .st-key-watch_grid [data-testid="stVerticalBlockBorderWrapper"]{padding:6px!important}

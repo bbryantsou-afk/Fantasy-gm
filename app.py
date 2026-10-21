@@ -322,7 +322,7 @@ if st.session_state.get("visual_theme")=="簡約淺色":
 
 from compact_ui import render_compact_ui
 render_compact_ui()
-st.caption("版本 2026.10.21-ui5 · 電腦／手機共用版本")
+st.caption("版本 2026.10.21-ui6 · 電腦／手機共用版本")
 
 save_browser_records()
 
