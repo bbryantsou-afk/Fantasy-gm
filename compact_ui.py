@@ -21,10 +21,14 @@ CSS='''
 [data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"]:has(.st-key-current_feature){
  position:sticky!important;top:2.875rem;z-index:990;
 }
+.st-key-current_feature [data-testid="stHorizontalBlock"]{flex-wrap:nowrap!important;align-items:center;gap:6px!important}
+.st-key-current_feature [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:first-child{flex:1 1 0!important;min-width:0!important}
+.st-key-current_feature [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:last-child{flex:0 0 38px!important;min-width:38px!important;width:38px!important}
+.st-key-current_feature button{min-height:32px!important;height:32px!important;width:36px!important;padding:0!important}
 .st-key-current_feature{
  background:var(--fgm-feature-bg,#0b1020)!important;color:var(--fgm-feature-fg,#edf2f7)!important;
- border-bottom:1px solid var(--fgm-feature-border,#384152);padding:8px 12px!important;
- border-radius:0 0 8px 8px;min-height:38px!important;height:auto!important;box-sizing:border-box;flex-shrink:0!important;
+ border-bottom:1px solid var(--fgm-feature-border,#384152);padding:4px 8px!important;
+ border-radius:0 0 8px 8px;min-height:42px!important;height:auto!important;box-sizing:border-box;flex-shrink:0!important;
 }
 .st-key-current_feature [data-testid="stElementContainer"],
 .st-key-current_feature [data-testid="stMarkdown"],

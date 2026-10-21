@@ -138,7 +138,8 @@ def init_account():
 def poll_account(show_controls=True):
     if not st.session_state.get('_account_loaded'):return
     if st.session_state.pop('_sim_skip_poll_once',False):return
-    force=st.button('重新檢查 Google Drive',key='account_check_now',help='重新讀取雲端版本，不會直接覆蓋此裝置未保存的修改。') if show_controls else False
+    manual=st.button('重新檢查 Google Drive',key='account_check_now',help='重新讀取雲端版本，不會直接覆蓋此裝置未保存的修改。') if show_controls else False
+    force=st.session_state.pop('_account_force_poll',False) or manual
     if show_controls:st.caption('跨裝置同步 · 雲端版本 '+str(st.session_state.get('_account_revision','—')))
     if st.session_state.get('_account_conflict'):
         st.warning('跨裝置更新衝突，請到設定選擇保留版本。');return

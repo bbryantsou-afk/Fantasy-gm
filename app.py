@@ -133,9 +133,21 @@ with st.sidebar:
         st.warning("Demo Data：非即時球員數據")
         st.caption("Yahoo 帳號尚未連線")
 
+def refresh_current_page():
+    from daily_evidence import nba_today,nba_official_today
+    from live_espn import espn_day
+    nba_today.clear();nba_official_today.clear();espn_day.clear()
+    st.session_state['_account_force_poll']=True
+    st.session_state.pop('_sim_skip_poll_once',None)
+    st.session_state['_page_refresh_notice']=True
+
 with st.container(key='current_feature'):
+
     names={'總覽 Dashboard':'📊 總覽','球員觀察室 Player Watch':'⭐ 球員觀察室','每週補強 Weekly Planner':'📅 每週補強','交易分析 Trade Lab':'🤝 交易分析','9-Cat Strategy':'🎯 九項策略','模擬對局 Matchup Simulator':'🏀 模擬對局','聯盟同步 League Sync':'🔄 聯盟同步','比賽戰況':'🏆 比賽戰況','Data Source 資料中心':'🗂️ 資料中心'}
-    st.markdown('**'+names.get(page,page)+'**')
+    feature_title,feature_refresh=st.columns([12,1],vertical_alignment='center')
+    feature_title.markdown('**'+names.get(page,page)+'**')
+    feature_refresh.button('⟳',key='refresh_current_page',help='重新整理實績並檢查 Drive；未儲存的模擬請先保存。不會執行 Yahoo 名單同步。',on_click=refresh_current_page)
+if st.session_state.pop('_page_refresh_notice',False):st.toast('已重新整理頁面，正在檢查實績與 Drive。',icon='🔄')
 
 with st.container(key='app_status_bar'):
     brand,display,cloud=st.columns([1.15,1.85,1.5])
@@ -332,7 +344,7 @@ if st.session_state.get("visual_theme")=="簡約淺色":
 
 from compact_ui import render_compact_ui
 render_compact_ui()
-st.caption("版本 2026.10.22-ui15 · 電腦／手機共用版本")
+st.caption("版本 2026.10.22-ui16 · 電腦／手機共用版本")
 
 save_browser_records()
 
