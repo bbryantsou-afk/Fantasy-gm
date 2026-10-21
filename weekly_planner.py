@@ -9,6 +9,23 @@ from player_hub import choose_roster,profiles,ROOT
 from roster_store import active_team,roster as shared_roster,state,ownership,persist,save_team,editor,team_label,team_formatter
 from dashboard_model import regular_schedule,week_bounds
 
+def close_category_weights(before,enemy,weights):
+    """Emphasize close margins in either direction; TO is lower-is-better."""
+    from math import exp
+    from team_workbench import team_value
+    boosted={};margins={}
+    for cat in CATS:
+        x,y=team_value(before,cat),team_value(enemy,cat)
+        if x is None or y is None:
+            boosted[cat]=weights[cat];continue
+        # Five percentage points for shooting; 20% of team production for counts.
+        width=.05 if cat in ('FG','FT') else max((abs(x)+abs(y))*.1,1)
+        margin=(y-x if cat in ('TO','TOV') else x-y)
+        proximity=exp(-.5*(margin/width)**2)
+        boosted[cat]=weights[cat]*(1+2*proximity)
+        margins[cat]=(margin,proximity)
+    return boosted,margins
+
 def render_planner():
     from team_workbench import lineup_week,team_value,matchup_score
     st.subheader('📅 每週補強')
@@ -37,7 +54,8 @@ def render_planner():
     editor(entries,players,team,'stream_roster')
     before=lineup_week(roster,pool,schedule,days,weights,ref);enemy=lineup_week(opp,pool,schedule,days,weights,ref)
     scale={c:abs(team_value(enemy,c) or 0) or (ref[c]['mean'] if c in ('FG','FT') else max(ref[c]['mean']*max(enemy['g'],1),1)) for c in CATS}
-    original,parts=matchup_score(before,enemy,weights,scale)
+    priority_weights,margins=close_category_weights(before,enemy,weights)
+    original,parts=matchup_score(before,enemy,priority_weights,scale)
     a,b,c=st.columns(3);a.metric('我方可排場次',before['g']);b.metric('對手可排場次',enemy['g']);c.metric('剩餘 add',remaining)
     comparison=[]
     for cat in CATS:
@@ -47,9 +65,11 @@ def render_planner():
             '對手':f'{y:.1%}' if cat in ('FG','FT') and y is not None else f'{y:.1f}' if y is not None else '—',
             '狀態':'未估算' if gap is None else '持平' if abs(gap)<1e-8 else '🟢 領先' if gap>0 else '🟠 落後'})
     st.table(comparison)
-    focus=sorted((c for c in CATS if weights[c]>0),key=lambda c:abs((team_value(before,c) or 0)-(team_value(enemy,c) or 0))/scale[c]/max(weights[c],.1))[:3]
-    st.markdown('**優先研究接近的項目：'+ '、'.join(LABELS[c] for c in focus)+'**')
-    st.caption('接近不等於一定值得追；下方方案會計算加入與釋出後的完整九項變化。')
+    focus=sorted((c for c in margins if weights[c]>0 and margins[c][1]>=.6),key=lambda c:margins[c][1],reverse=True)[:3]
+    if focus:
+        st.markdown('**優先補強：'+'、'.join(LABELS[c]+('（小幅領先）' if margins[c][0]>0 else '（接近落後）' if margins[c][0]<0 else '（持平）') for c in focus)+'**')
+    else:st.caption('目前沒有明顯接近的項目，依九項整體改善推薦。')
+    st.caption('優先守住小幅領先、追回接近落後；大幅領先或落後的項目降低優先度。仍會扣除釋出造成的其他項目損失，並保留你的九項權重。')
     if before['missing']:st.warning('缺上季數據，未估算：'+'、'.join(before['missing']))
     owners=ownership(entries,team)
     unowned=[k for k in pool if k not in owners]
@@ -88,10 +108,10 @@ def render_planner():
             new=[r for r in roster if str(r.get('id'))!=drop]+[{'id':key,'name':p['PLAYER_NAME'],'team':p['team'],'eligible':sorted(p['eligible']),'status':'active','games':1}]
             after=lineup_week(new,pool,schedule,days,weights,ref)
             if after['counts'].get(key,0)==0:continue
-            score,contributions=matchup_score(after,enemy,weights,scale)
+            score,contributions=matchup_score(after,enemy,priority_weights,scale)
             long_gain=weighted_z(p,ref,weights)-(weighted_z(pool[drop],ref,weights) if drop else 0)
             gains={c:contributions[c]-parts[c] for c in CATS}
-            results.append({'key':key,'drop':drop,'rows':new,'after':after,'gain':score-original,'long':long_gain,'best':max(gains,key=gains.get)})
+            results.append({'key':key,'drop':drop,'rows':new,'after':after,'gain':score-original,'long':long_gain,'best':max(gains,key=gains.get),'targets':[c for c in focus if gains[c]>0]})
     results.sort(key=lambda r:r['gain'] if mode=='本週對局' else r['long'],reverse=True)
     chosen=[];seen=set()
     for r in results:
@@ -111,6 +131,7 @@ def render_planner():
             content.write('釋出 '+pool[r['drop']]['PLAYER_NAME'] if r['drop'] else '使用空位，不需釋出')
             content.caption('✅ 已確認自由球員' if confirmed else '⚠️ 歸屬未確認，僅供研究')
             a.metric('候選可排場次',after['counts'].get(key,0));b.metric('全隊淨增場次',f"{after['g']-before['g']:+d}");c.metric('對局適配提升',f"{r['gain']:+.2f}")
+            if r['targets']:st.caption('補強接近項目：'+'、'.join(LABELS[c] for c in r['targets']))
             st.write('改善最多：'+(LABELS[r['best']] if r['gain']>0 else '尚無整體改善'))
             if mode=='長期適配':st.caption(f"每場加權 Z 淨變化 {r['long']:+.2f}；尚未預測成長、健康或交易市價。")
             with st.expander('查看九項變化'):
