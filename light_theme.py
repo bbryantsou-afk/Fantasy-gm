@@ -77,3 +77,14 @@ APP_CSS += '''
 .stApp [data-testid="stCaptionContainer"],.stApp [data-testid="stCaptionContainer"] * {color:#455466 !important;opacity:1 !important;}
 .stApp [data-testid="stMarkdownContainer"] small,.stApp [data-testid="stSidebar"] small {color:#455466 !important;opacity:1 !important;}
 '''
+
+# Keep controls and chart surfaces on the same neutral background as the page.
+APP_CSS += """
+.stApp{--background-color:#f7f8fa;--secondary-background-color:#f7f8fa;}
+.stApp button[kind],.stApp [data-testid="stDownloadButton"] button,.stApp [data-testid="stLinkButton"] a,.stApp a[kind],.stApp input,.stApp textarea,.stApp [data-baseweb="select"]>div,.stApp [data-testid="stDateInputField"],.stApp [data-testid="stNumberInputContainer"],.stApp [data-testid="stExpander"],.stApp [data-testid="stVerticalBlockBorderWrapper"]{background:#f7f8fa!important;}
+.stApp [data-testid="stVegaLiteChart"]{background:transparent!important;}
+"""
+
+APP_CSS += """
+.stApp [data-testid="stSelectbox"] [role="group"],.stApp [data-testid="stMultiSelect"] [role="group"]{background:#f7f8fa!important;}
+"""

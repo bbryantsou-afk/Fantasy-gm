@@ -88,14 +88,14 @@ def pie_chart(rows, cat, names, ref):
     if cat in ('FG','FT'):
         tooltip += [alt.Tooltip('命中率:Q',format='.1%'),alt.Tooltip('命中率Impact:Q',format='+.2f')]
     light = st.session_state.get('visual_theme') == '簡約淺色'
-    chart_bg = '#ffffff' if light else '#0b1020'
+    chart_bg = '#f7f8fa' if light else '#0b1020'
     arcs = base.mark_arc(innerRadius=alt.ExprRef(expr='min(width/2-5,66)*0.5'),outerRadius=alt.ExprRef(expr='min(width/2-5,66)'),stroke=chart_bg,strokeWidth=1).encode(tooltip=tooltip)
     labels = base.mark_text(radius=alt.ExprRef(expr='min(width/2-5,66)*0.77'),size=9,color='#ffffff',fontWeight=600).encode(
         text=alt.condition('datum.占比 >= 0.08',alt.Text('占比:Q',format='.0%'),alt.value('')),color=alt.value('#ffffff'))
     center = value(totals(rows),cat) if cat in ('FG','FT') else total
     text = f'{center:.1%}' if cat in ('FG','FT') else f'{total:,.1f}'
     middle = alt.Chart(pd.DataFrame([{'text':text}])).mark_text(color='#243746' if light else '#f1f5f9',fontSize=12,fontWeight=700).encode(text='text:N')
-    return (arcs+labels+middle).properties(height=150).configure_view(stroke=None).configure(background=chart_bg)
+    return (arcs+labels+middle).properties(height=150).configure_view(stroke=None).configure(background='transparent')
 
 
 def mobile_pie(rows,cat,ref,names):
@@ -136,7 +136,9 @@ def render_dashboard():
     snapshot, entries = load_data()
     players = snapshot['players']
     ref = baseline(players,cohort_ids(players,entries,'draft'))
-    season = st.selectbox('賽季', ['2026-27','2025-26'], key='dash_season')
+    with st.container(key='dashboard_controls'):
+        controls=st.columns([.8,1.6,1.1,1])
+    season = controls[0].selectbox('賽季', ['2026-27','2025-26'], key='dash_season')
     logs = json.loads((ROOT/'ninecat_assets/game_logs_2025_26.json').read_text()) if season == '2025-26' else []
     first = date(2025,10,21) if logs else date(2026,10,20)
     last = date(2026,4,12) if logs else date(2027,4,11)
@@ -144,17 +146,15 @@ def render_dashboard():
     today = datetime.now(ZoneInfo('America/New_York')).date()
     default_day=first if logs else max(first,min(last,today))
     from roster_store import choose_team,roster as shared_roster,editor,state
-    choice=choose_team(entries,'dash_team','查看球隊／我的球隊')
-    editor(entries,players,choice,'dashboard_roster')
+    with controls[1]:choice=choose_team(entries,'dash_team','球隊')
     roster=shared_roster(entries,choice)
     if not roster:
         st.info('目前沒有名單；請先到9-Cat分頁載入或建立我的球隊。')
         return
-    calendars = st.columns([1,1,2])
-    day = calendars[0].date_input('小月曆 · 選擇日期',value=default_day,
+    day = controls[2].date_input('小月曆 · 選擇日期',value=default_day,
                                  min_value=week_bounds(first)[0],max_value=week_bounds(last)[1],key='dash_date_'+season,format='YYYY/MM/DD')
-    granularity = calendars[1].radio('查看範圍',['當週','單日'],horizontal=True,key='dash_range')
-    calendars[2].caption('NBA 真實單場紀錄｜美國比賽日；不使用整季場均推估。')
+    granularity = controls[3].radio('查看範圍',['當週','單日'],horizontal=True,key='dash_range')
+    editor(entries,players,choice,'dashboard_roster')
     monday,sunday = week_bounds(day)
     week = (monday-week_bounds(first)[0]).days//7+1
     start,end = (monday,sunday) if granularity == '當週' else (day,day)
@@ -164,10 +164,7 @@ def render_dashboard():
         refresh_live_page()
         st.caption('今天的數據：頁面開啟時約每 30 秒重讀可用來源；Yahoo 新資料仍需同步工具讀取。')
     st.markdown(f'**{season} · Week {week}｜{start:%m/%d}–{end:%m/%d}**')
-    with st.expander('手動排除／IL'):
-        names=[r['name'] for r in roster]
-        excluded=st.multiselect('本期不納入圖表與MVP',names,default=[] if not logs and league.get('daily_rosters') else [r['name'] for r in roster if r.get('status') in ('IL','bench')],key='dash_exclude_actual_'+choice+('_fantasy' if not logs else '_nba'))
-        st.caption('本季有每日 Fantasy 快照時，僅計入當天先發；上季回看使用目前名單。')
+    excluded=[]
     unverified=[];reference_mode=False
     if logs:
         records = aggregate_logs(logs,start,end)
@@ -216,7 +213,7 @@ def render_dashboard():
         st.warning('NBA 名單參考模式：尚未取得這些日期的 Fantasy 先發。以下圓餅圖、產量及暫定 MVP 使用目前名單的 NBA 實績，不代表聯盟計分結果；完成該週排陣同步後會自動改用先發貢獻。')
     rows=production(roster,players,schedule,start,end,excluded,actual=records)
     if not logs and not reference_mode and start<=today and not source and missing:
-        for r in rows:r.update(covered=False,reason='待同步單日實績')
+        for r in rows:r.update(covered=False,reason='無實績/未開賽')
     weekly=production(roster,players,schedule,monday,sunday,excluded,actual=week_records)
     prev=production(roster,players,schedule,monday-timedelta(days=7),monday-timedelta(days=1),excluded,actual=previous_records)
     previous={r['name']:r for r in prev}
@@ -228,7 +225,7 @@ def render_dashboard():
     record_map={norm(r['PLAYER_NAME']):r for r in records}
     if not logs:
         for r in rows:
-            if not r['excluded'] and norm(r['name']) not in record_map:r.update(covered=False,reason='尚無單日實績／未開賽或待更新')
+            if not r['excluded'] and norm(r['name']) not in record_map:r.update(covered=False,reason='無實績/未開賽')
     known_names={norm(g['PLAYER_NAME']) for g in logs}
     for r in rows:
         if logs and norm(r['name']) not in known_names and not r['excluded']:
@@ -301,7 +298,7 @@ def render_dashboard():
     score_map={r['name']:r['score'] for r in scores}
     table=[]
     for r in rows:
-        item={'球員':r['name'],'NBA球隊':r['team'],'場次':r['gp'] if r['covered'] else None,'狀態':r['reason'],
+        item={'球員':r['name'],'NBA球隊':r['team'],'場次':r['gp'] if r['covered'] else None,'狀態':r['reason'] if r['gp'] else '無實績/未開賽',
               **{LABELS[c]:round(r['tot'][c],1) if r['covered'] else None for c in CATS if c not in ('FG','FT')}}
         for c in ('FG','FT'):
             item[LABELS[c]]=f"{r['tot'][c+'M']/r['tot'][c+'A']:.1%}" if r['covered'] and r['tot'][c+'A'] else '—'

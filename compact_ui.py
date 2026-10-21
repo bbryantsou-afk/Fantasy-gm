@@ -9,11 +9,17 @@ CSS='''
 .st-key-app_status_bar [data-testid="stRadio"]{margin:0!important}
 .st-key-app_status_bar [role="radiogroup"]{gap:10px!important;flex-wrap:nowrap!important}
 
-.st-key-watch_grid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px!important;align-items:start}
+.st-key-watch_grid{display:grid!important;grid-template-columns:repeat(10,minmax(0,1fr));gap:6px!important;align-items:start}
 .st-key-watch_grid>[data-testid="stLayoutWrapper"]{min-width:0}
-.st-key-watch_grid [data-testid="stVerticalBlockBorderWrapper"]{padding:10px!important}
-.st-key-watch_grid img{max-height:76px;object-fit:contain}
-.st-key-watch_grid button{font-size:13px!important;padding:5px 8px!important;min-height:36px}
+.st-key-watch_grid [data-testid="stVerticalBlockBorderWrapper"]{padding:6px!important}
+.st-key-watch_grid img{max-height:55px;object-fit:contain}
+.st-key-watch_grid button{font-size:11px!important;padding:5px 8px!important;min-height:36px}
+.st-key-watch_controls [data-baseweb="select"]>div{max-height:68px;overflow-y:auto}
+.st-key-watch_grid [class*="st-key-watch_card_"] [data-testid="stVerticalBlock"]{gap:3px!important}
+.st-key-watch_grid [class*="st-key-watch_card_"] p{font-size:11px!important;line-height:1.3!important;overflow-wrap:anywhere}
+.st-key-watch_grid [class*="st-key-watch_detail_"],.st-key-watch_grid > [data-testid="stLayoutWrapper"]:has([class*="st-key-watch_detail_"]){grid-column:1/-1!important}
+.st-key-watch_grid [class*="st-key-watch_detail_"] img{max-height:none}
+@media(min-width:900px){.st-key-dashboard_controls [data-testid="stHorizontalBlock"],.st-key-watch_controls [data-testid="stHorizontalBlock"]{flex-wrap:nowrap!important;gap:12px!important}}
 @media(max-width:640px){
  [data-testid="stMainBlockContainer"]{padding:1rem .65rem 3rem!important}
  [data-testid="stVerticalBlock"]{gap:.55rem}

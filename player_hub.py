@@ -24,7 +24,7 @@ def save_stars(ids):
     temp.write_text(json.dumps({'ids':list(dict.fromkeys(ids))},ensure_ascii=False))
     temp.replace(private_path(WATCH))
 
-def star_picker(players,key):
+def star_picker(players,key,show_help=True):
     ids={str(p['PLAYER_ID']):p['PLAYER_NAME'] for p in players}
     def changed():
         selected=list(st.session_state[key]);save_stars(selected)
@@ -35,7 +35,7 @@ def star_picker(players,key):
             try:persist_account()
             except (ValueError,KeyError,TypeError) as exc:st.session_state['_account_save_error']='星號尚未上傳：'+str(exc)
     selected=st.multiselect('⭐ 加星追蹤球員（輸入姓名，可多選）',sorted(ids,key=lambda k:norm(ids[k])),default=[k for k in load_stars() if k in ids],format_func=ids.get,key=key,on_change=changed)
-    st.caption('選取或移除後立即上傳 Drive。其他裝置每 5 分鐘讀取更新；需要立即讀取可按「重新檢查 Google Drive」。' if st.session_state.get('_account_id') else '選取或移除後自動保存於此瀏覽器；登入 Google 可跨裝置同步。')
+    if show_help:st.caption('選取或移除後立即上傳 Drive。其他裝置每 5 分鐘讀取更新；需要立即讀取可按「重新檢查 Google Drive」。' if st.session_state.get('_account_id') else '選取或移除後自動保存於此瀏覽器；登入 Google 可跨裝置同步。')
     return selected
 
 def choose_roster(entries,key):
@@ -96,34 +96,42 @@ def render_watchroom():
     from roster_store import active_team,ownership,availability,editor,identity
     st.subheader('⭐ 球員觀察室')
     snapshot,entries=load_data();players=snapshot['players']
-    roster=choose_roster(entries,'watch_team');team=active_team(entries)
-    editor(entries,players,team,'watch_roster')
-    pool=profiles(players,entries)
-    with st.expander('管理加星名單'):
-        star_picker(players,'watch_stars')
-        st.download_button('下載加星名單備份',json.dumps({'ids':load_stars()}),'player_watchlist.json','application/json')
+    with st.container(key='watch_controls'):
+        controls=st.columns([1.1,1.1,2])
+        with controls[0]:roster=choose_roster(entries,'watch_team')
+        with controls[1]:view=st.radio('觀察範圍',['全部','我的球員','星號追蹤'],horizontal=True,key='watch_scope')
+        with controls[2]:star_picker(players,'watch_stars',show_help=False)
+    team=active_team(entries);pool=profiles(players,entries)
     mine={identity(r):r['name'] for r in roster};stars=load_stars()
-    view=st.radio('觀察範圍',['全部','我的球員','星號追蹤'],horizontal=True,key='watch_scope')
+    with st.expander('名單管理／備份'):
+        editor(entries,players,team,'watch_roster')
+        st.download_button('下載加星名單備份',json.dumps({'ids':stars}),'player_watchlist.json','application/json')
     ids=list(dict.fromkeys(list(mine)+stars)) if view=='全部' else list(mine) if view=='我的球員' else stars
     names={**{str(p['PLAYER_ID']):p['PLAYER_NAME'] for p in players},**mine}
     st.caption('頭像卡只顯示重點；按「⋯ 展開」才讀取新聞與完整資料。歸屬依這份共用聯盟紀錄，不代表已與 Yahoo 同步。')
     if not ids:st.info('目前沒有球員；可先選擇球隊或加星追蹤。');return
+    per_row=2 if st.session_state.get('device_view')=='手機版' else 10
+    def open_player(player):st.session_state['watch_open']=player
+    st.markdown(f'<style>.st-key-watch_grid{{grid-template-columns:repeat({per_row},minmax(0,1fr))!important}}</style>',unsafe_allow_html=True)
     with st.container(key='watch_grid'):
         for i,k in enumerate(ids):
             p=pool.get(k);name=names.get(k,'未知球員')
-            with st.container(border=True,key="watch_card_"+str(i)):
-                if k.isdigit():st.image(f'https://cdn.nba.com/headshots/nba/latest/260x190/{k}.png',width=85)
-                else:st.markdown('### 🏀')
+            with st.container(border=True,key='watch_card_'+str(i)):
+                if k.isdigit():st.image(f'https://cdn.nba.com/headshots/nba/latest/260x190/{k}.png',width=65)
+                else:st.markdown('🏀')
                 st.markdown('**'+name+(' ⭐' if k in stars else '')+'**')
                 st.caption((p['team']+' · '+('/'.join(sorted(p['eligible'])) or '位置待確認')) if p else '新秀／資料待補')
                 st.caption(availability(entries,team,k))
-                if st.button('⋯ 展開',key='watch_expand_'+k):st.session_state['watch_open']=k
-    selected=st.session_state.get('watch_open')
-    if selected in ids:
-        with st.container(border=True):
-            if st.button('收起詳細資料',key='watch_collapse'):
-                st.session_state.pop('watch_open',None);st.rerun()
-            show_player_detail(selected,pool,names)
+                st.button('⋯ 展開',key='watch_expand_'+k,on_click=open_player,args=(k,))
+            # Insert details immediately after the row containing the selected card.
+            if (i+1)%per_row==0 or i==len(ids)-1:
+                selected=st.session_state.get('watch_open')
+                row_start=(i//per_row)*per_row
+                if selected in ids[row_start:i+1]:
+                    with st.container(border=True,key='watch_detail_'+str(i//per_row)):
+                        if st.button('收起新聞與資料',key='watch_collapse'):
+                            st.session_state.pop('watch_open',None);st.rerun()
+                        show_player_detail(selected,pool,names)
 
 
 def show_player_detail(selected,pool,names):
