@@ -9,7 +9,13 @@ CSS='''
 .st-key-current_feature{
  background:var(--fgm-feature-bg,#0b1020)!important;color:var(--fgm-feature-fg,#edf2f7)!important;
  border-bottom:1px solid var(--fgm-feature-border,#384152);padding:8px 12px!important;
- border-radius:0 0 8px 8px;
+ border-radius:0 0 8px 8px;min-height:38px!important;height:auto!important;box-sizing:border-box;flex-shrink:0!important;
+}
+.st-key-current_feature [data-testid="stElementContainer"],
+.st-key-current_feature [data-testid="stMarkdown"],
+.st-key-current_feature [data-testid="stMarkdown"] > div,
+.st-key-current_feature [data-testid="stMarkdownContainer"]{
+ height:auto!important;min-height:21px!important;flex-shrink:0!important;overflow:visible!important;
 }
 .st-key-current_feature p,.st-key-current_feature strong{
  background:transparent!important;color:inherit!important;margin:0!important;font-size:15px!important;line-height:1.4!important;
