@@ -1,10 +1,11 @@
 <!doctype html><html><head><meta charset="utf-8"><style>
 body{font:14px system-ui;margin:0;color:var(--text-color,#222)}button{padding:12px 16px;border:1px solid #9aa6b2;border-radius:8px;margin:4px;background:#fff;color:#172b3a;cursor:pointer}button:disabled{opacity:.5}#status{padding:8px;white-space:pre-wrap}label{display:block;margin:8px}small{display:block;color:#687888}
 </style></head><body><div><button id="sync" disabled>同步指定日期</button><button id="cached" disabled>讀取此瀏覽器已保存的名單</button></div><label><input id="auto" type="checkbox" disabled>瀏覽器運作時，約每 5 分鐘更新今天的排陣與實績</label><div id="status">正在檢查同步擴充功能…</div><small>只讀取每日排陣與單日實績，不會加退球員或修改先發。登入過期時需重新登入 Yahoo。資料取得與網站套用會分別顯示。</small><script>
-const channel='fantasy-gm-sync-v1';let args={},ready=false,lastMapped='',received={},pendingKey='',busy=false;
+const channel='fantasy-gm-sync-v1';let args={},ready=false,lastMapped='',received={},pendingKey='',busy=false,lastForce='';
 const status=document.querySelector('#status');
 function parentMessage(type,more={}){window.parent.postMessage({isStreamlitMessage:true,type,...more},'*');}
 function request(action,extra={}){const requestId=crypto.randomUUID();window.postMessage({channel,requestId,action,league:args.league,date:args.date,...extra},location.origin);return requestId;}
+function forceSync(){if(ready&&!busy&&args.force&&args.force!==lastForce){lastForce=args.force;busy=true;status.textContent='正在強制同步最新資料…';request('sync');}}
 function currentKey(){return args.league+'|'+args.date;}
 function mapping(){if(args.mapping && JSON.stringify(args.mapping)!==lastMapped){lastMapped=JSON.stringify(args.mapping);request('mapping',{mapping:args.mapping});}}
 function appliedText(){return args.applied?.date===args.date?args.applied.message:'';}
@@ -13,12 +14,12 @@ window.addEventListener('message',e=>{
   const previous=currentKey();args=e.data.args||{};
   if(e.data.theme?.textColor)document.body.style.color=e.data.theme.textColor;
   document.querySelector('#sync').textContent='同步 '+args.date;
-  if(ready){mapping();if(previous!==currentKey())request('status');if(appliedText())status.textContent=appliedText();}
+  if(ready){mapping();forceSync();if(previous!==currentKey())request('status');if(appliedText())status.textContent=appliedText();}
   else request('hello');return;
  }
  if(e.source!==window || e.origin!==location.origin || e.data?.channel!=='fantasy-gm-sync-extension-v1')return;
  const m=e.data;
- if(m.kind==='ready'){ready=true;document.querySelectorAll('button,input').forEach(x=>x.disabled=false);status.textContent='擴充功能已連線，檢查已保存的今天名單…';mapping();request('status');return;}
+ if(m.kind==='ready'){ready=true;document.querySelectorAll('button,input').forEach(x=>x.disabled=false);status.textContent='擴充功能已連線，檢查已保存的今天名單…';mapping();forceSync();request('status');return;}
  if(m.kind==='status'){
   document.querySelector('#auto').checked=!!m.auto;
   const captured=m.selectedCapturedAt||m.lastSuccess;

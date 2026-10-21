@@ -123,17 +123,18 @@ def render_sync_connection(full=False):
             from mobile_roster import render_mobile_setup
             render_mobile_setup()
         st.subheader('🔄 聯盟同步 · 每日陣容')
-        source=st.text_input('Yahoo 聯盟 ID',value=str(st.session_state.get('_sync_requested_league',league.get('sync_league','71585'))),key='sync_league_input').strip()
+        sync_id,sync_day,sync_link=st.columns(3)
+        with sync_id:source=st.text_input('Yahoo 聯盟 ID',value=str(st.session_state.get('_sync_requested_league',league.get('sync_league','71585'))),key='sync_league_input').strip()
         st.session_state['_sync_requested_league']=source
         if st.session_state.get('_sync_requested_day'):st.session_state['sync_roster_day']=st.session_state.pop('_sync_requested_day')
-        day=st.date_input('陣容日期（美東）',value=None if 'sync_roster_day' in st.session_state else today,min_value=date(2025,1,1),max_value=today,key='sync_roster_day')
+        with sync_day:day=st.date_input('陣容日期（美東）',value=None if 'sync_roster_day' in st.session_state else today,min_value=date(2025,1,1),max_value=today,key='sync_roster_day')
         st.caption('今天的資料可能隨排陣改變；歷史日期只保存快照，不取代目前持有名單。')
         with st.expander('首次安裝／同步說明',expanded=False):
             st.download_button('下載同步擴充功能 ZIP',extension_zip(),'fantasy-gm-sync.zip','application/zip')
             st.markdown('1. 解壓縮 ZIP。\n2. 在桌面 Chrome 開啟 `chrome://extensions`，開啟「開發人員模式」。\n3. 按「載入未封裝項目」，選取含 manifest.json 的 fantasy-gm-sync 資料夾。\n4. 在同一個 Chrome 登入 Yahoo，再開啟這個 App，重新整理後按同步。')
             st.caption('目前版本 0.3.1：自動更新改為每 5 分鐘；保留整週每日先發與單日實績。下載新版替換原資料夾，在 chrome://extensions 按重新載入，再重新整理 App。開啟自動檢查後約每 5 分鐘更新一次。')
             st.caption('本機保存最近 14 個日期。網站重開後會自動讀取此瀏覽器已保存的今天名單；若沒有今天快照，請按同步。')
-        if re.fullmatch(r'\d{1,10}',source):st.link_button('先登入／查看 Yahoo 聯盟',f'https://basketball.fantasysports.yahoo.com/nba/{source}')
+        if re.fullmatch(r'\d{1,10}',source):sync_link.link_button('先登入／查看 Yahoo 聯盟',f'https://basketball.fantasysports.yahoo.com/nba/{source}')
     else:
         source=str(st.session_state.get('_sync_requested_league',league.get('sync_league','71585')))
         day=today
@@ -141,7 +142,7 @@ def render_sync_connection(full=False):
         if full:st.info('請輸入 Yahoo 網址 /nba/ 後方的數字聯盟 ID。')
         return
     ack=st.session_state.get('_sync_mapping_ack') or (league.get('sync_mapping') if league.get('sync_league')==source else None)
-    args=dict(league=source,date=str(day),mapping=ack,compact=not full,applied=st.session_state.get('_sync_browser_ack'),key='yahoo_browser_bridge',default=None)
+    args=dict(force=st.session_state.get('_sync_force_nonce'),league=source,date=str(day),mapping=ack,compact=not full,applied=st.session_state.get('_sync_browser_ack'),key='yahoo_browser_bridge',default=None)
     phone_result=phone_bridge(enabled=bool(st.query_params.get('phone_sync')),showStatus=full,mapping=ack,key='phone_roster_receiver',default=None)
     if full:result=bridge(**args)
     else:
@@ -187,8 +188,9 @@ def render_sync_connection(full=False):
                 else:
                     st.info('首次同步請確認隊伍配對，之後按同步即可自動套用。')
                     defaults=suggested_mapping(rows,league);mapping={};targets=list(league['teams'])
-                    for team in payload['teams']:
-                        k=source+':'+team['id'];mapping[k]=st.selectbox(team['name']+' → App 球隊',targets,index=targets.index(defaults[k]),key='sync_map_'+source+'_'+team['id'],format_func=team_formatter())
+                    mapping_cols=st.columns(3)
+                    for idx,team in enumerate(payload['teams']):
+                        k=source+':'+team['id'];mapping[k]=mapping_cols[idx%3].selectbox(team['name']+' → App 球隊',targets,index=targets.index(defaults[k]),key='sync_map_'+source+'_'+team['id'],format_func=team_formatter())
                     st.dataframe([{'球員':r['name'],'來源隊伍':r['source_name'],'席次':r['slot'],'數據':'已配對' if r['matched'] else '無數據／保留姓名'} for r in rows],hide_index=True)
                     unique=len(set(mapping.values()))==len(targets)
                     if not unique:st.warning('每一隊必須配對到不同 App 球隊，請調整重複的選項。')
@@ -210,10 +212,11 @@ def render_sync():
     archives=league.get('daily_rosters',{})
     if archives:
         st.markdown('### 已同步的每日陣容')
-        selected=st.selectbox('查看已保存日期',sorted(archives,reverse=True),key='sync_view_date');saved=archives[selected]
+        date_column,team_column=st.columns(2)
+        with date_column:selected=st.selectbox('查看已保存日期',sorted(archives,reverse=True),key='sync_view_date');saved=archives[selected]
         st.caption('日期以美東比賽日為準。要看當天陣容，先在上方選日期並同步，再在這裡選相同日期。PG～Util 為先發，BN 為板凳，IL 為傷兵。')
         st.caption('讀取時間：'+saved['captured_at']+'。這是當時快照，並非已驗證的最終鎖定紀錄。')
-        selected_team=st.selectbox('查看當日球隊',['全部球隊']+list(saved['teams']),format_func=team_formatter(),key='sync_daily_team')
+        with team_column:selected_team=st.selectbox('查看當日球隊',['全部球隊']+list(saved['teams']),format_func=team_formatter(),key='sync_daily_team')
         table=[]
         for team,rows in saved['teams'].items():
             if selected_team!='全部球隊' and team!=selected_team:continue

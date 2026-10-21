@@ -102,7 +102,14 @@ if 'device_view' not in st.session_state:
     st.session_state['device_view']='手機版' if requested=='mobile' or (not requested and st.query_params.get('phone_sync')) else '電腦版'
 
 with st.sidebar:
-    st.title("🏀 Fantasy GM")
+    sidebar_brand,sidebar_sync=st.columns([3,1])
+    sidebar_brand.markdown('### 🏀 Fantasy GM')
+    if sidebar_sync.button('🔄',help='立即讀取 Yahoo 最新名單與實績',key='sidebar_force_sync'):
+        import time
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        st.session_state['_sync_force_nonce']=str(time.time_ns())
+        st.session_state['_sync_requested_day']=datetime.now(ZoneInfo('America/New_York')).date()
     if st.session_state.get("_account_id"):
         st.caption("Google 已登入 · "+st.session_state.get("_account_user_name", ""))
     elif account_config():
@@ -115,11 +122,11 @@ with st.sidebar:
         "功能選單",
         ["總覽 Dashboard", "球員觀察室 Player Watch",
          "每週補強 Weekly Planner", "交易分析 Trade Lab",
-     "9-Cat Strategy", "模擬對局 Matchup Simulator", "聯盟同步 League Sync", "比賽戰況", "Data Source 資料中心", "⚙️ 設定"],
+     "9-Cat Strategy", "模擬對局 Matchup Simulator", "比賽戰況", "Data Source 資料中心", "聯盟同步 League Sync", "⚙️ 設定"],
         format_func=lambda name:dict(zip(
             ["總覽 Dashboard","球員觀察室 Player Watch","每週補強 Weekly Planner","交易分析 Trade Lab","9-Cat Strategy","模擬對局 Matchup Simulator","聯盟同步 League Sync","比賽戰況","Data Source 資料中心","⚙️ 設定"],
             ["📊 總覽","⭐ 球員觀察室","📅 每週補強","🤝 交易分析","🎯 九項策略","🏀 模擬對局","🔄 聯盟同步","🏆 比賽戰況","🗂️ 資料中心","⚙️ 設定"])).get(name,name),
-        index=9 if st.query_params.get("code") or st.query_params.get("error") else 6 if st.query_params.get("phone_sync") else 0
+        index=9 if st.query_params.get("code") or st.query_params.get("error") else 8 if st.query_params.get("phone_sync") else 0
     )
     st.divider()
     if page in ("9-Cat Strategy", "總覽 Dashboard", "模擬對局 Matchup Simulator", "Matchup Simulator Lite", "聯盟同步 League Sync", "比賽戰況", "Data Source 資料中心", "⚙️ 設定", "球員觀察室 Player Watch", "每週補強 Weekly Planner", "交易分析 Trade Lab"):
@@ -326,7 +333,7 @@ if st.session_state.get("visual_theme")=="簡約淺色":
 
 from compact_ui import render_compact_ui
 render_compact_ui()
-st.caption("版本 2026.10.21-ui9 · 電腦／手機共用版本")
+st.caption("版本 2026.10.21-ui10 · 電腦／手機共用版本")
 
 save_browser_records()
 

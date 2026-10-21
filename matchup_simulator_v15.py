@@ -107,8 +107,9 @@ def render_matchup_simulator(lite=False):
         if pairing and not st.session_state.pop('_sim_manual_restore',False):st.session_state['sim_opp_team']=pairing
         st.session_state['_sim_pairing_context']=context
     opp_team=right.selectbox('對手球隊',teams,index=1,key='sim_opp_team',format_func=team_formatter())
-    if pairing:st.caption(f"Yahoo Week {known_week['week']} · 預設對手：{team_label(pairing)}（可自行切換研究）")
-    else:st.caption('此週尚無已同步的 Yahoo 對手；請先同步，或自行選擇對手。')
+    sim_notes=st.expander('資料來源／操作說明',expanded=False)
+    if pairing:sim_notes.caption(f"Yahoo Week {known_week['week']} · 預設對手：{team_label(pairing)}（可自行切換研究）")
+    else:sim_notes.caption('此週尚無已同步的 Yahoo 對手；請先同步，或自行選擇對手。')
     for side,team in [('my',my_team),('opp',opp_team)]:
         PLAYERS[side]=[]
         for r in shared_roster(draft,team):
@@ -128,12 +129,12 @@ def render_matchup_simulator(lite=False):
     if selected_date<=today and selected_season=='2026-27':
         evidence=observed_day(league_state,selected_date,live_days.get(str(selected_date)))
         stamp=evidence['updated_at']
-        st.caption(('今天：即時／最近同步實績' if selected_date==today else '過去：該日 Fantasy 排陣與實績')+' · '+(evidence['source'] or '尚無已同步數據')+(' · 更新 '+stamp if stamp else ''))
+        sim_notes.caption(('今天：即時／最近同步實績' if selected_date==today else '過去：該日 Fantasy 排陣與實績')+' · '+(evidence['source'] or '尚無已同步數據')+(' · 更新 '+stamp if stamp else ''))
         if str(selected_date) not in official_lineups:st.warning('缺少這一天的 Fantasy 排陣；到聯盟同步選該日期，0.3.0 會一併讀取所屬整週。未取得資料前不會用現在名單假裝歷史先發。')
         if live and live.get('error'):st.info('即時比分來源暫時未完整取得；使用 Yahoo 最近同步數據，更新時間如上。可在聯盟同步更新今日資料。')
-    elif selected_date>today:st.caption('未來：保留場均套用、自訂預測與排陣模擬。')
-    st.caption('雙方使用共用名單，IL 不排入；此頁拖曳與新增屬於模擬，不會自動修改共用名單。')
-    st.caption("賽程來源：NBA 例行賽快照；本季可按按鈕更新以反映改期。")
+    elif selected_date>today:sim_notes.caption('未來：保留場均套用、自訂預測與排陣模擬。')
+    sim_notes.caption('雙方使用共用名單，IL 不排入；此頁拖曳與新增屬於模擬，不會自動修改共用名單。')
+    sim_notes.caption("賽程來源：NBA 例行賽快照；本季可按按鈕更新以反映改期。")
     if selected_season=="2026-27" and st.button("更新 NBA 官方賽程", key="v15_schedule_refresh"):
         try:
             import requests
@@ -181,10 +182,11 @@ def render_matchup_simulator(lite=False):
             else:
                 st.info("本週沒有排定比賽。")
         with summary_right:
-            st.markdown("**📅 B2B 週曆**")
+            calendar_mode=st.radio('週曆顯示',['B2B','全部球隊出賽'],horizontal=True,key='sim_calendar_mode',label_visibility='collapsed')
+            if calendar_mode=='全部球隊出賽':_,calendar,_=schedule_summary(schedule,week_dates,TEAM_IDS,all_games=True)
             st.markdown(calendar,unsafe_allow_html=True)
             st.caption("✓ 連兩天出賽的日期 · * 跨週 B2B · 滑鼠移上可看相鄰日期。表內可捲動。")
-        st.caption("日期採美東。B2B 依球隊賽程判定，不代表球員確定出場；下方球員綠／紅格分別代表有／無賽程。")
+        sim_notes.caption("日期採美東。B2B 依球隊賽程判定，不代表球員確定出場；下方球員綠／紅格分別代表有／無賽程。")
 
     # NBA 球員資料庫：包含不在目前兩隊名單中的球員（例如 Seth Curry）。
     # NBA Stats 有時會限制連線；失敗時顯示狀態，絕不填入虛構統計。
@@ -228,7 +230,7 @@ def render_matchup_simulator(lite=False):
             "3PM":"FG3M", "FGM":"FGM", "FGA":"FGA", "FTM":"FTM", "FTA":"FTA", "TO":"TOV"
         }.items()}
 
-    st.caption("📊 2025–26 場均由本機快照載入。本季近 7／14／30 天場均可勾選連線取得；上季模式直接使用單場實績。")
+    sim_notes.caption("📊 2025–26 場均由本機快照載入。本季近 7／14／30 天場均可勾選連線取得；上季模式直接使用單場實績。")
     historical = json.loads((root_path/'ninecat_assets/data.json').read_text())['players']
     profiles_by_id = {}
     errors = []
@@ -387,7 +389,7 @@ def render_matchup_simulator(lite=False):
 
     HTML = """
     <div id="lineup-app">
-      <div class="guide">名單依選秀輪次排序。拖曳新增球員到垃圾桶可移除；點擊先發球員即可編輯預測數據。</div>
+      <details class="guide"><summary>排陣操作說明</summary>名單依選秀輪次排序。拖曳新增球員到垃圾桶可移除；點擊先發球員即可編輯預測數據。</details>
       <div class="actions"><label>數據套用 <select id="bulk-profile"></select></label>
       <select id="bulk-side"><option value="both">雙方球隊</option><option value="my">我的球隊</option><option value="opp">對手球隊</option></select>
       <button id="bulk-apply" type="button">套用整週未完賽場次</button><span>已完賽實績與待補實績不受覆寫；缺少所選來源則保留原設定。</span></div>

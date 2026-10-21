@@ -2,7 +2,7 @@
 import html
 from datetime import timedelta
 
-def schedule_summary(schedule, week_dates, team_ids):
+def schedule_summary(schedule, week_dates, team_ids, all_games=False):
     counts={team:sum(day in dates for day in week_dates) for team,dates in schedule.items() if team in team_ids}
     maximum=max(counts.values(),default=0)
     leaders=sorted(team for team,n in counts.items() if n==maximum and maximum)
@@ -18,11 +18,11 @@ def schedule_summary(schedule, week_dates, team_ids):
         if team not in team_ids:
             continue
         b2b={day for day in week_dates if day in dates and (day-timedelta(days=1) in dates or day+timedelta(days=1) in dates)}
-        if not b2b:
+        if not b2b and not all_games:
             continue
         cells=[]
         for day in week_dates:
-            if day in b2b:
+            if day in b2b or (all_games and day in dates):
                 adjacent=[d for d in (day-timedelta(days=1),day+timedelta(days=1)) if d in dates]
                 tip='、'.join(f'{min(day,d):%m/%d}–{max(day,d):%m/%d}' for d in adjacent)
                 marker='✓'
@@ -31,7 +31,7 @@ def schedule_summary(schedule, week_dates, team_ids):
                 cells.append(f'<td class="sched-b2b" title="{html.escape(tip)}">{marker}</td>')
             else:
                 cells.append('<td>·</td>')
-        rows.append(f'<tr><th><img src="https://cdn.nba.com/logos/nba/{team_ids[team]}/primary/L/logo.svg" alt="">{team}</th>'+''.join(cells)+'</tr>')
+        rows.append(f'<tr><th><img src="https://cdn.nba.com/logos/nba/{team_ids[team]}/primary/L/logo.svg" alt="">{team} · {counts[team]} 場</th>'+''.join(cells)+'</tr>')
     calendar=('<div class="sched-calendar"><table><thead><tr><th>球隊</th>'+headers+'</tr></thead><tbody>'+''.join(rows)+'</tbody></table></div>') if rows else '<p>本週沒有 back-to-back。</p>'
     return cards,calendar,leaders
 
