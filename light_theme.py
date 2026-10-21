@@ -127,3 +127,20 @@ APP_CSS += """
 .stApp .nc-baseline-label{font-size:11px;font-weight:500}
 .stApp .nc-baseline-value{font-size:14px;font-weight:650;font-variant-numeric:tabular-nums}
 """
+
+# Streamlit popovers are portals outside .stApp, so use their own root selector.
+APP_CSS += """
+[data-testid="stPopoverBody"]{background:#f7f8fa!important;color:#202a36!important;color-scheme:light}
+[data-testid="stPopoverBody"] [data-testid="stMarkdownContainer"],
+[data-testid="stPopoverBody"] [data-testid="stMarkdownContainer"] *,
+[data-testid="stPopoverBody"] label,[data-testid="stPopoverBody"] label *,
+[data-testid="stPopoverBody"] summary,[data-testid="stPopoverBody"] summary *{color:#202a36!important;background-color:transparent!important}
+[data-testid="stPopoverBody"] [data-testid="stCaptionContainer"],
+[data-testid="stPopoverBody"] [data-testid="stCaptionContainer"] *{color:#526171!important;opacity:1!important}
+[data-testid="stPopoverBody"] [data-testid="stExpander"],
+[data-testid="stPopoverBody"] [data-testid="stExpander"] details,
+[data-testid="stPopoverBody"] [data-testid="stExpander"] summary{background:#f7f8fa!important;border-color:#cbd5df!important}
+[data-testid="stPopoverBody"] button,[data-testid="stPopoverBody"] a[kind]{background:#f7f8fa!important;color:#202a36!important;border-color:#b8c8d3!important}
+[data-testid="stPopoverBody"] button *,[data-testid="stPopoverBody"] a[kind] *{background:transparent!important;color:inherit!important}
+[data-testid="stPopoverBody"] input{background:#fff!important;color:#202a36!important;caret-color:#202a36!important}
+"""
