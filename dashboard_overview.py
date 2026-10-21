@@ -184,6 +184,11 @@ def render_dashboard():
         by_date={str(d):nba_today(str(d)) for d in days}
         live={'by_date':by_date,'error':'／'.join(sorted({v.get('error','') for v in by_date.values() if v.get('error')}))}
 
+        today_feed=by_date.get(str(today),{})
+        if start<=today<=end and today_feed.get('phase')=='pregame':
+            st.caption(f'美東 {today:%m/%d} 賽事尚未開始；目前顯示所選期間已發生的實績，開賽後自動檢查更新。')
+        elif start<=today<=end and today_feed.get('phase')=='no_games':
+            st.caption(f'美東 {today:%m/%d} 沒有 NBA 賽程；目前顯示所選期間已發生的實績。')
         records,missing,source,stamp=fantasy_period(league,choice,max(start,first),end,today,live)
         from daily_evidence import unverified_period
         unverified=unverified_period(league,choice,max(start,first),end,today,by_date)

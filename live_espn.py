@@ -46,11 +46,13 @@ def espn_day(day):
         r=requests.get(base+path,timeout=8);r.raise_for_status();return r.json()
     players={};statuses=[];errors=[];scheduled=[];stamp=datetime.now().astimezone().isoformat()
     board=get('scoreboard?dates='+day.replace('-',''))
-    for event in board.get('events',[]):
+    events=board.get('events',[])
+    phase='no_games' if not events else 'pregame' if all(e.get('status',{}).get('type',{}).get('state')=='pre' for e in events) else 'started'
+    for event in events:
         status=event['status']['type'];statuses.append({'比賽':event['name'],'狀態':status['description']})
         if status.get('state')=='pre':
             scheduled.extend(team_code(c['team']['abbreviation']) for c in event.get('competitions',[{}])[0].get('competitors',[]))
             continue
         try:players.update(parse_box(get('summary?event='+event['id']),day,stamp,final_observations()))
         except Exception as exc:errors.append(type(exc).__name__)
-    return {'players':players,'statuses':statuses,'scheduled_teams':sorted(set(scheduled)),'updated_at':stamp if players else '', 'source':'ESPN 即時暫存','error':'／'.join(errors)}
+    return {'phase':phase,'players':players,'statuses':statuses,'scheduled_teams':sorted(set(scheduled)),'updated_at':stamp if players else '', 'source':'ESPN 即時暫存','error':'／'.join(errors)}
