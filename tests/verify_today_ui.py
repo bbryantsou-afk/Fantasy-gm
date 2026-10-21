@@ -36,3 +36,12 @@ assert any('Yahoo 單日實績' in c.value for c in a.caption)
 a.radio(key='dash_range').set_value('單日').run();assert not a.exception,a.exception
 assert next(t.value for t in a.dataframe if '狀態' in t.value.columns).iloc[0]['PTS']==8
 print('PASS dashboard defaults to current season/today and shows synced in-progress Fantasy starter production despite NBA outage')
+# Touch mode uses static diagrams and an in-flow, collapsible data table.
+a.session_state['device_view']='手機版';a.run();assert not a.exception,a.exception
+assert any('<svg viewBox=' in m.value for m in a.markdown)
+assert not a.get('arrow_vega_lite_chart')
+assert any(e.label=='查看圓餅圖數據 · 點開／收起' for e in a.expander)
+assert next(t.value for t in a.dataframe if '占比' in t.value.columns).iloc[0]['產量']==8
+a.selectbox(key='mobile_pie_category').set_value('FG').run();assert not a.exception
+assert next(t.value for t in a.dataframe if '占比' in t.value.columns).iloc[0]['命中／出手']=='4/6'
+print('PASS mobile static pies without Vega overlays, collapsible contribution table and FG details')

@@ -98,6 +98,39 @@ def pie_chart(rows, cat, names, ref):
     return (arcs+labels+middle).properties(height=150).configure_view(stroke=None).configure(background=chart_bg)
 
 
+def mobile_pie(rows,cat,ref,names):
+    """Static SVG has no floating Vega tooltip or touch menu to leave behind."""
+    import math
+    column=cat+'M' if cat in ('FG','FT') else cat
+    total=sum(r['tot'][column] for r in rows)
+    if total<=0:return None
+    circ=2*math.pi*42;offset=0;parts=[]
+    for r in rows:
+        amount=r['tot'][column]
+        if amount<=0:continue
+        share=amount/total;length=circ*share
+        color=COLORS[names.index(r['name'])%len(COLORS)]
+        parts.append(f'<circle cx="60" cy="60" r="42" fill="none" stroke="{color}" stroke-width="20" stroke-dasharray="{length} {circ-length}" stroke-dashoffset="{-offset}" transform="rotate(-90 60 60)"/>')
+        offset+=length
+    center=value(totals(rows),cat) if cat in ('FG','FT') else total
+    text=f'{center:.1%}' if cat in ('FG','FT') else f'{total:,.1f}'
+    return '<svg viewBox="0 0 120 120" role="img" aria-label="'+html.escape(LABELS[cat]+' 全隊 '+text)+'" style="display:block;width:100%;max-width:145px;margin:auto">'+''.join(parts)+'<text x="60" y="64" text-anchor="middle" fill="currentColor" font-size="12" font-weight="600">'+text+'</text></svg>'
+
+def pie_details(rows,cat,ref):
+    column=cat+'M' if cat in ('FG','FT') else cat
+    total=sum(r['tot'][column] for r in rows)
+    result=[]
+    for r in rows:
+        amount=r['tot'][column]
+        if amount<=0:continue
+        item={'球員':r['name'],'產量':round(amount,1),'占比':f'{amount/total:.1%}','計分場次':r['gp']}
+        if cat in ('FG','FT'):
+            att=r['tot'][cat+'A']
+            item.update({'命中／出手':f'{amount:g}/{att:g}','命中率':f'{amount/att:.1%}' if att else '—','Impact':round(amount-ref[cat]['mean']*att,3)})
+        result.append(item)
+    return sorted(result,key=lambda x:x['產量'],reverse=True)
+
+
 def render_dashboard():
     st.subheader('球隊總覽 · 九項貢獻')
     snapshot, entries = load_data()
@@ -215,6 +248,7 @@ def render_dashboard():
     legend=' '.join('<span style="display:inline-flex;align-items:center;gap:5px;margin:3px 12px 3px 0;color:'+legend_color+';font-size:12px"><span style="background:'+COLORS[i%len(COLORS)]+';width:9px;height:9px;border-radius:50%;display:inline-block"></span>'+html.escape(r['name'])+'</span>' for i,r in enumerate(rows))
     st.markdown(legend,unsafe_allow_html=True)
     chart_names=[r['name'] for r in rows]
+    mobile=st.session_state.get('device_view')=='手機版'
     for offset in range(0,9,3):
         with st.container(key='pie_row_'+str(offset)):
             columns=st.columns(3)
@@ -222,15 +256,23 @@ def render_dashboard():
                 with container:
                     title=LABELS[cat]+({'FG':' · 投籃命中占比','FT':' · 罰球命中占比','TOV':' · 失誤負擔'}.get(cat,''))
                     st.markdown('**'+title+'**')
-                    chart=pie_chart(rows,cat,chart_names,ref)
+                    chart=mobile_pie(rows,cat,ref,chart_names) if mobile else pie_chart(rows,cat,chart_names,ref)
                     if chart is None:
                         st.caption('本期沒有可計算的產量。')
+                    elif mobile:
+                        st.markdown(chart,unsafe_allow_html=True)
                     else:
                         st.altair_chart(chart,width='stretch',theme=None)
                     if cat=='TOV':
                         st.caption('占比越大＝失誤負擔越多；MVP評分會反向計算。')
                     elif cat in ('FG','FT'):
-                        st.caption('圓心為全隊命中率；扇形為命中數占比。滑鼠移上可看個人命中率及Impact。')
+                        st.caption('圓心為全隊命中率；扇形為命中數占比。'+('下方可展開數據明細。' if mobile else '滑鼠移上可看個人命中率及Impact。'))
+    if mobile:
+        with st.expander('查看圓餅圖數據 · 點開／收起'):
+            selected_cat=st.selectbox('數據項目',list(CATS),format_func=LABELS.get,key='mobile_pie_category')
+            details=pie_details(rows,selected_cat,ref)
+            if details:st.dataframe(pd.DataFrame(details),hide_index=True,width='stretch')
+            else:st.caption('本期沒有可計算的產量。')
     with st.expander('MVP票選依據 · 各項貢獻分'):
         st.dataframe(pd.DataFrame([{'球員':s['name'],'場次':s['gp'],'綜合分':round(s['score'],3),
                                     **{LABELS[c]:round(s['parts'][c],3) for c in CATS}} for s in scores]),hide_index=True,width='stretch')
