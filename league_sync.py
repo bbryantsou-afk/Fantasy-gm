@@ -116,7 +116,7 @@ def extension_zip():
 def render_sync_connection(full=False):
     """Always mounted before every analysis page so a fresh cloud session restores its private cache."""
     snapshot,entries=load_data();league=state(entries)
-    if full:st.caption('0.3.0：一次讀取所選整週已發生的每日排陣與單日實績；包含正在進行的比賽。需更新擴充功能或手機書籤。')
+    if full:st.caption('0.3.1：電腦自動同步每 5 分鐘更新；手動同步立即執行。電腦請更新擴充功能，手機書籤不需因這次頻率調整而更換。')
     today=datetime.now(ZoneInfo('America/New_York')).date()
     if full:
         with st.expander('手機直接同步（不需電腦）',expanded=bool(st.query_params.get('phone_sync'))):
@@ -131,7 +131,7 @@ def render_sync_connection(full=False):
         with st.expander('首次安裝／同步說明',expanded=False):
             st.download_button('下載同步擴充功能 ZIP',extension_zip(),'fantasy-gm-sync.zip','application/zip')
             st.markdown('1. 解壓縮 ZIP。\n2. 在桌面 Chrome 開啟 `chrome://extensions`，開啟「開發人員模式」。\n3. 按「載入未封裝項目」，選取含 manifest.json 的 fantasy-gm-sync 資料夾。\n4. 在同一個 Chrome 登入 Yahoo，再開啟這個 App，重新整理後按同步。')
-            st.caption('目前版本 0.3.0：新增整週每日先發、單日實績及進行中數據。下載新版替換原資料夾，在 chrome://extensions 按重新載入，再重新整理 App。開啟自動檢查後約每分鐘更新一次。')
+            st.caption('目前版本 0.3.1：自動更新改為每 5 分鐘；保留整週每日先發與單日實績。下載新版替換原資料夾，在 chrome://extensions 按重新載入，再重新整理 App。開啟自動檢查後約每 5 分鐘更新一次。')
             st.caption('本機保存最近 14 個日期。網站重開後會自動讀取此瀏覽器已保存的今天名單；若沒有今天快照，請按同步。')
         if re.fullmatch(r'\d{1,10}',source):st.link_button('先登入／查看 Yahoo 聯盟',f'https://basketball.fantasysports.yahoo.com/nba/{source}')
     else:

@@ -125,7 +125,7 @@ def editor(entries,players,team,key='shared'):
                 save_team(entries,team,updated);st.rerun()
 
 
-def render_roster_source():
+def render_roster_source(compact=False):
     from ninecat_strategy import load_data
     from datetime import datetime
     from zoneinfo import ZoneInfo
@@ -133,6 +133,10 @@ def render_roster_source():
     rows=roster(entries,team);source=league.get('roster_sources',{}).get(team,{})
     kind=source.get('kind','draft')
     count=f"{len(rows)} 人／IL {sum(r.get('status')=='IL' for r in rows)} 人"
+    if compact:
+        status='選秀名單・待同步' if kind=='draft' else {'yahoo':'Yahoo','manual':'手動','file':'匯入'}.get(kind,'私人')
+        st.caption(f"{team_label(team)} · {count} · {status} {source.get('date','')}")
+        return
     if kind=='draft':
         st.warning(f'{team_label(team)} · {count} · 目前仍是選秀初始名單，尚未套用 Yahoo 最新名單。請到「聯盟同步」同步或完成首次配對。')
     else:

@@ -24,7 +24,6 @@ hydrate_preferences(st.session_state)
 from mobile_share import init_share,watch_share
 init_share()
 watch_share()
-poll_account()
 
 DEMO_PLAYERS = [
     {
@@ -101,8 +100,6 @@ render_court_theme()
 if 'device_view' not in st.session_state:
     requested=st.query_params.get('view')
     st.session_state['device_view']='手機版' if requested=='mobile' or (not requested and st.query_params.get('phone_sync')) else '電腦版'
-view=st.radio('顯示版本',['電腦版','手機版'],horizontal=True,key='device_view')
-st.query_params['view']='mobile' if view=='手機版' else 'desktop'
 
 with st.sidebar:
     st.title("🏀 Fantasy GM")
@@ -129,17 +126,15 @@ with st.sidebar:
         st.warning("Demo Data：非即時球員數據")
         st.caption("Yahoo 帳號尚未連線")
 
-if view == '手機版':
-    st.markdown("**🏀 Fantasy GM**")
-else:
-    st.title("🏀 NBA Fantasy General Manager")
-    st.caption("球隊管理 · 球員資料 · 9-category 分析")
-import os,sys
-if os.environ.get("FANTASY_GM_STORAGE_MODE","local" if sys.platform=="darwin" else "session")=="session":
-    if st.session_state.get("_account_id"):
-        st.caption("已連接個人 Google Drive；其他裝置用相同 Google 帳號登入即可載入紀錄。Yahoo 名單仍需同步。")
-    else:
-        st.caption("手機共用已連線，名單與比賽紀錄跨裝置更新。" if st.session_state.get("_mobile_share_token") else "到設定登入 Google，可將紀錄保存至個人 Drive 並跨裝置使用。")
+with st.container(key='app_status_bar'):
+    brand,display,cloud=st.columns([1.15,1.85,1.5])
+    brand.markdown('**🏀 Fantasy GM**')
+    with display:
+        view=st.radio('顯示版本',['電腦版','手機版'],horizontal=True,key='device_view',label_visibility='collapsed')
+    st.query_params['view']='mobile' if view=='手機版' else 'desktop'
+    cloud.caption('☁️ Drive · v'+str(st.session_state.get('_account_revision','—')) if st.session_state.get('_account_loaded') else '☁️ 尚未連接 Drive')
+    from roster_store import render_roster_source
+    render_roster_source(compact=True)
 if page not in ("9-Cat Strategy", "總覽 Dashboard", "模擬對局 Matchup Simulator", "Matchup Simulator Lite", "聯盟同步 League Sync", "比賽戰況", "Data Source 資料中心", "⚙️ 設定", "球員觀察室 Player Watch", "每週補強 Weekly Planner", "交易分析 Trade Lab"):
     st.info(
         "示範模式：目前資料僅用於測試網站功能，"
@@ -147,9 +142,13 @@ if page not in ("9-Cat Strategy", "總覽 Dashboard", "模擬對局 Matchup Simu
     )
 
 from league_sync import render_sync_connection
-render_sync_connection(full=page == "聯盟同步 League Sync")
-from roster_store import render_roster_source
-render_roster_source()
+with st.expander('同步狀態／立即更新',expanded=False):
+    poll_account()
+    if st.session_state.get('_account_loaded'):st.caption('同一 Google 帳號可跨裝置使用；自動檢查每 5 分鐘。手動保存立即上傳。')
+    else:st.caption('到設定登入 Google，可保存個人資料並跨裝置使用。')
+    if page!='聯盟同步 League Sync':render_sync_connection(full=False)
+    render_roster_source()
+if page=='聯盟同步 League Sync':render_sync_connection(full=True)
 if page!="⚙️ 設定" and (st.session_state.get("_account_new") or st.session_state.get("_account_conflict")):
     render_account()
 

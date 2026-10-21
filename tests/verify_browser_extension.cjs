@@ -30,5 +30,15 @@ vm.runInContext(fs.readFileSync('browser_sync_extension/background.js','utf8'),c
  const r=await vm.runInContext("collect('7','2026-10-20',()=>{})",ctx);
  assert.equal(r.snapshot.teams.length,2);assert.equal(closed,1);assert.ok(storage.league_7.snapshots['2026-10-20']);
  let disconnected=false;listeners[0]({sender:{origin:'https://evil.example'},disconnect:()=>{disconnected=true}});assert.ok(disconnected);
+ let messageHandler;const alarms=[];const messages=[];
+ ctx.chrome.alarms.get=async()=>({periodInMinutes:1});
+ ctx.chrome.alarms.create=async(name,options)=>alarms.push({name,...options});
+ ctx.chrome.alarms.clear=async()=>{};
+ listeners[0]({sender:{origin:'https://fantasy-gm-bgjfjwjnxx8mbxjvajm2nk.streamlit.app'},onDisconnect:{addListener:()=>{}},onMessage:{addListener:f=>messageHandler=f},postMessage:m=>messages.push(m)});
+ await messageHandler({action:'status',league:'7',date:'2026-10-20'});
+ assert.equal(alarms.at(-1).periodInMinutes,5); // migrate an existing one-minute alarm
+ await messageHandler({action:'schedule',league:'7',enabled:true});
+ assert.equal(alarms.at(-1).periodInMinutes,5);
+ assert.equal(messages.at(-1).kind,'scheduled');
  console.log('PASS live-DOM-shaped parser, date/login rejection, background collection, private cache, tab cleanup and origin restriction');
 })().catch(e=>{console.error(e);process.exit(1)});

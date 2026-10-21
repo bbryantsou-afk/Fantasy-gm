@@ -62,6 +62,6 @@ def render_mobile_settings():
     st.link_button('開啟 Fantasy GM',BASE+'?theme=light')
     st.caption('電腦、手機使用同一網站，在頁面頂端切換顯示版本。模擬對局：電腦版為完整介面，手機版為 Lite。相同 Google 帳號共用保存資料；顯示版本各裝置獨立。')
     if st.session_state.get('_account_id'):
-        st.info('已連接個人 Drive。任何一端保存星號、權重或名單後，其他開啟的裝置每 5 秒檢查更新。')
+        st.info('已連接個人 Drive。任何一端保存星號、權重或名單後，其他開啟的裝置每 5 分鐘檢查更新。')
         return
     st.info('請在上方登入 Google，啟用個人 Drive 跨裝置保存。訪客紀錄僅保存在這個瀏覽器。')

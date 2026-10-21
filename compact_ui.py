@@ -2,6 +2,13 @@
 import streamlit as st
 import streamlit.components.v1 as components
 CSS='''
+.st-key-app_status_bar [data-testid="stVerticalBlock"]{gap:2px!important}
+.st-key-app_status_bar [data-testid="stHorizontalBlock"]{align-items:center;flex-wrap:nowrap!important;gap:8px!important}
+.st-key-app_status_bar [data-testid="stColumn"]{min-width:0!important;flex:1 1 0!important}
+.st-key-app_status_bar p{margin:0!important;font-size:12px!important;line-height:1.3!important}
+.st-key-app_status_bar [data-testid="stRadio"]{margin:0!important}
+.st-key-app_status_bar [role="radiogroup"]{gap:10px!important;flex-wrap:nowrap!important}
+
 .st-key-watch_grid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px!important;align-items:start}
 .st-key-watch_grid>[data-testid="stLayoutWrapper"]{min-width:0}
 .st-key-watch_grid [data-testid="stVerticalBlockBorderWrapper"]{padding:10px!important}

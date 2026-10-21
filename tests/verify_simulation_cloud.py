@@ -45,10 +45,10 @@ with patch('account_store.config',return_value={'configured':True}),patch('accou
  desktop=AppTest.from_string(script,default_timeout=60).run();phone=AppTest.from_string(script,default_timeout=60).run()
  desktop.session_state['incoming']=records;desktop.run();assert not desktop.exception,desktop.exception
  assert db.row['payload']['files']['simulations.json']==records
- phone.run();assert not phone.exception,phone.exception
+ phone.session_state['_account_poll_at']=0;phone.run();assert not phone.exception,phone.exception
  import json
  assert json.loads(phone.json[0].value)==records
- phone.session_state['incoming']={};phone.run();desktop.run()
+ phone.session_state['incoming']={};phone.run();desktop.session_state['_account_poll_at']=0;desktop.run()
  assert json.loads(desktop.json[0].value)=={}
 print('PASS simulator validation, full named-save cloud roundtrip and deletion across two sessions; known, unknown and missing weekly opponents')
 

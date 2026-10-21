@@ -1,6 +1,6 @@
 <!doctype html><html><head><meta charset="utf-8"><style>
 body{font:14px system-ui;margin:0;color:var(--text-color,#222)}button{padding:12px 16px;border:1px solid #9aa6b2;border-radius:8px;margin:4px;background:#fff;color:#172b3a;cursor:pointer}button:disabled{opacity:.5}#status{padding:8px;white-space:pre-wrap}label{display:block;margin:8px}small{display:block;color:#687888}
-</style></head><body><div><button id="sync" disabled>同步指定日期</button><button id="cached" disabled>讀取此瀏覽器已保存的名單</button></div><label><input id="auto" type="checkbox" disabled>瀏覽器運作時，約每分鐘更新今天的排陣與實績</label><div id="status">正在檢查同步擴充功能…</div><small>只讀取每日排陣與單日實績，不會加退球員或修改先發。登入過期時需重新登入 Yahoo。資料取得與網站套用會分別顯示。</small><script>
+</style></head><body><div><button id="sync" disabled>同步指定日期</button><button id="cached" disabled>讀取此瀏覽器已保存的名單</button></div><label><input id="auto" type="checkbox" disabled>瀏覽器運作時，約每 5 分鐘更新今天的排陣與實績</label><div id="status">正在檢查同步擴充功能…</div><small>只讀取每日排陣與單日實績，不會加退球員或修改先發。登入過期時需重新登入 Yahoo。資料取得與網站套用會分別顯示。</small><script>
 const channel='fantasy-gm-sync-v1';let args={},ready=false,lastMapped='',received={},pendingKey='',busy=false;
 const status=document.querySelector('#status');
 function parentMessage(type,more={}){window.parent.postMessage({isStreamlitMessage:true,type,...more},'*');}
@@ -40,6 +40,6 @@ window.addEventListener('message',e=>{
 for(const action of ['sync','cached'])document.querySelector('#'+action).onclick=()=>{busy=true;document.querySelectorAll('button').forEach(x=>x.disabled=true);status.textContent='正在連線…';request(action);};
 document.querySelector('#auto').onchange=e=>request('schedule',{enabled:e.target.checked});
 parentMessage('streamlit:componentReady',{apiVersion:1});parentMessage('streamlit:setFrameHeight',{height:230});
-setInterval(()=>{if(ready && !busy && document.visibilityState==='visible')request('status');else if(!ready)request('hello');},30000);
+setInterval(()=>{if(ready && !busy && document.visibilityState==='visible')request('status');else if(!ready)request('hello');},300000);
 setTimeout(()=>{if(!ready)status.textContent='尚未偵測到擴充功能。請用已安裝擴充功能的同一個 Chrome 開啟網站。';},2500);
 </script></body></html>

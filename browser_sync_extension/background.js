@@ -74,11 +74,11 @@ chrome.runtime.onConnect.addListener(port=>{
         stored.mapping=m.mapping;await chrome.storage.local.set({[key]:stored});send({kind:'mapped',message:'已在此瀏覽器記住隊伍配對。'});
       }else if(m.action==='schedule'){
         const name='sync_'+m.league;
-        if(m.enabled){await chrome.alarms.create(name,{periodInMinutes:1});}else{await chrome.alarms.clear(name);}
-        send({kind:'scheduled',message:m.enabled?'已開啟：瀏覽器運作時約每分鐘讀取今日排陣與實績。':'已關閉自動檢查。'});
+        if(m.enabled){await chrome.alarms.create(name,{periodInMinutes:5});}else{await chrome.alarms.clear(name);}
+        send({kind:'scheduled',message:m.enabled?'已開啟：瀏覽器運作時約每 5 分鐘讀取今日排陣與實績。':'已關閉自動檢查。'});
       }else if(m.action==='status'){
         const alarm=await chrome.alarms.get('sync_'+m.league);
-        if(alarm&&alarm.periodInMinutes>1)await chrome.alarms.create('sync_'+m.league,{periodInMinutes:1});
+        if(alarm&&alarm.periodInMinutes!==5)await chrome.alarms.create('sync_'+m.league,{periodInMinutes:5});
         send({kind:'status',savedDates:Object.keys(stored.snapshots||{}).sort(),selectedCapturedAt:stored.snapshots?.[m.date]?.capturedAt,lastSuccess:stored.lastSuccess,lastError:stored.lastError,auto:!!(await chrome.alarms.get('sync_'+m.league))});
       }
     }catch(e){send({kind:'error',message:e.message||'同步失敗，未更新 App。'});}
