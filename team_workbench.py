@@ -74,12 +74,15 @@ def render_trades():
     st.subheader('🤝 交易分析室')
     snapshot,entries=load_data()
     players=snapshot['players']; pool=profiles(players,entries)
-    roster=choose_roster(entries,'trade_team')
+    with st.container(key='trade_teams'):
+        mine_column,partner_column=st.columns(2)
+        with mine_column:roster=choose_roster(entries,'trade_team')
+    protections_area=st.container()
     lookup={str(p['PLAYER_ID']):p for p in players}
     review_mode=st.radio('分析方式',['模擬交易包','手動比較'],horizontal=True,key='trade_review_mode')
     if review_mode=='模擬交易包':
         from trade_package_ui import render_package_finder
-        render_package_finder(roster,pool,players,entries)
+        render_package_finder(roster,pool,players,entries,partner_column,protections_area)
         return
     owned={str(r.get('id')) for r in roster}
     send=st.multiselect('送出球員（可多選）',list(owned),format_func=lambda k:next(r['name'] for r in roster if str(r.get('id'))==k),key='trade_send')

@@ -537,7 +537,8 @@ def render_matchup_simulator(lite=False):
       const teamWeeks = data.team_weeks ?? {};
       const weekDates = data.week_dates ?? [];
       const positions = ["PG","SG","G","PF","SF","F","C1","C2","UTIL1","UTIL2"];
-      const cats = ["PTS","REB","AST","STL","BLK","3PM","FG%","FT%","TO"];
+      const cats = ["FG%","FT%","3PM","PTS","REB","AST","STL","BLK","TO"];
+      const catLabel=c=>({"3PM":"3PT","STL":"ST"}[c]||c);
       const sums = ["PTS","REB","AST","STL","BLK","3PM","FGM","FGA","FTM","FTA","TO"];
       const dayNames = ["一","二","三","四","五","六","日"];
       const empty = () => ({my:Object.fromEntries(positions.map(p=>[p,null])),
@@ -778,7 +779,7 @@ def render_matchup_simulator(lite=False):
           for(const cat of cats) {
             const item=document.createElement("span");
             item.className="stat";
-            const label=document.createElement("small");label.textContent=cat;
+            const label=document.createElement("small");label.textContent=catLabel(cat);
             const val=document.createElement("b");val.textContent=completeStats(dailyStats(p,side,dayIndex)) ? fmt(values[cat]??0,cat) : "—";
             item.append(label,val);nine.appendChild(item);
           }
@@ -914,7 +915,7 @@ def render_matchup_simulator(lite=False):
           const tr=document.createElement("tr");
           const delta=r.av-r.bv;
           const gap=valid?`${delta>0?"+":""}${fmt(delta,r.cat)}`:"—";
-          const cells=[r.cat,(a.validGames??0)>0?fmt(r.av,r.cat):"—",gap,(b.validGames??0)>0?fmt(r.bv,r.cat):"—",
+          const cells=[catLabel(r.cat),(a.validGames??0)>0?fmt(r.av,r.cat):"—",gap,(b.validGames??0)>0?fmt(r.bv,r.cat):"—",
             !valid?"—":r.winner==="my"?"🔵 我方":r.winner==="opp"?"🟣 對手":"平手"];
           cells.forEach((v,i)=>{
             const td=document.createElement("td");td.textContent=v;

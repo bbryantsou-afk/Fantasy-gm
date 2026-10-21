@@ -110,3 +110,20 @@ APP_CSS += """
 .stApp button[data-testid^="stBaseButton"] [data-testid="stMarkdownContainer"],
 .stApp button[data-testid^="stBaseButton"] [data-testid="stMarkdownContainer"] *{background-color:transparent!important;background-image:none!important;}
 """
+
+APP_CSS += """
+.stApp .nc-baseline-strip{background:#f7f8fa!important;border-color:#d5dce5!important}
+.stApp .nc-baseline-stat{border-color:#d5dce5!important}
+.stApp .nc-baseline-label{color:#526171!important}
+.stApp .nc-baseline-value{color:#202a36!important}
+.stApp [data-testid="stWidgetLabel"] *, .stApp [data-testid="stRadio"] label p,
+.stApp [data-testid="stCheckbox"] label p,.stApp [data-testid="stSlider"] label p{color:#202a36!important}
+"""
+
+APP_CSS += """
+.stApp .nc-baseline-strip{display:grid;grid-template-columns:repeat(9,minmax(62px,1fr));overflow-x:auto;border:1px solid #d5dce5;border-radius:8px;margin:4px 0 10px;padding:7px 3px;gap:0}
+.stApp .nc-baseline-stat{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;white-space:nowrap;padding:1px 4px;border-right:1px solid #d5dce5}
+.stApp .nc-baseline-stat:last-child{border-right:0}
+.stApp .nc-baseline-label{font-size:11px;font-weight:500}
+.stApp .nc-baseline-value{font-size:14px;font-weight:650;font-variant-numeric:tabular-nums}
+"""

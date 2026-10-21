@@ -116,6 +116,9 @@ with st.sidebar:
         ["總覽 Dashboard", "球員觀察室 Player Watch",
          "每週補強 Weekly Planner", "交易分析 Trade Lab",
      "9-Cat Strategy", "模擬對局 Matchup Simulator", "聯盟同步 League Sync", "比賽戰況", "Data Source 資料中心", "⚙️ 設定"],
+        format_func=lambda name:dict(zip(
+            ["總覽 Dashboard","球員觀察室 Player Watch","每週補強 Weekly Planner","交易分析 Trade Lab","9-Cat Strategy","模擬對局 Matchup Simulator","聯盟同步 League Sync","比賽戰況","Data Source 資料中心","⚙️ 設定"],
+            ["📊 總覽","⭐ 球員觀察室","📅 每週補強","🤝 交易分析","🎯 九項策略","🏀 模擬對局","🔄 聯盟同步","🏆 比賽戰況","🗂️ 資料中心","⚙️ 設定"])).get(name,name),
         index=9 if st.query_params.get("code") or st.query_params.get("error") else 6 if st.query_params.get("phone_sync") else 0
     )
     st.divider()
@@ -127,7 +130,8 @@ with st.sidebar:
         st.caption("Yahoo 帳號尚未連線")
 
 with st.container(key='current_feature'):
-    st.markdown('**'+page+'**')
+    names={'總覽 Dashboard':'📊 總覽','球員觀察室 Player Watch':'⭐ 球員觀察室','每週補強 Weekly Planner':'📅 每週補強','交易分析 Trade Lab':'🤝 交易分析','9-Cat Strategy':'🎯 九項策略','模擬對局 Matchup Simulator':'🏀 模擬對局','聯盟同步 League Sync':'🔄 聯盟同步','比賽戰況':'🏆 比賽戰況','Data Source 資料中心':'🗂️ 資料中心'}
+    st.markdown('**'+names.get(page,page)+'**')
 
 with st.container(key='app_status_bar'):
     brand,display,cloud=st.columns([1.15,1.85,1.5])
@@ -322,7 +326,7 @@ if st.session_state.get("visual_theme")=="簡約淺色":
 
 from compact_ui import render_compact_ui
 render_compact_ui()
-st.caption("版本 2026.10.21-ui7 · 電腦／手機共用版本")
+st.caption("版本 2026.10.21-ui8 · 電腦／手機共用版本")
 
 save_browser_records()
 

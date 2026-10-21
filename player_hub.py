@@ -143,7 +143,7 @@ def show_player_detail(selected,pool,names):
         cols[0].image(f'https://cdn.nba.com/headshots/nba/latest/260x190/{selected}.png',width=130)
         cols[1].link_button('NBA 官方球員頁',f'https://www.nba.com/player/{selected}')
         if p:
-            cols[1].write(f"2025–26｜PTS {p['PTS']} · REB {p['REB']} · AST {p['AST']} · STL {p['STL']} · BLK {p['BLK']}")
+            cols[1].write('2025–26｜'+' · '.join([f"FG% {p['FGM']/p['FGA']:.1%}" if p['FGA'] else 'FG% —',f"FT% {p['FTM']/p['FTA']:.1%}" if p['FTA'] else 'FT% —',f"3PT {p['FG3M']}",f"PTS {p['PTS']}",f"REB {p['REB']}",f"AST {p['AST']}",f"ST {p['STL']}",f"BLK {p['BLK']}",f"TO {p['TOV']}"]))
         if st.button('載入官方基本資料（身高、年齡、選秀）'):
             try:
                 b=player_bio(selected)

@@ -41,6 +41,7 @@ a.session_state['device_view']='手機版';a.run();assert not a.exception,a.exce
 assert any('<svg viewBox=' in m.value for m in a.markdown)
 assert not a.get('arrow_vega_lite_chart')
 assert any(e.label=='查看圓餅圖數據 · 點開／收起' for e in a.expander)
+a.selectbox(key='mobile_pie_category').set_value('PTS').run();assert not a.exception
 assert next(t.value for t in a.dataframe if '占比' in t.value.columns).iloc[0]['產量']==8
 a.selectbox(key='mobile_pie_category').set_value('FG').run();assert not a.exception
 assert next(t.value for t in a.dataframe if '占比' in t.value.columns).iloc[0]['命中／出手']=='4/6'

@@ -3,9 +3,9 @@ import math
 import statistics
 import unicodedata
 
-CATS = ('PTS', 'FG3M', 'REB', 'AST', 'STL', 'BLK', 'FG', 'FT', 'TOV')
-KEYS = ('PTS', 'FG3M', 'REB', 'AST', 'STL', 'BLK', 'TOV', 'FGM', 'FGA', 'FTM', 'FTA')
-LABELS = dict(zip(CATS, ('PTS', '3PM', 'REB', 'AST', 'STL', 'BLK', 'FG%', 'FT%', 'TO')))
+CATS = ('FG', 'FT', 'FG3M', 'PTS', 'REB', 'AST', 'STL', 'BLK', 'TOV')
+KEYS = ('FGM', 'FGA', 'FTM', 'FTA', 'FG3M', 'PTS', 'REB', 'AST', 'STL', 'BLK', 'TOV')
+LABELS = dict(zip(CATS, ('FG%', 'FT%', '3PT', 'PTS', 'REB', 'AST', 'ST', 'BLK', 'TO')))
 
 
 def norm(name):

@@ -43,7 +43,7 @@ def select_quality(candidates,limit=5,league=False,prefer_middle=True):
         r=dict(r)
         r['quality']=r['my_gain']+r['their_gain']+2*min(r['my_gain'],r['their_gain'])-.5*r['gap']+(.05 if prefer_middle and r['middle_rounds'] else 0)
         scored.append(r)
-    scored.sort(key=lambda r:(-r['quality'],r['gap']))
+    scored.sort(key=lambda r:({3:0,4:0,2:1,5:2,6:3,7:4,8:4}.get(len(r['send'])+len(r['receive']),5),-r['quality'],r['gap']))
     selected=[]
     for r in scored:
         if league and sum(s['partner']==r['partner'] for s in selected)>=2:
@@ -62,7 +62,7 @@ def select_quality(candidates,limit=5,league=False,prefer_middle=True):
         if len(selected)>=limit: break
     return selected
 
-def render_package_finder(roster,pool,players,entries):
+def render_package_finder(roster,pool,players,entries,partner_column=None,protections_area=None):
     from trade_packages import near_value_trades
     from roster_store import roster as shared_roster,team_label,team_formatter
     st.markdown('### ✨ 精選模擬交易包')
@@ -86,7 +86,7 @@ def render_package_finder(roster,pool,players,entries):
     actual_count=sum(d['gp']>0 for d in market_details.values())
     st.caption(f'交易依據截至美東 {asof}｜'+('目前尚無本季樣本：選秀30%＋歷史70%。' if not actual_count else f'{actual_count} 位球員有本季樣本；每人依出賽場次調整比重。'))
     teams=list(dict.fromkeys(e['fantasyTeam'] for e in entries))
-    partner=st.selectbox('交易對象',['全部球隊']+teams,index=min(2,len(teams)),key='auto_partner',format_func=team_formatter())
+    partner=(partner_column or st).selectbox('交易對象',['全部球隊']+teams,index=min(2,len(teams)),key='auto_partner',format_func=team_formatter())
     league=partner=='全部球隊'
     mine={str(r.get('id')) for r in roster if str(r.get('id')) in pool}
     fmt=lambda k:pool[k]['PLAYER_NAME']
@@ -107,9 +107,10 @@ def render_package_finder(roster,pool,players,entries):
     missing=[r['name'] for r in roster if str(r.get('id')) not in pool]
     if missing: st.caption('我方無歷史資料，暫不估算：'+'、'.join(missing))
     own_key='auto_protect_my_'+hashlib.sha256(str(st.session_state.get('trade_team','my_roster')).encode()).hexdigest()[:10]
-    my_protected=protection_picker('🔒 我方非賣品（不送出，也不額外釋出）',mine,pool,own_key)
+    protection_left,protection_right=(protections_area or st).columns(2)
+    with protection_left:my_protected=protection_picker('🔒 我方非賣品（不送出，也不額外釋出）',mine,pool,own_key)
     protections={}
-    with st.expander('🔒 對方非賣品 · 每隊獨立保存',expanded=not league):
+    with protection_right,st.expander('🔒 對方非賣品 · 每隊獨立保存',expanded=not league):
         for team,rows in targets.items():
             ids={str(r.get('id')) for r in rows if str(r.get('id')) in pool}
             key='auto_protect_opp_'+hashlib.sha256(team.encode()).hexdigest()[:10]
@@ -119,7 +120,9 @@ def render_package_finder(roster,pool,players,entries):
     cols=st.columns(3)
     n_send=cols[0].number_input('我方送出人數',1,4,2,key='auto_n_send',disabled=auto_sizes)
     n_receive=cols[1].number_input('對方送出人數',1,4,2,key='auto_n_receive',disabled=auto_sizes)
-    tolerance=cols[2].slider('滾動價值差上限（基準化）',0.0,1.0,.25,.05,key='auto_tolerance')
+    position_column,value_column=st.columns(2)
+    positions=position_column.multiselect('我方換入包裹必須包含的位置',['PG','SG','SF','PF','C'],key='auto_positions')
+    tolerance=value_column.slider('滾動價值差上限（基準化）',0.0,1.0,.25,.05,key='auto_tolerance')
     with st.expander('雙方九項偏好權重',expanded=False):
         a,b=st.columns(2)
         a.markdown('**我方偏好**')
@@ -127,12 +130,11 @@ def render_package_finder(roster,pool,players,entries):
         mw={c:a.slider(LABELS[c]+' · 我方',0.0,2.0,float(st.session_state.get('nc_weight_'+c,1.0)),.1,key='auto_m_'+c) for c in CATS}
         tw={c:b.slider(LABELS[c]+' · 對方',0.0,2.0,1.0,.1,key='auto_t_'+c) for c in CATS}
         st.caption('0＝放棄、1＝一般、2＝優先。全聯盟模式暫將右側權重作為各隊共用假設；選定單隊可細調，不會自動推測其戰術。')
-    positions=st.multiselect('我方換入包裹必須包含的位置',['PG','SG','SF','PF','C'],key='auto_positions')
     st.caption('每個勾選位置至少一人涵蓋，留空不限；位置依選秀對照。')
     prefer_middle=st.checkbox('價值與適配接近時，優先第2–8輪組合',value=True,key='auto_middle')
     st.caption('選秀只作輔助：樣本不足20場時，若等人數包裹每個對應順位都同方向落後、平均差至少一輪，略過這種整包降級；順位交錯或差距很小仍可搜尋。')
     count=st.select_slider('精選數量',options=[3,5,8],value=5,key='auto_shortlist_count')
-    st.caption('依雙方提升、較弱一方的收益及價值差排序；相似包裹去重。全聯盟每隊最多2組，同一送出組合最多2次；符合條件不足時不湊數。')
+    st.caption('通過雙方改善與價值篩選後，交換總人數優先：3＝4 ＞ 2 ＞ 5 ＞ 6 ＞ 7＝8；同級依雙方提升、較弱一方的收益及價值差排序；相似包裹去重。全聯盟每隊最多2組，同一送出組合最多2次；符合條件不足時不湊數。')
     configs={}
     auto_config={}
     if auto_sizes:

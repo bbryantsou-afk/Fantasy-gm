@@ -30,7 +30,7 @@ with tempfile.TemporaryDirectory(dir=root/'backups') as temp,patch('trade_packag
     own.set_value([aid]).run()
     opponents=[m for m in app.multiselect if m.key and m.key.startswith('auto_protect_opp_')]
     assert len(opponents)==13
-    opp=next(m for m in opponents if bid in [str(x) for x in app.session_state[m.key]] or m.label==teams[1])
+    opp=next(m for m in opponents if bid in [str(x) for x in app.session_state[m.key]] or m.label==__import__('roster_store').team_label(teams[1]))
     opp.set_value([bid]).run()
     app.button(key='auto_find').click().run()
     assert not app.exception
@@ -45,6 +45,14 @@ with tempfile.TemporaryDirectory(dir=root/'backups') as temp,patch('trade_packag
     assert aid in prefs[own.key] and bid in prefs[opp.key]
     app.selectbox(key='auto_partner').set_value(teams[1]).run()
     assert not app.exception
-    match=next(m for m in app.multiselect if m.label==teams[1])
+    match=next(m for m in app.multiselect if m.label==__import__('roster_store').team_label(teams[1]))
     assert match.value==[bid]
 print('PASS: protected trade/release, 13 opponents independently searched, persistent per-team protections, five diverse two-sided ideas, single-team reuse.')
+
+# Package size preference takes precedence over score, with ties resolved by quality.
+candidates=[]
+for size in [8,7,6,5,2,4,3]:
+ candidates.append(dict(send=[f's{size}_{i}' for i in range(1 if size==2 else size//2)],receive=[f'r{size}_{i}' for i in range(size-(1 if size==2 else size//2))],partner=str(size),my_gain=size,their_gain=size,my_focus=1,their_focus=1,gap=.1,middle_rounds=False))
+ranked=select_quality(candidates,limit=8)
+assert [len(r['send'])+len(r['receive']) for r in ranked]==[4,3,2,5,6,8,7]
+print('PASS package size priority 3=4 > 2 > 5 > 6 > 7=8')

@@ -237,7 +237,7 @@ def render_dashboard():
     if scores:
         winner=scores[0]
         winner_row=next(r for r in rows if r['name']==winner['name'])
-        statline=' · '.join(f"{LABELS[c]} {winner_row['tot'][c]:g}" for c in ('PTS','REB','AST','STL','BLK'))
+        statline=' · '.join(LABELS[c]+' '+(f"{winner_row['tot'][c+'M']/winner_row['tot'][c+'A']:.1%}" if winner_row['tot'][c+'A'] else '—') if c in ('FG','FT') else f"{LABELS[c]} {winner_row['tot'][c]:g}" for c in CATS)
         photo_record=record_map.get(norm(winner['name']))
         photo_id=str(photo_record['PLAYER_ID']) if photo_record else ''
         with st.expander('MVP 評分與趨勢說明',expanded=False):
@@ -302,6 +302,7 @@ def render_dashboard():
               **{LABELS[c]:round(r['tot'][c],1) if r['covered'] else None for c in CATS if c not in ('FG','FT')}}
         for c in ('FG','FT'):
             item[LABELS[c]]=f"{r['tot'][c+'M']/r['tot'][c+'A']:.1%}" if r['covered'] and r['tot'][c+'A'] else '—'
+        item={**{k:item[k] for k in ('球員','NBA球隊','場次','狀態')},**{LABELS[c]:item[LABELS[c]] for c in CATS}}
         item['週場均趨勢']=trends[r['name']] if r['covered'] else '— 資料待確認'
         item['MVP分']=round(score_map[r['name']],3) if r['name'] in score_map else None
         table.append(item)
