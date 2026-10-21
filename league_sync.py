@@ -152,6 +152,11 @@ def render_sync_connection(full=False):
         incoming=result.get('snapshot',{}).get('league')
         if isinstance(incoming,str) and re.fullmatch(r'\d{1,10}',incoming):
             source=incoming;st.session_state['_sync_requested_league']=source
+    if isinstance(result,dict) and result.get('snapshot'):
+        st.session_state['_sync_pending_result']=copy.deepcopy(result)
+    if not result:
+        pending=st.session_state.get('_sync_pending_result',{})
+        if pending.get('snapshot',{}).get('league')==source and pending.get('snapshot',{}).get('date')==str(day):result=pending
     if result and isinstance(result,dict) and result.get('snapshot',{}).get('date')!=str(day):
         if phone_result and full:
             try:
@@ -166,7 +171,7 @@ def render_sync_connection(full=False):
             token=hashlib.sha256(('name-match-v2:'+json.dumps(payload,sort_keys=True)).encode()).hexdigest()
             if token!=st.session_state.get('_sync_applied_token'):
                 rows,pool=match_snapshot(raw,snapshot['players'],entries)
-                remembered=league.get('sync_mapping') if league.get('sync_league')==source else result.get('mapping',{})
+                remembered=league.get('sync_mapping') if league.get('sync_league')==source else None
                 valid_mapping=(isinstance(remembered,dict) and set(remembered)==set(r['source_team'] for r in rows) and set(remembered.values())==set(league['teams']) and len(remembered)==len(league['teams']))
                 if valid_mapping:
                     new=apply_snapshot(league,rows,remembered,payload,today)
@@ -175,17 +180,17 @@ def render_sync_connection(full=False):
                     st.session_state['_sync_browser_ack']={'capturedAt':payload['capturedAt'],'date':str(day),'message':f'網站已套用：{len(rows)} 人 · {day}'}
                     league=new
                     st.session_state['_sync_mapping_ack']=remembered
-                elif not full:
-                    st.warning('已取得新名單，但尚未確認隊伍配對。請進入「聯盟同步」完成首次確認；目前名單尚未更新。')
                 else:
                     st.info('首次同步請確認隊伍配對，之後按同步即可自動套用。')
                     defaults=suggested_mapping(rows,league);mapping={};targets=list(league['teams'])
                     for team in payload['teams']:
                         k=source+':'+team['id'];mapping[k]=st.selectbox(team['name']+' → App 球隊',targets,index=targets.index(defaults[k]),key='sync_map_'+source+'_'+team['id'],format_func=team_formatter())
                     st.dataframe([{'球員':r['name'],'來源隊伍':r['source_name'],'席次':r['slot'],'數據':'已配對' if r['matched'] else '無數據／保留姓名'} for r in rows],hide_index=True)
-                    preview=apply_snapshot(league,rows,mapping,payload,today)
+                    unique=len(set(mapping.values()))==len(targets)
+                    if not unique:st.warning('每一隊必須配對到不同 App 球隊，請調整重複的選項。')
                     st.download_button('先備份現有名單',json.dumps(league,ensure_ascii=False,indent=2),'league_before_sync.json','application/json')
-                    if st.button('確認隊伍配對並完成首次同步'):
+                    if st.button('確認隊伍配對並完成首次同步',disabled=not unique):
+                        preview=apply_snapshot(league,rows,mapping,payload,today)
                         st.session_state['_league']=preview;persist(preview);st.session_state['_sync_mapping_ack']=mapping
                         st.session_state['_sync_applied_token']=token;st.session_state['_sync_browser_ack']={'capturedAt':payload['capturedAt'],'date':str(day),'message':f'網站已套用：{len(rows)} 人 · {day}'};st.session_state.pop('nc_roster',None);st.rerun()
         except (ValueError,TypeError,KeyError,AttributeError) as exc:

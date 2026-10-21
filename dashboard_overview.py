@@ -187,6 +187,12 @@ def render_dashboard():
         live={'by_date':by_date,'error':'／'.join(sorted({v.get('error','') for v in by_date.values() if v.get('error')}))}
 
         records,missing,source,stamp=fantasy_period(league,choice,max(start,first),end,today,live)
+        from daily_evidence import unverified_period
+        unverified=unverified_period(league,choice,max(start,first),end,today,by_date)
+        if unverified:
+            with st.expander('已取得 NBA 實績 · Fantasy 先發尚未確認',expanded=True):
+                st.info('以下是目前名單球員的 NBA 真實數據；該日先發尚未同步，因此暫不計入圓餅圖、總計及 MVP。請完成下方／聯盟同步的首次隊伍確認。')
+                st.dataframe(pd.DataFrame(unverified).rename(columns={'FG3M':'3PM','TOV':'TO'}),hide_index=True,width='stretch')
         week_records,_,_,_=fantasy_period(league,choice,max(monday,first),sunday,today,live)
         previous_records,_,_,_=fantasy_period(league,choice,max(monday-timedelta(days=7),first),monday-timedelta(days=1),today)
         if missing:st.warning('缺少部分日期的 Fantasy 排陣／單日數據：'+', '.join(missing)+ '。請到聯盟同步選該週任一天，讀取整週資料。')

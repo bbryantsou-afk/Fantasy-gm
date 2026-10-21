@@ -98,6 +98,24 @@ def fantasy_period(league,team,start,end,today,live=None):
             for k in KEYS:dest[k]+=actual[k]
     return list(grouped.values()),missing,'／'.join(sorted(sources)),stamp
 
+def unverified_period(league,team,start,end,today,by_date):
+    """Current roster NBA totals on dates lacking a Fantasy lineup; never score them."""
+    from live_espn import identity
+    roster=league.get('teams',{}).get(team,[]);grouped={}
+    for i in range(max(0,(min(end,today)-start).days+1)):
+        day=start+timedelta(days=i)
+        if roster_for_day(league,team,day) is not None:continue
+        live=by_date.get(str(day),{});matches={}
+        for p in live.get('players',{}).values():matches.setdefault(identity(p['PLAYER_NAME']),[]).append(p)
+        for row in roster:
+            candidates=matches.get(identity(row['name']),[])
+            if len(candidates)!=1:continue
+            p=candidates[0];key=player_key(row)
+            dest=grouped.setdefault(key,{'球員':row['name'],'NBA球隊':p['TEAM_ABBREVIATION'],'場次':0,**dict.fromkeys(KEYS,0.)})
+            dest['場次']+=1
+            for k in KEYS:dest[k]+=p[k]
+    return list(grouped.values())
+
 def simulator_defaults(league,my,opp,days,players):
     """Include traded/dropped historical players, map the two C and Util seats in order."""
     import copy

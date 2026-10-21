@@ -36,3 +36,11 @@ for team,expected in [('A',7),('B',22)]:
  rows,_,_,_=fantasy_period(league,team,date(2026,10,20),date(2026,10,21),date(2026,10,21),dated)
  assert sum(r['PTS'] for r in rows)==expected,(team,rows)
 print('PASS both Fantasy teams retain prior-day totals after midnight')
+from daily_evidence import unverified_period
+fresh={'teams':{'A':[row]}}
+refs=unverified_period(fresh,'A',date(2026,10,20),date(2026,10,20),date(2026,10,21),dated['by_date'])
+assert len(refs)==1 and refs[0]['PTS']==9
+counted,missing,_,_=fantasy_period(fresh,'A',date(2026,10,20),date(2026,10,20),date(2026,10,21),dated)
+assert not counted and missing==['2026-10-20']
+assert not unverified_period(league,'A',date(2026,10,20),date(2026,10,20),date(2026,10,21),dated['by_date'])
+print('PASS first-use NBA reference totals visible without inventing Fantasy starters or points')
