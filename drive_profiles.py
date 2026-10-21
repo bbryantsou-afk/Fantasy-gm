@@ -59,7 +59,7 @@ class CloudClient:
         return data
     def save(self,owner,revision,payload):
         mapping,guard=locks()
-        with guard:lock=mapping.setdefault(owner,threading.RLock())
+        with guard:lock=mapping.setdefault((owner,self.NAME),threading.RLock())
         # Serializes initial creation within this deployment. Duplicate remote files fail closed.
         with lock:
             fid=self.lookup();current=0;etag=None

@@ -138,6 +138,10 @@ def render_sync_connection(full=False):
     else:
         source=str(st.session_state.get('_sync_requested_league',league.get('sync_league','71585')))
         day=today
+    scope=st.session_state.get('_account_scope','default')
+    if scope!='default' and source!=scope:
+        st.warning('此分頁只同步聯盟 '+scope+'；請從頂端 Drive 開啟其他聯盟分頁。')
+        return
     if not re.fullmatch(r'\d{1,10}',source):
         if full:st.info('請輸入 Yahoo 網址 /nba/ 後方的數字聯盟 ID。')
         return
@@ -154,6 +158,9 @@ def render_sync_connection(full=False):
         incoming=result.get('snapshot',{}).get('league')
         if isinstance(incoming,str) and re.fullmatch(r'\d{1,10}',incoming):
             source=incoming;st.session_state['_sync_requested_league']=source
+    if scope!='default' and source!=scope:
+        st.warning('收到其他聯盟的同步資料，未套用。請使用該聯盟的專屬分頁。')
+        return
     if isinstance(result,dict) and result.get('snapshot'):
         st.session_state['_sync_pending_result']=copy.deepcopy(result)
     if not result:

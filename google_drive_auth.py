@@ -1,5 +1,5 @@
 """Google authorization-code + PKCE flow; no credentials in profile backups."""
-import base64,hashlib,hmac,json,secrets,time
+import base64,hashlib,hmac,json,secrets,time,re
 from pathlib import Path
 from urllib.parse import urlencode
 import requests
@@ -23,7 +23,7 @@ def b64(raw):return base64.urlsafe_b64encode(raw).decode().rstrip('=')
 def challenge(verifier):return b64(hashlib.sha256(verifier.encode()).digest())
 def make_flow(c):
     verifier=secrets.token_urlsafe(48)
-    body=b64(json.dumps({'t':int(time.time()),'n':secrets.token_urlsafe(24),'p':challenge(verifier)},separators=(',',':')).encode())
+    body=b64(json.dumps({'t':int(time.time()),'n':secrets.token_urlsafe(24),'p':challenge(verifier),'league':str(st.query_params.get('league','')),'theme':str(st.query_params.get('theme','light')),'view':str(st.query_params.get('view','desktop'))},separators=(',',':')).encode())
     state='fgmdrive.'+body+'.'+b64(hmac.new(c['state_secret'].encode(),body.encode(),hashlib.sha256).digest())
     url='https://accounts.google.com/o/oauth2/v2/auth?'+urlencode({'client_id':c['client_id'],'redirect_uri':c['redirect_uri'],'response_type':'code','scope':SCOPE,'state':state,'code_challenge':challenge(verifier),'code_challenge_method':'S256','access_type':'offline','prompt':'consent','include_granted_scopes':'false'})
     return {'state':state,'verifier':verifier,'url':url,'created':time.time()}
@@ -35,6 +35,7 @@ def verify_flow(c,state,verifier):
         data=json.loads(base64.urlsafe_b64decode(body+'='*(-len(body)%4)))
         if prefix!='fgmdrive' or not hmac.compare_digest(sig,expected) or not 0<=time.time()-data['t']<=600 or not hmac.compare_digest(data['p'],challenge(verifier)):raise ValueError()
     except (ValueError,TypeError,KeyError):raise AuthError('登入驗證已過期或不符，請重新登入。') from None
+    return data
 
 def cipher(c):
     from cryptography.fernet import Fernet
@@ -94,7 +95,10 @@ def init_auth():
         token=None
         if callback:
             if value.get('error') or callback.get('error'):raise AuthError('Google 登入已取消或無法確認原瀏覽器，請重新登入。')
-            verifier=value.get('verifier','');verify_flow(c,state,verifier)
+            verifier=value.get('verifier','');flow=verify_flow(c,state,verifier)
+            if re.fullmatch(r'\d{1,10}',flow.get('league','')):st.query_params['league']=flow['league']
+            if flow.get('theme') in ('light','tactics','mirror'):st.query_params['theme']=flow['theme']
+            if flow.get('view') in ('desktop','mobile'):st.query_params['view']=flow['view']
             token=token_request(c,{'grant_type':'authorization_code','code':callback['code'],'redirect_uri':c['redirect_uri'],'code_verifier':verifier})
             if not token.get('refresh_token'):raise AuthError('Google 未提供持續授權，請重新登入並允許 App 專用儲存。')
             user=identity(token)

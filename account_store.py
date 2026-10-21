@@ -14,7 +14,32 @@ def owner_id(user):
     if not isinstance(user,dict) or user.get('iss') not in ['https://accounts.google.com','accounts.google.com'] or not isinstance(user.get('sub'),str) or not user['sub']:raise CloudError('Google 身分驗證資料不完整，未載入帳號資料。')
     return hashlib.sha256(('google:'+user['sub']).encode()).hexdigest()
 
-def client():return CloudClient(config())
+def league_scope():
+    value=str(st.query_params.get('league','default'))
+    if value!='default' and not re.fullmatch(r'\d{1,10}',value):raise CloudError('聯盟 ID 必須是 1–10 位數字。')
+    return value
+
+def client():
+    service=CloudClient(config())
+    scope=st.session_state.get('_account_scope','default')
+    if scope!='default':service.NAME='fantasy-gm-league-'+scope+'-v1.json'
+    return service
+
+def load_scoped_profile(owner):
+    service=client();remote=service.load(owner)
+    if st.session_state.get('_account_scope','default')=='default' and remote:
+        recorded=remote['payload'].get('files',{}).get('league_rosters.json',{}).get('sync_league')
+        if isinstance(recorded,str) and re.fullmatch(r'\d{1,10}',recorded):
+            st.query_params['league']=recorded
+            st.rerun()
+    if remote or st.session_state.get('_account_scope','default')=='default':return remote
+    # Copy the old single-league profile only when its recorded league matches.
+    legacy=CloudClient(config()).load(owner)
+    if legacy and legacy['payload'].get('files',{}).get('league_rosters.json',{}).get('sync_league')==st.session_state['_account_scope']:
+        try:service.save(owner,0,legacy['payload'])
+        except CloudConflict:pass
+        return service.load(owner)
+    return None
 
 def account_path(filename):
     owner=st.session_state.get('_account_id')
@@ -44,6 +69,9 @@ def clean(payload):
     from ninecat_strategy import load_data
     from browser_records import validate_records
     _,entries=load_data();files,prefs=validate_records(payload,entries,max_bytes=25_000_000)
+    scope=st.session_state.get('_account_scope','default')
+    recorded=payload.get('files',{}).get('league_rosters.json',{}).get('sync_league')
+    if scope!='default' and recorded and recorded!=scope:raise ValueError('資料所屬聯盟與此分頁不同，未套用或上傳。')
     return {'schema':1,'files':files,'prefs':prefs}
 
 def apply_profile(payload,revision):
@@ -80,21 +108,25 @@ def init_account():
     except CloudError as exc:st.error(str(exc));st.stop()
     import uuid
     previous=st.session_state.get('_account_id')
-    if previous and previous!=owner:
+    try:scope=league_scope()
+    except CloudError as exc:st.error(str(exc));st.stop()
+    if previous and (previous!=owner or st.session_state.get('_account_scope','default')!=scope):
         auth={k:v for k,v in st.session_state.items() if k.startswith('_drive_')}
         st.session_state.clear();st.session_state.update(auth)
+    st.session_state['_account_scope']=scope
+    if scope!='default':st.session_state['_sync_requested_league']=scope
     st.session_state['_account_id']=owner
     st.session_state.setdefault('_account_workspace',uuid.uuid4().hex)
     st.session_state['_account_user_name']=str(user.get('name') or 'Google 使用者')
     st.session_state.pop('_mobile_share_token',None)
     if st.session_state.pop('_account_reload',False):
         try:
-            remote=client().load(owner)
+            remote=load_scoped_profile(owner)
             if remote:apply_profile(remote['payload'],remote['revision'])
         except (CloudError,ValueError,KeyError,TypeError) as exc:st.session_state['_account_save_error']=str(exc)
     if not st.session_state.get('_account_checked'):
         try:
-            remote=client().load(owner)
+            remote=load_scoped_profile(owner)
             if remote:apply_profile(remote['payload'],remote['revision'])
             else:st.session_state['_account_new']=True
             st.session_state['_account_checked']=True
@@ -129,8 +161,21 @@ def poll_account():
     if st.session_state.get('_account_poll_error'):
         st.warning('跨裝置更新暫停：'+st.session_state['_account_poll_error'])
 
+def render_league_tab():
+    from urllib.parse import urlencode
+    scope=st.session_state.get('_account_scope','default')
+    current=st.session_state.get('_league',{}).get('sync_league','') if scope=='default' else scope
+    st.caption('目前聯盟：'+(current or '原有紀錄')+' · 不同聯盟各自保存，相同聯盟跨裝置同步。')
+    with st.expander('開啟另一個聯盟分頁'):
+        target=st.text_input('Yahoo 聯盟 ID',value=current or '',key='account_open_league')
+        if re.fullmatch(r'\d{1,10}',target):
+            query=urlencode({'league':target,'theme':st.query_params.get('theme','light'),'view':st.query_params.get('view','desktop')})
+            st.link_button('開啟聯盟 '+target+' ↗','https://fantasy-gm-bgjfjwjnxx8mbxjvajm2nk.streamlit.app/?'+query)
+        st.caption('新分頁使用同一 Google 帳號登入後，首次同步該聯盟。星號、名單、設定與已儲存模擬均按聯盟分開。原有單聯盟紀錄會保留；開啟相同 ID 時自動複製到該聯盟的專屬紀錄。')
+
 def render_account():
     st.markdown('### Google 帳號與個人 Drive 保存')
+    render_league_tab()
     if not config():
         st.info('個人 Drive 保存尚未啟用；管理者需先完成 Google 登入與 Drive 設定。現有訪客功能仍可使用。')
         st.caption('管理者設定檔：account_setup/README.md；不需把帳密或金鑰貼到聊天中。')
