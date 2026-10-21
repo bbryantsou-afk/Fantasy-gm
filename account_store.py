@@ -135,11 +135,11 @@ def init_account():
             st.button('重試載入帳號',on_click=st.rerun);render_logout('drive_error_logout');finish_auth();st.stop()
 
 @st.fragment(run_every='5m')
-def poll_account():
+def poll_account(show_controls=True):
     if not st.session_state.get('_account_loaded'):return
     if st.session_state.pop('_sim_skip_poll_once',False):return
-    force=st.button('重新檢查 Google Drive',key='account_check_now',help='重新讀取雲端版本，不會直接覆蓋此裝置未保存的修改。')
-    st.caption('跨裝置同步 · 雲端版本 '+str(st.session_state.get('_account_revision','—')))
+    force=st.button('重新檢查 Google Drive',key='account_check_now',help='重新讀取雲端版本，不會直接覆蓋此裝置未保存的修改。') if show_controls else False
+    if show_controls:st.caption('跨裝置同步 · 雲端版本 '+str(st.session_state.get('_account_revision','—')))
     if st.session_state.get('_account_conflict'):
         st.warning('跨裝置更新衝突，請到設定選擇保留版本。');return
     if not force and time.time()-st.session_state.get('_account_poll_at',0)<300:
@@ -238,13 +238,14 @@ def persist_account(force_revision=None):
             st.session_state['_account_save_error']='其他裝置已更新，暫時無法讀取新版本；本次修改尚未上傳。'
     except CloudError as exc:st.session_state['_account_save_error']=str(exc)
 
-def finish_account():
+def finish_account(show_status=True):
     finish_auth()
     if not st.session_state.get('_account_id'):return
     try:persist_account()
     except (ValueError,KeyError,TypeError) as exc:st.session_state['_account_save_error']='資料未保存：'+str(exc)
+    if not show_status:return
     if st.session_state.get('_account_save_error'):st.error(st.session_state['_account_save_error'])
-    elif st.session_state.get('_account_conflict'):st.warning('有跨裝置更新衝突，請點頂端 Drive ⚠️ 選擇保留版本。')
+    elif st.session_state.get('_account_conflict'):st.warning('有跨裝置更新衝突，請到設定選擇保留版本。')
     elif st.session_state.get('_account_loaded'):
         st.caption('✓ Google Drive 已保存 · 版本 '+str(st.session_state.get('_account_revision','—'))+' · '+st.session_state.get('_account_user_name',''))
         if st.session_state.get('_account_poll_error'):st.warning('目前無法讀取其他裝置更新：'+st.session_state['_account_poll_error'])

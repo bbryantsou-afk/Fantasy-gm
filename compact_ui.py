@@ -2,6 +2,9 @@
 import streamlit as st
 import streamlit.components.v1 as components
 CSS='''
+.st-key-background_sync{display:none!important}
+[data-testid="stLayoutWrapper"]:has(> .st-key-background_sync){display:none!important}
+
 /* Stick the outer layout wrapper so its containing block spans the entire page. */
 [data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"]:has(.st-key-current_feature){
  position:sticky!important;top:2.875rem;z-index:990;
@@ -50,7 +53,27 @@ CSS='''
 .st-key-watch_grid [class*="st-key-watch_detail_"] img{max-height:none}
 @media(min-width:900px){.st-key-dashboard_controls [data-testid="stHorizontalBlock"],.st-key-watch_controls [data-testid="stHorizontalBlock"]{flex-wrap:nowrap!important;gap:12px!important}}
 @media(max-width:640px){
- [data-testid="stMainBlockContainer"]{padding:1rem .65rem 3rem!important}
+
+ /* Keep related controls together instead of Streamlit's one-column stacking. */
+ [data-testid="stMain"] [data-testid="stHorizontalBlock"]{flex-wrap:nowrap!important;gap:6px!important}
+ [data-testid="stMain"] [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]{min-width:0!important;flex:1 1 0!important;width:auto!important}
+ .st-key-dashboard_controls [data-testid="stHorizontalBlock"]{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .st-key-watch_controls [data-testid="stHorizontalBlock"]{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .st-key-watch_controls [data-testid="stColumn"]:last-child{grid-column:1/-1}
+ [data-testid="stMain"] [data-baseweb="select"]{min-width:0!important;font-size:12px!important}
+ [data-testid="stMain"] input{min-width:0!important;font-size:16px!important;padding:6px!important}
+ [data-testid="stMain"] button{min-height:36px;padding:5px 8px!important}
+ [data-testid="stMain"] [role="radiogroup"]{gap:5px!important;flex-wrap:wrap!important}
+ [class*="st-key-planner_plan_"] > [data-testid="stHorizontalBlock"]{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr));align-items:center}
+ [class*="st-key-planner_plan_"] > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]{grid-column:span 2}
+ [class*="st-key-planner_plan_"] > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:first-child{grid-column:span 1}
+ [class*="st-key-planner_plan_"] > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(2){grid-column:span 5}
+ [class*="st-key-planner_plan_"] img{max-height:52px!important;width:52px!important;object-fit:contain}
+ [class*="st-key-planner_plan_"] [data-testid="stMetric"]{min-height:60px!important;height:60px!important;padding:5px!important}
+ [class*="st-key-planner_plan_"] [data-testid="stMetricValue"]{font-size:20px!important}
+ [data-testid="stMain"] [data-testid="stColumn"] [data-testid="stWidgetLabel"] p{font-size:12px!important}
+
+ [data-testid="stMainBlockContainer"]{padding:3.3rem .65rem 2rem!important}
  [data-testid="stVerticalBlock"]{gap:.55rem}
  [data-testid="stElementContainer"]{margin-bottom:0!important}
  [data-testid="stMain"] h1{font-size:1.65rem!important;margin-bottom:.35rem!important}

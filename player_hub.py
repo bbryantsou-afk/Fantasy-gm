@@ -35,7 +35,7 @@ def star_picker(players,key,show_help=True):
             try:persist_account()
             except (ValueError,KeyError,TypeError) as exc:st.session_state['_account_save_error']='星號尚未上傳：'+str(exc)
     selected=st.multiselect('⭐ 加星追蹤球員（輸入姓名，可多選）',sorted(ids,key=lambda k:norm(ids[k])),default=[k for k in load_stars() if k in ids],format_func=ids.get,key=key,on_change=changed)
-    if show_help:st.caption('選取或移除後立即上傳 Drive。其他裝置每 5 分鐘讀取更新；需要立即讀取可按「重新檢查 Google Drive」。' if st.session_state.get('_account_id') else '選取或移除後自動保存於此瀏覽器；登入 Google 可跨裝置同步。')
+
     return selected
 
 def choose_roster(entries,key):

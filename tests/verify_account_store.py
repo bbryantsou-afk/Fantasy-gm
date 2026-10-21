@@ -41,6 +41,8 @@ with patch('account_store.config',return_value={'configured':True}),patch('accou
  b=AppTest.from_file(str(ROOT/'app.py'),default_timeout=60).run();assert not b.exception,b.exception
  assert b.session_state['_account_new'] and not b.session_state.get('_account_loaded',False)
  assert 'Only account A' not in b.session_state['_league'].get('team_names',{}).values()
+ assert not any(x.label=='建立新的帳號紀錄' for x in b.button)
+ b.sidebar.radio[0].set_value('⚙️ 設定').run();assert not b.exception,b.exception
  assert any(x.label=='建立新的帳號紀錄' for x in b.button)
  guest=copy.deepcopy(payload);guest['files']['league_rosters.json']['team_names'][teams[0]]='Explicit guest import'
  b.session_state['_browser_guest_snapshot']=guest;b.run()

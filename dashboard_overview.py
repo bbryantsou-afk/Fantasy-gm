@@ -162,7 +162,7 @@ def render_dashboard():
     if not logs and start<=today<=end:
         from daily_evidence import refresh_live_page
         refresh_live_page()
-        st.caption('今天的數據：頁面開啟時約每 30 秒重讀可用來源；Yahoo 新資料仍需同步工具讀取。')
+        st.caption('今日實績約每 30 秒檢查可用來源。')
     st.markdown(f'**{season} · Week {week}｜{start:%m/%d}–{end:%m/%d}**')
     excluded=[]
     unverified=[];reference_mode=False
@@ -189,13 +189,13 @@ def render_dashboard():
         unverified=unverified_period(league,choice,max(start,first),end,today,by_date)
         if unverified:
             with st.expander('已取得 NBA 實績 · Fantasy 先發尚未確認',expanded=True):
-                st.info('以下是目前名單球員的 NBA 真實數據；該日先發尚未同步，因此尚未計入 Fantasy 結算；若無先發實績，下方會顯示清楚標記的 NBA 名單參考及暫定 MVP。請完成下方／聯盟同步的首次隊伍確認。')
+                st.info('以下是目前名單球員的 NBA 真實數據；該日先發尚未同步，因此尚未計入 Fantasy 結算；若無先發實績，下方會顯示清楚標記的 NBA 名單參考及暫定 MVP。先發確認請至聯盟同步。')
                 st.dataframe(pd.DataFrame(unverified).rename(columns={'FG3M':'3PM','TOV':'TO'}),hide_index=True,width='stretch')
         week_records,_,_,_=fantasy_period(league,choice,max(monday,first),sunday,today,live)
         previous_records,_,_,_=fantasy_period(league,choice,max(monday-timedelta(days=7),first),monday-timedelta(days=1),today)
-        if missing:st.warning('缺少部分日期的 Fantasy 排陣／單日數據：'+', '.join(missing)+ '。請到聯盟同步選該週任一天，讀取整週資料。')
+        if missing:st.warning('缺少部分日期的 Fantasy 排陣／單日數據：'+', '.join(missing)+ '。更新請至聯盟同步。')
         if source:st.caption('資料來源：'+source+' · 最近更新 '+stamp)
-        if live and live.get('error'):st.info('即時比分來源暫時未完整取得；顯示 Yahoo 最近同步的單日數據。請更新同步工具並同步本週，數據不會自行從賽季平均推算。')
+        if live and live.get('error'):st.info('即時比分來源暫時未完整取得；顯示 Yahoo 最近同步的單日數據。缺漏數據不會以賽季平均推算。')
         # Historical additions/drops remain visible even if absent from the current roster.
         known={str(r.get('id')) for r in roster};known_names={norm(r['name']) for r in roster}
         for r in records+week_records+previous_records:

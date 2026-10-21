@@ -102,19 +102,11 @@ if 'device_view' not in st.session_state:
     st.session_state['device_view']='手機版' if requested=='mobile' or (not requested and st.query_params.get('phone_sync')) else '電腦版'
 
 with st.sidebar:
-    sidebar_brand,sidebar_sync=st.columns([3,1])
-    sidebar_brand.markdown('### 🏀 Fantasy GM')
-    if sidebar_sync.button('🔄',help='立即讀取 Yahoo 最新名單與實績',key='sidebar_force_sync'):
-        import time
-        from datetime import datetime
-        from zoneinfo import ZoneInfo
-        st.session_state['_sync_force_nonce']=str(time.time_ns())
-        st.session_state['_sync_requested_day']=datetime.now(ZoneInfo('America/New_York')).date()
+    st.markdown('### 🏀 Fantasy GM')
     if st.session_state.get("_account_id"):
         st.caption("Google 已登入 · "+st.session_state.get("_account_user_name", ""))
     elif account_config():
-        from google_drive_auth import render_login
-        render_login("drive_sidebar_login")
+        st.caption("Google 登入與保存請到設定")
     elif st.query_params.get("phone_sync"):
         st.caption("手機同步模式")
     st.caption("PERSONAL NBA ANALYTICS")
@@ -148,10 +140,7 @@ with st.container(key='app_status_bar'):
     st.query_params['view']='mobile' if view=='手機版' else 'desktop'
     drive_label='☁️ Drive · v'+str(st.session_state.get('_account_revision','—')) if st.session_state.get('_account_loaded') else '☁️ 連接 Drive'
     if st.session_state.get('_account_conflict') or st.session_state.get('_account_save_error'):drive_label+=' ⚠️'
-    with cloud.popover(drive_label):
-        render_account()
-    from roster_store import render_roster_source
-    render_roster_source(compact=True)
+    cloud.caption(drive_label)
 if page not in ("9-Cat Strategy", "總覽 Dashboard", "模擬對局 Matchup Simulator", "Matchup Simulator Lite", "聯盟同步 League Sync", "比賽戰況", "Data Source 資料中心", "⚙️ 設定", "球員觀察室 Player Watch", "每週補強 Weekly Planner", "交易分析 Trade Lab"):
     st.info(
         "示範模式：目前資料僅用於測試網站功能，"
@@ -159,13 +148,14 @@ if page not in ("9-Cat Strategy", "總覽 Dashboard", "模擬對局 Matchup Simu
     )
 
 from league_sync import render_sync_connection
-with st.expander('同步狀態／立即更新',expanded=False):
-    poll_account()
-    if st.session_state.get('_account_loaded'):st.caption('同一 Google 帳號可跨裝置使用；自動檢查每 5 分鐘。手動保存立即上傳。')
-    else:st.caption('到設定登入 Google，可保存個人資料並跨裝置使用。')
-    if page!='聯盟同步 League Sync':render_sync_connection(full=False)
-    render_roster_source()
-if page=='聯盟同步 League Sync':render_sync_connection(full=True)
+# Keep receivers running across pages without showing setup controls in analysis views.
+if page=='聯盟同步 League Sync':
+    with st.expander('Google Drive 更新狀態',expanded=False):poll_account()
+    render_sync_connection(full=True)
+else:
+    with st.container(key='background_sync'):
+        if page!='⚙️ 設定':poll_account(show_controls=False)
+        render_sync_connection(full=False)
 
 if page == "總覽 Dashboard":
     from dashboard_overview import render_dashboard
@@ -197,6 +187,8 @@ elif page == "Data Source 資料中心":
 
 elif page == "⚙️ 設定":
     st.subheader('⚙️ 設定')
+    render_account()
+    poll_account()
     from setup_guide import render_setup_guide
     render_setup_guide()
     from mobile_share import render_mobile_settings
@@ -335,8 +327,8 @@ if st.session_state.get("visual_theme")=="簡約淺色":
 
 from compact_ui import render_compact_ui
 render_compact_ui()
-st.caption("版本 2026.10.21-ui12a · 電腦／手機共用版本")
+st.caption("版本 2026.10.22-ui13 · 電腦／手機共用版本")
 
 save_browser_records()
 
-finish_account()
+finish_account(show_status=page in ('聯盟同步 League Sync','⚙️ 設定'))
