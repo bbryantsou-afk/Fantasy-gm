@@ -139,7 +139,10 @@ with st.container(key='app_status_bar'):
     with display:
         view=st.radio('顯示版本',['電腦版','手機版'],horizontal=True,key='device_view',label_visibility='collapsed')
     st.query_params['view']='mobile' if view=='手機版' else 'desktop'
-    cloud.caption('☁️ Drive · v'+str(st.session_state.get('_account_revision','—')) if st.session_state.get('_account_loaded') else '☁️ 尚未連接 Drive')
+    drive_label='☁️ Drive · v'+str(st.session_state.get('_account_revision','—')) if st.session_state.get('_account_loaded') else '☁️ 連接 Drive'
+    if st.session_state.get('_account_conflict') or st.session_state.get('_account_save_error'):drive_label+=' ⚠️'
+    with cloud.popover(drive_label):
+        render_account()
     from roster_store import render_roster_source
     render_roster_source(compact=True)
 if page not in ("9-Cat Strategy", "總覽 Dashboard", "模擬對局 Matchup Simulator", "Matchup Simulator Lite", "聯盟同步 League Sync", "比賽戰況", "Data Source 資料中心", "⚙️ 設定", "球員觀察室 Player Watch", "每週補強 Weekly Planner", "交易分析 Trade Lab"):
@@ -156,8 +159,6 @@ with st.expander('同步狀態／立即更新',expanded=False):
     if page!='聯盟同步 League Sync':render_sync_connection(full=False)
     render_roster_source()
 if page=='聯盟同步 League Sync':render_sync_connection(full=True)
-if page!="⚙️ 設定" and (st.session_state.get("_account_new") or st.session_state.get("_account_conflict")):
-    render_account()
 
 if page == "總覽 Dashboard":
     from dashboard_overview import render_dashboard
@@ -189,7 +190,6 @@ elif page == "Data Source 資料中心":
 
 elif page == "⚙️ 設定":
     st.subheader('⚙️ 設定')
-    render_account()
     from setup_guide import render_setup_guide
     render_setup_guide()
     from mobile_share import render_mobile_settings
@@ -326,7 +326,7 @@ if st.session_state.get("visual_theme")=="簡約淺色":
 
 from compact_ui import render_compact_ui
 render_compact_ui()
-st.caption("版本 2026.10.21-ui8 · 電腦／手機共用版本")
+st.caption("版本 2026.10.21-ui9 · 電腦／手機共用版本")
 
 save_browser_records()
 

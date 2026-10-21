@@ -199,7 +199,7 @@ def finish_account():
     try:persist_account()
     except (ValueError,KeyError,TypeError) as exc:st.session_state['_account_save_error']='資料未保存：'+str(exc)
     if st.session_state.get('_account_save_error'):st.error(st.session_state['_account_save_error'])
-    elif st.session_state.get('_account_conflict'):st.warning('有跨裝置更新衝突，請到設定選擇保留版本。')
+    elif st.session_state.get('_account_conflict'):st.warning('有跨裝置更新衝突，請點頂端 Drive ⚠️ 選擇保留版本。')
     elif st.session_state.get('_account_loaded'):
         st.caption('✓ Google Drive 已保存 · 版本 '+str(st.session_state.get('_account_revision','—'))+' · '+st.session_state.get('_account_user_name',''))
         if st.session_state.get('_account_poll_error'):st.warning('目前無法讀取其他裝置更新：'+st.session_state['_account_poll_error'])
