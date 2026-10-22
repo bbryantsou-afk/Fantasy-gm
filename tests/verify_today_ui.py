@@ -32,7 +32,7 @@ today=datetime.now(ZoneInfo('America/New_York')).date()
 assert a.date_input[0].value==today
 table=next(t.value for t in a.dataframe if '狀態' in t.value.columns)
 assert table.iloc[0]['PTS']==8 and table.iloc[0]['場次']==1
-assert any('Yahoo 單日實績' in c.value for c in a.caption)
+assert not any('資料來源：' in c.value or c.value.startswith('美東 ') for c in a.caption)
 a.radio(key='dash_range').set_value('單日').run();assert not a.exception,a.exception
 assert next(t.value for t in a.dataframe if '狀態' in t.value.columns).iloc[0]['PTS']==8
 print('PASS dashboard defaults to current season/today and shows synced in-progress Fantasy starter production despite NBA outage')
@@ -67,7 +67,8 @@ assert '位置' in next(t.value for t in b.dataframe if '狀態' in t.value.colu
 league=b.session_state['_league'];team=list(league['teams'])[0]
 injured=league['teams'][team][1]['name'];league['teams'][team][1]['status']='IL'
 b.session_state['_league']=league;b.run();assert not b.exception,b.exception
-assert any(x.label.startswith('傷兵／IL') for x in b.expander)
+assert any('#### 傷兵／IL' in x.value for x in b.markdown)
+assert not any(x.label.startswith('傷兵／IL') for x in b.expander)
 assert any(x.label.startswith('其餘球員顏色圖例') for x in b.expander)
 assert injured not in next(t.value for t in b.dataframe if '狀態' in t.value.columns)['球員'].tolist()
 print('PASS collapsed legend, separate IL table and displayed positions')

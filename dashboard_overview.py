@@ -187,11 +187,6 @@ def render_dashboard():
         by_date={str(d):nba_today(str(d)) for d in days}
         live={'by_date':by_date,'error':'／'.join(sorted({v.get('error','') for v in by_date.values() if v.get('error')}))}
 
-        today_feed=by_date.get(str(today),{})
-        if start<=today<=end and today_feed.get('phase')=='pregame':
-            st.caption(f'美東 {today:%m/%d} 賽事尚未開始；目前顯示所選期間已發生的實績，開賽後自動檢查更新。')
-        elif start<=today<=end and today_feed.get('phase')=='no_games':
-            st.caption(f'美東 {today:%m/%d} 沒有 NBA 賽程；目前顯示所選期間已發生的實績。')
         records,missing,source,stamp=fantasy_period(league,choice,max(start,first),end,today,live)
         from daily_evidence import unverified_period
         unverified=unverified_period(league,choice,max(start,first),end,today,by_date)
@@ -205,7 +200,6 @@ def render_dashboard():
         week_records,_,_,_=fantasy_period(league,choice,monday,sunday,today,live)
         previous_records,_,_,_=fantasy_period(league,choice,max(monday-timedelta(days=7),first),monday-timedelta(days=1),today)
         if missing:st.warning('缺少部分日期的 Fantasy 排陣／單日數據：'+', '.join(missing)+ '。更新請至聯盟同步。')
-        if source:st.caption('資料來源：'+source+' · 最近更新 '+stamp)
         if live and live.get('error'):st.info('即時比分來源暫時未完整取得；顯示 Yahoo 最近同步的單日數據。缺漏數據不會以賽季平均推算。')
         # Historical additions/drops remain visible even if absent from the current roster.
         known={str(r.get('id')) for r in roster};known_names={norm(r['name']) for r in roster}
@@ -255,9 +249,9 @@ def render_dashboard():
         statline=' · '.join(LABELS[c]+' '+(f"{winner_row['tot'][c+'M']/winner_row['tot'][c+'A']:.1%}" if winner_row['tot'][c+'A'] else '—') if c in ('FG','FT') else f"{LABELS[c]} {winner_row['tot'][c]:g}" for c in CATS)
         photo_record=record_map.get(norm(winner['name']))
         photo_id=str(photo_record['PLAYER_ID']) if photo_record else ''
-        with st.expander('MVP 評分與趨勢說明',expanded=False):
-            page_caption('MVP採當期九項等權累積標準化貢獻；TO反向、FG/FT以出手量Impact計算。標準化尺度仍使用2025–26選秀母體；所有產量均為所選期間實績。')
-            page_caption('📈／📉：整週每場九項綜合貢獻對比前週，➖為持平；🆕為前週未出賽。單日檢視也顯示所屬整週趨勢；未完賽週僅比較目前已發生場次。')
+        from page_guidance import note as guidance_note
+        guidance_note('MVP採當期九項等權累積標準化貢獻；TO反向、FG/FT以出手量Impact計算。標準化尺度仍使用2025–26選秀母體；所有產量均為所選期間實績。')
+        guidance_note('📈／📉：整週每場九項綜合貢獻對比前週，➖為持平；🆕為前週未出賽。單日檢視也顯示所屬整週趨勢；未完賽週僅比較目前已發生場次。')
         photo_url=f'https://cdn.nba.com/headshots/nba/latest/1040x760/{photo_id}.png' if photo_id.isdigit() else ''
         photo_html=(f'<div class="mvp-photo"><img class="portrait" src="{html.escape(photo_url,quote=True)}" alt="{html.escape(winner['name'],quote=True)} MVP 球員照"></div>' if photo_url else '')
         hero=f"""<style>
@@ -313,9 +307,9 @@ def render_dashboard():
             details=pie_details(rows,selected_cat,ref)
             if details:st.dataframe(pd.DataFrame(details),hide_index=True,width='stretch')
             else:st.caption('本期沒有可計算的產量。')
-    with st.expander('MVP票選依據 · 各項貢獻分'):
-        st.dataframe(pd.DataFrame([{'球員':s['name'],'場次':s['gp'],'綜合分':round(s['score'],3),
-                                    **{LABELS[c]:round(s['parts'][c],3) for c in CATS}} for s in scores]),hide_index=True,width='stretch')
+    from page_guidance import table as guidance_table
+    guidance_table('MVP票選依據 · 各項貢獻分',[{'球員':s['name'],'場次':s['gp'],'綜合分':round(s['score'],3),
+                                    **{LABELS[c]:round(s['parts'][c],3) for c in CATS}} for s in scores])
     st.markdown('#### 本期球員名單與產量')
     score_map={r['name']:r['score'] for r in scores}
     table=[]
@@ -340,7 +334,9 @@ def render_dashboard():
         else:st.dataframe(pd.DataFrame(items),hide_index=True,width='stretch')
     show_production(active_table)
     if injured_table:
-        with st.expander(f'傷兵／IL（{len(injured_table)}）',expanded=False):show_production(injured_table)
+        st.divider()
+        st.markdown(f'#### 傷兵／IL（{len(injured_table)}）')
+        show_production(injured_table)
     with st.expander('各項場均與前週比較 📈 / 📉'):
         comparison=[]
         for r in weekly:
