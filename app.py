@@ -115,11 +115,11 @@ with st.sidebar:
         "功能選單",
         ["總覽 Dashboard", "球員觀察室 Player Watch",
          "每週補強 Weekly Planner", "交易分析 Trade Lab",
-     "9-Cat Strategy", "模擬對局 Matchup Simulator", "比賽戰況", "Data Source 資料中心", "聯盟同步 League Sync", "⚙️ 設定"],
+     "9-Cat Strategy", "模擬對局 Matchup Simulator", "📆 賽程週曆", "比賽戰況", "Data Source 資料中心", "聯盟同步 League Sync", "⚙️ 設定"],
         key="main_navigation",width="stretch",label_visibility="collapsed",format_func=lambda name:dict(zip(
             ["總覽 Dashboard","球員觀察室 Player Watch","每週補強 Weekly Planner","交易分析 Trade Lab","9-Cat Strategy","模擬對局 Matchup Simulator","聯盟同步 League Sync","比賽戰況","Data Source 資料中心","⚙️ 設定"],
             ["📊 總覽","⭐ 球員觀察室","📅 每週補強","🤝 交易分析","🎯 九項策略","🏀 模擬對局","🔄 聯盟同步","🏆 比賽戰況","🗂️ 資料中心","⚙️ 設定"])).get(name,name),
-        index=9 if st.query_params.get("code") or st.query_params.get("error") else 8 if st.query_params.get("phone_sync") else 0
+        index=10 if st.query_params.get("code") or st.query_params.get("error") else 9 if st.query_params.get("phone_sync") else 0
     )
 
 def refresh_current_page():
@@ -147,7 +147,7 @@ with st.container(key='app_status_bar'):
     drive_label='☁️ Drive · v'+str(st.session_state.get('_account_revision','—')) if st.session_state.get('_account_loaded') else '☁️ 連接 Drive'
     if st.session_state.get('_account_conflict') or st.session_state.get('_account_save_error'):drive_label+=' ⚠️'
     cloud.caption(drive_label)
-if page not in ("9-Cat Strategy", "總覽 Dashboard", "模擬對局 Matchup Simulator", "Matchup Simulator Lite", "聯盟同步 League Sync", "比賽戰況", "Data Source 資料中心", "⚙️ 設定", "球員觀察室 Player Watch", "每週補強 Weekly Planner", "交易分析 Trade Lab"):
+if page not in ("9-Cat Strategy", "總覽 Dashboard", "模擬對局 Matchup Simulator", "Matchup Simulator Lite", "聯盟同步 League Sync", "📆 賽程週曆", "比賽戰況", "Data Source 資料中心", "⚙️ 設定", "球員觀察室 Player Watch", "每週補強 Weekly Planner", "交易分析 Trade Lab"):
     st.info(
         "示範模式：目前資料僅用於測試網站功能，"
         "不是你的 Yahoo 球隊，也不代表最新球季統計。"
@@ -182,6 +182,10 @@ elif page == "交易分析 Trade Lab":
 elif page == "聯盟同步 League Sync":
     from league_sync import render_sync
     render_sync()
+
+elif page == "📆 賽程週曆":
+    from schedule_calendar import render_calendar
+    render_calendar()
 
 elif page == "比賽戰況":
     from data_center import render_matchup_results
@@ -325,7 +329,7 @@ elif page == "模擬對局 Matchup Simulator":
 from page_guidance import render as render_page_guidance
 render_page_guidance()
 st.divider()
-st.caption("Fantasy NBA GM · 9-Cat 整合版" if page in ("9-Cat Strategy", "總覽 Dashboard", "模擬對局 Matchup Simulator", "Matchup Simulator Lite", "聯盟同步 League Sync", "比賽戰況", "Data Source 資料中心", "⚙️ 設定", "球員觀察室 Player Watch", "每週補強 Weekly Planner", "交易分析 Trade Lab") else "Fantasy NBA GM · Demo Version 0.2")
+st.caption("Fantasy NBA GM · 9-Cat 整合版" if page in ("9-Cat Strategy", "總覽 Dashboard", "模擬對局 Matchup Simulator", "Matchup Simulator Lite", "聯盟同步 League Sync", "📆 賽程週曆", "比賽戰況", "Data Source 資料中心", "⚙️ 設定", "球員觀察室 Player Watch", "每週補強 Weekly Planner", "交易分析 Trade Lab") else "Fantasy NBA GM · Demo Version 0.2")
 
 
 # Apply the selected light palette after page-specific legacy styles.
@@ -335,7 +339,7 @@ if st.session_state.get("visual_theme")=="簡約淺色":
 
 from compact_ui import render_compact_ui
 render_compact_ui()
-st.caption("版本 2026.10.23-ui23 · 電腦／手機共用版本")
+st.caption("版本 2026.10.23-ui24 · 電腦／手機共用版本")
 
 save_browser_records()
 

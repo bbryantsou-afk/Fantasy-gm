@@ -166,6 +166,8 @@ def render_dashboard():
         refresh_live_page()
         st.caption('今日實績約每 30 秒檢查可用來源。')
     st.markdown(f'**{season} · Week {week}｜{start:%m/%d}–{end:%m/%d}**')
+    score_slot=st.empty()
+    live=None
     excluded=[]
     unverified=[];reference_mode=False
     if logs:
@@ -201,7 +203,7 @@ def render_dashboard():
                     from mobile_stat_cards import player_rows
                     st.markdown(player_rows(unverified),unsafe_allow_html=True)
                 else:st.dataframe(pd.DataFrame(unverified).rename(columns={'FG3M':'3PM','TOV':'TO'}),hide_index=True,width='stretch')
-        week_records,_,_,_=fantasy_period(league,choice,max(monday,first),sunday,today,live)
+        week_records,_,_,_=fantasy_period(league,choice,monday,sunday,today,live)
         previous_records,_,_,_=fantasy_period(league,choice,max(monday-timedelta(days=7),first),monday-timedelta(days=1),today)
         if missing:st.warning('缺少部分日期的 Fantasy 排陣／單日數據：'+', '.join(missing)+ '。更新請至聯盟同步。')
         if source:st.caption('資料來源：'+source+' · 最近更新 '+stamp)
@@ -211,6 +213,10 @@ def render_dashboard():
         for r in records+week_records+previous_records:
             if str(r['PLAYER_ID']) not in known and norm(r['PLAYER_NAME']) not in known_names:
                 roster.append({'id':str(r['PLAYER_ID']),'name':r['PLAYER_NAME'],'team':r['TEAM_ABBREVIATION'],'status':'active'});known.add(str(r['PLAYER_ID']));known_names.add(norm(r['PLAYER_NAME']))
+    if not logs:
+        from dashboard_matchup import render_weekly_score
+        from data_center import store as results_store
+        with score_slot.container():render_weekly_score(league,results_store(),choice,monday,sunday,today,live)
     if not logs and not records and unverified:
         # NBA roster reference is explicit; never claim these were Fantasy starters.
         reference_mode=True

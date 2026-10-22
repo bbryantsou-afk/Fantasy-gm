@@ -77,7 +77,6 @@ def _render_planner(notes):
         st.markdown('**優先補強：'+'、'.join(LABELS[c]+('（小幅領先）' if margins[c][0]>0 else '（接近落後）' if margins[c][0]<0 else '（持平）') for c in focus)+'**')
     else:st.caption('目前沒有明顯接近的項目，依九項整體改善推薦。')
     notes.append('優先守住小幅領先、追回接近落後；大幅領先或落後的項目降低優先度。仍會扣除釋出造成的其他項目損失，並保留你的九項權重。')
-    if before['missing']:st.warning('缺上季數據，未估算：'+'、'.join(before['missing']))
     owners=ownership(entries,team)
     unowned=[k for k in pool if k not in owners]
     with st.expander('確認自由市場／調整候選名單'):

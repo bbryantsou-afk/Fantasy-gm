@@ -147,6 +147,9 @@ CSS='''
 }
 [data-testid="stElementContainer"]:has(> .stMarkdown > div > [data-testid="stMarkdownContainer"] > style:only-child){display:none!important}
 [data-testid="stSidebar"] .st-key-main_navigation,[data-testid="stSidebar"] [data-testid="stRadio"]{width:100%!important;max-width:none!important}
+[data-testid="stSidebar"]{width:225px!important;min-width:225px!important;max-width:225px!important;flex-basis:225px!important}
+.st-key-current_feature p,.st-key-current_feature strong{font-size:28px!important;font-weight:800!important;line-height:1.2!important;letter-spacing:-.025em}
+.st-key-current_feature{min-height:48px!important;padding:7px 8px!important}
 /* Compact full-width sidebar, with its two actions above the brand. */
 [data-testid="stSidebarUserContent"]{padding:8px 12px!important}
 [data-testid="stSidebarHeader"]{display:none!important}
