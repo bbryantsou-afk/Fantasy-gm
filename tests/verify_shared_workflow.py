@@ -13,6 +13,7 @@ b=copy.deepcopy(a);a['tot']['TOV']=2;b['tot']['TOV']=5
 assert matchup_score(a,b,weights,scale)[0]>50
 assert matchup_score(b,a,weights,scale)[0]<50
 app=AppTest.from_file(str(ROOT/'app.py'),default_timeout=90).run()
+app.segmented_control(key='device_view').set_value('電腦版').run()
 assert not app.exception,app.exception
 assert app.sidebar.radio[0].options[-1]=='⚙️ 設定'
 assert 'Yahoo API 設定' not in app.sidebar.radio[0].options
@@ -35,7 +36,7 @@ available=app.multiselect(key='stream_available')
 assert 'Nikola Jokić' not in available.options
 app.radio(key='stream_mode').set_value('長期適配').run()
 assert not app.exception
-assert len([b for b in app.button if b.key and b.key.startswith('stream_apply_')])<=3
+assert len([b for b in app.button if b.key and b.key.startswith('stream_apply_')])<=5
 app.sidebar.radio[0].set_value('交易分析 Trade Lab').run();assert not app.exception
 app.sidebar.radio[0].set_value('9-Cat Strategy').run();assert not app.exception
 assert len(app.session_state['nc_roster'])==12

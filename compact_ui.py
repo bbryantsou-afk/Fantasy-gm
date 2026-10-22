@@ -19,6 +19,15 @@ CSS='''
 
 
 .mobile-stat-heading img,.mobile-stat-avatar{width:32px;height:28px;object-fit:contain;flex:0 0 32px}
+.planner-card-overview{display:grid;grid-template-columns:minmax(180px,2.5fr) repeat(3,minmax(0,1fr));gap:8px;align-items:start;margin-bottom:8px}
+.planner-card-overview.planner-card-mobile{grid-template-columns:repeat(3,minmax(0,1fr))}
+.planner-card-mobile .planner-mobile-player{grid-column:1/-1}
+.planner-card-overview .planner-mobile-player{margin:0;min-width:0;height:auto;align-items:flex-start}
+.planner-card-overview .planner-mobile-player>div{flex:1;min-width:0}
+.planner-card-overview .planner-mobile-player :is(b,span,small){display:block;height:auto!important;min-height:0;line-height:1.5!important;white-space:normal;overflow-wrap:anywhere;flex-shrink:0}
+.planner-card-stat{display:flex;flex-direction:column;gap:4px;min-width:0;padding:7px 5px;border:1px solid var(--fgm-feature-border,#84939b55);border-radius:8px}
+.planner-card-stat span{font-size:11px;line-height:1.4;white-space:normal}
+.planner-card-stat b{font-size:22px;line-height:1.3;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .planner-mobile-player{display:flex;align-items:center;gap:10px;margin-bottom:8px}
 .planner-mobile-player img{width:60px!important;height:58px!important;max-height:58px!important;object-fit:contain;flex:0 0 60px}
 .planner-mobile-player>div{min-width:0;display:flex;flex-direction:column;gap:5px;line-height:1.45}

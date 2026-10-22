@@ -57,7 +57,7 @@ def _render_planner(notes):
     add_key='stream_adds_'+team+'_'+str(monday)
     if add_key not in st.session_state:st.session_state[add_key]=4
     with quota:remaining=st.number_input('本週剩餘加人次數',0,4,key=add_key)
-    notes.append(f'{day:%m/%d}–{sunday:%m/%d} 剩餘賽程。歷史場均 × 可排入先發場次；不是實績或勝率。已結束日比分尚未納入，傷病與輪休由你排除。每個方案獨立使用 1 次 add，不能直接把三個方案相加。')
+    notes.append(f'{day:%m/%d}–{sunday:%m/%d} 剩餘賽程。歷史場均 × 可排入先發場次；不是實績或勝率。已結束日比分尚未納入，傷病與輪休由你排除。每個方案獨立使用 1 次 add，不能直接把五個方案相加。')
     editor(entries,players,team,'stream_roster')
     before=lineup_week(roster,pool,schedule,days,weights,ref);enemy=lineup_week(opp,pool,schedule,days,weights,ref)
     scale={c:abs(team_value(enemy,c) or 0) or (ref[c]['mean'] if c in ('FG','FT') else max(ref[c]['mean']*max(enemy['g'],1),1)) for c in CATS}
@@ -123,8 +123,8 @@ def _render_planner(notes):
     chosen=[];seen=set()
     for r in results:
         if r['key'] not in seen:chosen.append(r);seen.add(r['key'])
-        if len(chosen)==3:break
-    st.markdown('### 精選三個獨立方案')
+        if len(chosen)==5:break
+    st.markdown('### 精選五個獨立方案')
     if not chosen:st.info('候選在剩餘賽程沒有可排入的場次，暫不建議消耗 add。');return
     def apply_plan(rows,key,count):
         save_team(entries,team,rows)
@@ -132,19 +132,13 @@ def _render_planner(notes):
     for i,r in enumerate(chosen):
         key=r['key'];p=pool[key];after=r['after'];confirmed=key in league['free']
         with st.container(border=True,key='planner_plan_'+str(i)):
-            if st.session_state.get('device_view')=='手機版':
-                import html
-                drop_label='釋出 '+pool[r['drop']]['PLAYER_NAME'] if r['drop'] else '使用空位，不需釋出'
-                ownership_label='✅ 已確認自由球員' if confirmed else '⚠️ 歸屬未確認，僅供研究'
-                st.markdown(f'<div class="planner-mobile-player"><img src="https://cdn.nba.com/headshots/nba/latest/260x190/{key}.png" alt=""><div><b>{i+1}. {html.escape(p["PLAYER_NAME"])}</b><span>{html.escape(drop_label)}</span><small>{ownership_label}</small></div></div>',unsafe_allow_html=True)
-                a,b,c=st.columns(3)
-            else:
-                photo,content,a,b,c=st.columns([.8,2.3,1,1,1])
-                photo.image(f'https://cdn.nba.com/headshots/nba/latest/260x190/{key}.png',width=85)
-                content.markdown(f"**{i+1}. 加入 {p['PLAYER_NAME']}**")
-                content.write('釋出 '+pool[r['drop']]['PLAYER_NAME'] if r['drop'] else '使用空位，不需釋出')
-                content.caption('✅ 已確認自由球員' if confirmed else '⚠️ 歸屬未確認，僅供研究')
-            a.metric('可排場次',after['counts'].get(key,0));b.metric('淨增場次',f"{after['g']-before['g']:+d}");c.metric('適配提升',f"{r['gain']:+.2f}")
+            import html
+            drop_label='釋出 '+pool[r['drop']]['PLAYER_NAME'] if r['drop'] else '使用空位，不需釋出'
+            ownership_label='✅ 已確認自由球員' if confirmed else '⚠️ 歸屬未確認，僅供研究'
+            layout=' planner-card-mobile' if st.session_state.get('device_view')=='手機版' else ''
+            metrics=[('可排場次',str(after['counts'].get(key,0))),('淨增場次',f"{after['g']-before['g']:+d}"),('適配提升',f"{r['gain']:+.2f}")]
+            metric_html=''.join('<div class="planner-card-stat"><span>'+label+'</span><b>'+value+'</b></div>' for label,value in metrics)
+            st.markdown(f'<div class="planner-card-overview{layout}"><div class="planner-mobile-player"><img src="https://cdn.nba.com/headshots/nba/latest/260x190/{key}.png" alt=""><div><b>{i+1}. {html.escape(p["PLAYER_NAME"])}</b><span>{html.escape(drop_label)}</span><small>{ownership_label}</small></div></div>{metric_html}</div>',unsafe_allow_html=True)
             if r['targets']:st.caption('補強接近項目：'+'、'.join(LABELS[c] for c in r['targets']))
             st.write('改善最多：'+(LABELS[r['best']] if r['gain']>0 else '尚無整體改善'))
             if mode=='長期適配':st.caption(f"每場加權 Z 淨變化 {r['long']:+.2f}；尚未預測成長、健康或交易市價。")
