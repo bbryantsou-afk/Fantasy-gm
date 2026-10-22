@@ -136,6 +136,7 @@ CSS='''
  [class*="st-key-pie_row_"] p{font-size:11px!important}
  .mvp-photo img{height:85px!important}
 }
+[data-testid="stElementContainer"]:has(> .stMarkdown > div > [data-testid="stMarkdownContainer"] > style:only-child){display:none!important}
 /* Compact full-width sidebar, with its two actions above the brand. */
 [data-testid="stSidebarUserContent"]{padding:8px 12px!important}
 [data-testid="stSidebarHeader"]{display:none!important}
