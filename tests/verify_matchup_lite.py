@@ -11,12 +11,12 @@ assert news_tone('Player could return after injury')[0]=='⚪'
 assert news_tone('Player records career-high in win')[0]=='🟢'
 assert news_tone('Player speaks at media day')[0]=='⚪'
 a=AppTest.from_file(str(ROOT/'app.py'),default_timeout=40).run()
-a.radio(key='device_view').set_value('手機版').run()
+a.segmented_control(key='device_view').set_value('手機版').run()
 a.sidebar.radio[0].set_value('模擬對局 Matchup Simulator').run()
 assert not a.exception,a.exception
 assert len(a.selectbox(key='sim_my_team').options)==14
 assert any('Lite' in x.value for x in a.subheader)
-a.radio(key='device_view').set_value('電腦版').run()
+a.segmented_control(key='device_view').set_value('電腦版').run()
 assert not a.exception,a.exception
 assert any('Matchup Simulator' in x.value for x in a.title)
 source=(ROOT/'matchup_simulator_v15.py').read_text();tree=ast.parse(source)

@@ -73,7 +73,7 @@ assert extension_zip().startswith(b'PK')
 app=AppTest.from_file(str(ROOT/'app.py'),default_timeout=60).run()
 assert not any(t.value=='🏀 NBA Fantasy General Manager' for t in app.title)
 assert any(e.label=='同步狀態／立即更新' for e in app.expander)
-assert app.radio(key='device_view').value in ['電腦版','手機版']
+assert app.segmented_control(key='device_view').value in ['電腦版','手機版']
 app.sidebar.radio[0].set_value('聯盟同步 League Sync').run();assert not app.exception,app.exception
 assert any(x.label=='Yahoo 聯盟 ID' for x in app.text_input)
 print('PASS complete league/date validation, unknown player, IL/BN, atomic historical snapshot, backup roundtrip, installer ZIP, sync UI')

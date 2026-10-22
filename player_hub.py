@@ -117,12 +117,12 @@ def render_watchroom():
         for i,k in enumerate(ids):
             p=pool.get(k);name=names.get(k,'未知球員')
             with st.container(border=True,key='watch_card_'+str(i)):
-                if k.isdigit():st.image(f'https://cdn.nba.com/headshots/nba/latest/260x190/{k}.png',width=65)
+                if k.isdigit():st.image(f'https://cdn.nba.com/headshots/nba/latest/260x190/{k}.png',use_container_width=True)
                 else:st.markdown('🏀')
                 st.markdown('**'+name+(' ⭐' if k in stars else '')+'**')
                 st.caption((p['team']+' · '+('/'.join(sorted(p['eligible'])) or '位置待確認')) if p else '新秀／資料待補')
                 if per_row!=5:st.caption(availability(entries,team,k))
-                st.button('⋯' if per_row==5 else '⋯ 展開',help='展開 '+name+' 的新聞與資料',key='watch_expand_'+k,on_click=open_player,args=(k,))
+                st.button('⋯' if per_row==5 else '⋯ 展開',use_container_width=True,help='展開 '+name+' 的新聞與資料',key='watch_expand_'+k,on_click=open_player,args=(k,))
             # Insert details immediately after the row containing the selected card.
             if (i+1)%per_row==0 or i==len(ids)-1:
                 selected=st.session_state.get('watch_open')

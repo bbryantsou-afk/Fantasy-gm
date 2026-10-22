@@ -40,7 +40,7 @@ app.sidebar.radio[0].set_value('交易分析 Trade Lab').run();assert not app.ex
 app.sidebar.radio[0].set_value('9-Cat Strategy').run();assert not app.exception
 assert len(app.session_state['nc_roster'])==12
 assert app.session_state['nc_roster'][0]['status']=='IL'
-app.radio(key='device_view').set_value('手機版').run();app.sidebar.radio[0].set_value('模擬對局 Matchup Simulator').run();assert not app.exception
+app.segmented_control(key='device_view').set_value('手機版').run();app.sidebar.radio[0].set_value('模擬對局 Matchup Simulator').run();assert not app.exception
 app.sidebar.radio[0].set_value('⚙️ 設定').run();assert not app.exception
 assert app.selectbox(key='_theme_picker')
 app.selectbox(key='_theme_picker').set_value('黑色鏡面').run();assert not app.exception

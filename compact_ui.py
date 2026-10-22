@@ -136,6 +136,26 @@ CSS='''
  [class*="st-key-pie_row_"] p{font-size:11px!important}
  .mvp-photo img{height:85px!important}
 }
+/* Compact full-width sidebar, with its two actions above the brand. */
+[data-testid="stSidebarUserContent"]{padding:8px 12px!important}
+[data-testid="stSidebarHeader"]{display:none!important}
+[data-testid="stSidebar"] [data-testid="stVerticalBlock"]{gap:5px!important}
+.st-key-sidebar_actions [data-testid="stHorizontalBlock"]{display:flex!important;flex-wrap:nowrap!important;gap:6px!important}
+.st-key-sidebar_actions [data-testid="stColumn"]{min-width:0!important;flex:1 1 0!important}
+.st-key-sidebar_actions button{width:100%!important;min-height:38px!important;padding:5px!important}
+.sidebar-brand{font-size:clamp(28px,9vw,40px);font-weight:800;line-height:1.2;letter-spacing:-.04em;white-space:nowrap;width:100%}
+[data-testid="stSidebar"] [role="radiogroup"]{gap:4px!important;width:100%!important}
+[data-testid="stSidebar"] [role="radiogroup"]>div{width:100%!important}
+[data-testid="stSidebar"] label[data-testid="stRadioOption"]{box-sizing:border-box!important;min-height:36px!important;padding:6px 9px!important;width:100%!important}
+[data-testid="stSidebar"] label[data-testid="stRadioOption"] p{font-size:14px!important;line-height:1.3!important}
+[data-testid="stMainBlockContainer"]{padding-top:3rem!important}
+[data-testid="stElementContainer"]:has(iframe[title^="google_drive_auth."]),[data-testid="stElementContainer"]:has(iframe[title^="browser_records."]){display:none!important}
+.st-key-current_feature{margin-top:0!important}
+.st-key-app_status_bar [data-testid="stButtonGroup"]{width:100%}
+.st-key-app_status_bar [data-testid="stButtonGroup"] button{padding:4px 6px!important;min-height:32px!important;font-size:12px!important;transition:background .18s ease}
+.st-key-watch_grid [class*="st-key-watch_card_"] [data-testid="stImage"],.st-key-watch_grid [class*="st-key-watch_card_"] [data-testid="stImage"] img{width:100%!important;max-width:100%!important;height:auto!important;max-height:68px!important;object-fit:contain!important}
+.st-key-watch_grid [class*="st-key-watch_card_"] button{width:100%!important;min-height:26px!important;height:26px!important;padding:0 4px!important}
+
 '''
 NAV='''<script>
 try{
@@ -176,7 +196,7 @@ try{
  if(!w.__fgmAutoNav){
   w.__fgmAutoNav=true;
   d.addEventListener('click',e=>{
-   if(!e.target.closest('[data-testid="stSidebar"] [data-testid="stRadioOption"]'))return;
+   if(!e.target.closest('[data-testid="stSidebar"] [data-testid="stRadioOption"],.st-key-sidebar_close'))return;
    w.setTimeout(()=>{
     const close=d.querySelector('[data-testid="stCollapseSidebarButton"]')||d.querySelector('[data-testid="stSidebarCollapseButton"] button')||d.querySelector('[data-testid="stSidebar"] button[aria-label="Collapse sidebar"]');
     if(close)close.click();

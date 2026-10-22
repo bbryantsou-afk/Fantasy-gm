@@ -102,36 +102,25 @@ if 'device_view' not in st.session_state:
     st.session_state['device_view']='手機版' if requested=='mobile' or (not requested and st.query_params.get('phone_sync')) else '電腦版'
 
 with st.sidebar:
-    if st.session_state.get('device_view')=='手機版':
-        brand_col,sync_col=st.columns([3,1])
-        brand_col.markdown('### 🏀 Fantasy GM')
+    with st.container(key='sidebar_actions'):
+        menu_col,sync_col=st.columns(2)
+        menu_col.button('☰ 收起',key='sidebar_close',help='收起功能選單',use_container_width=True)
         def open_mobile_sync():st.session_state['main_navigation']='聯盟同步 League Sync'
-        sync_col.button('🔄',help='開啟手機同步',on_click=open_mobile_sync,key='mobile_sync_shortcut')
-    else:st.markdown('### 🏀 Fantasy GM')
-    if st.session_state.get("_account_id"):
-        st.caption("Google 已登入 · "+st.session_state.get("_account_user_name", ""))
-    elif account_config():
-        st.caption("Google 登入與保存請到設定")
-    elif st.query_params.get("phone_sync"):
-        st.caption("手機同步模式")
-    st.caption("PERSONAL NBA ANALYTICS")
+        sync_col.button('🔄 同步',help='開啟聯盟同步',on_click=open_mobile_sync,key='mobile_sync_shortcut',use_container_width=True)
+    st.markdown('<div class="sidebar-brand">Fantasy GM</div>',unsafe_allow_html=True)
+    if st.session_state.get('_account_id'):
+        st.caption('☁️ '+st.session_state.get('_account_user_name',''))
+    else:st.caption('☁️ 尚未登入')
     page = st.radio(
         "功能選單",
         ["總覽 Dashboard", "球員觀察室 Player Watch",
          "每週補強 Weekly Planner", "交易分析 Trade Lab",
      "9-Cat Strategy", "模擬對局 Matchup Simulator", "比賽戰況", "Data Source 資料中心", "聯盟同步 League Sync", "⚙️ 設定"],
-        key="main_navigation",format_func=lambda name:dict(zip(
+        key="main_navigation",label_visibility="collapsed",format_func=lambda name:dict(zip(
             ["總覽 Dashboard","球員觀察室 Player Watch","每週補強 Weekly Planner","交易分析 Trade Lab","9-Cat Strategy","模擬對局 Matchup Simulator","聯盟同步 League Sync","比賽戰況","Data Source 資料中心","⚙️ 設定"],
             ["📊 總覽","⭐ 球員觀察室","📅 每週補強","🤝 交易分析","🎯 九項策略","🏀 模擬對局","🔄 聯盟同步","🏆 比賽戰況","🗂️ 資料中心","⚙️ 設定"])).get(name,name),
         index=9 if st.query_params.get("code") or st.query_params.get("error") else 8 if st.query_params.get("phone_sync") else 0
     )
-    st.divider()
-    if page in ("9-Cat Strategy", "總覽 Dashboard", "模擬對局 Matchup Simulator", "Matchup Simulator Lite", "聯盟同步 League Sync", "比賽戰況", "Data Source 資料中心", "⚙️ 設定", "球員觀察室 Player Watch", "每週補強 Weekly Planner", "交易分析 Trade Lab"):
-        st.caption("2025–26 場均／2026–27 期間分析")
-        st.caption("本機名單分析，不會操作 Yahoo")
-    else:
-        st.warning("Demo Data：非即時球員數據")
-        st.caption("Yahoo 帳號尚未連線")
 
 def refresh_current_page():
     from daily_evidence import nba_today,nba_official_today
@@ -151,9 +140,9 @@ if st.session_state.pop('_page_refresh_notice',False):st.toast('已重新整理�
 
 with st.container(key='app_status_bar'):
     brand,display,cloud=st.columns([1.15,1.85,1.5])
-    brand.markdown('**🏀 Fantasy GM**')
+    brand.markdown('**Fantasy GM**')
     with display:
-        view=st.radio('顯示版本',['電腦版','手機版'],horizontal=True,key='device_view',label_visibility='collapsed')
+        view=st.segmented_control('顯示版本',['電腦版','手機版'],selection_mode='single',key='device_view',required=True,label_visibility='collapsed',width='stretch')
     st.query_params['view']='mobile' if view=='手機版' else 'desktop'
     drive_label='☁️ Drive · v'+str(st.session_state.get('_account_revision','—')) if st.session_state.get('_account_loaded') else '☁️ 連接 Drive'
     if st.session_state.get('_account_conflict') or st.session_state.get('_account_save_error'):drive_label+=' ⚠️'
@@ -346,7 +335,7 @@ if st.session_state.get("visual_theme")=="簡約淺色":
 
 from compact_ui import render_compact_ui
 render_compact_ui()
-st.caption("版本 2026.10.23-ui19a · 電腦／手機共用版本")
+st.caption("版本 2026.10.23-ui20 · 電腦／手機共用版本")
 
 save_browser_records()
 
