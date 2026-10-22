@@ -27,6 +27,13 @@ def close_category_weights(before,enemy,weights):
     return boosted,margins
 
 def render_planner():
+    notes=[]
+    _render_planner(notes)
+    if notes:
+        with st.expander('補強計算與使用說明',expanded=False):
+            for note in dict.fromkeys(notes):st.caption(note)
+
+def _render_planner(notes):
     from team_workbench import lineup_week,team_value,matchup_score
     st.subheader('📅 每週補強')
     snapshot,entries=load_data();players=snapshot['players'];pool=profiles(players,entries)
@@ -50,7 +57,7 @@ def render_planner():
     add_key='stream_adds_'+team+'_'+str(monday)
     if add_key not in st.session_state:st.session_state[add_key]=4
     with quota:remaining=st.number_input('本週剩餘加人次數',0,4,key=add_key)
-    st.caption(f'{day:%m/%d}–{sunday:%m/%d} 剩餘賽程。歷史場均 × 可排入先發場次；不是實績或勝率。已結束日比分尚未納入，傷病與輪休由你排除。每個方案獨立使用 1 次 add，不能直接把三個方案相加。')
+    notes.append(f'{day:%m/%d}–{sunday:%m/%d} 剩餘賽程。歷史場均 × 可排入先發場次；不是實績或勝率。已結束日比分尚未納入，傷病與輪休由你排除。每個方案獨立使用 1 次 add，不能直接把三個方案相加。')
     editor(entries,players,team,'stream_roster')
     before=lineup_week(roster,pool,schedule,days,weights,ref);enemy=lineup_week(opp,pool,schedule,days,weights,ref)
     scale={c:abs(team_value(enemy,c) or 0) or (ref[c]['mean'] if c in ('FG','FT') else max(ref[c]['mean']*max(enemy['g'],1),1)) for c in CATS}
@@ -69,7 +76,7 @@ def render_planner():
     if focus:
         st.markdown('**優先補強：'+'、'.join(LABELS[c]+('（小幅領先）' if margins[c][0]>0 else '（接近落後）' if margins[c][0]<0 else '（持平）') for c in focus)+'**')
     else:st.caption('目前沒有明顯接近的項目，依九項整體改善推薦。')
-    st.caption('優先守住小幅領先、追回接近落後；大幅領先或落後的項目降低優先度。仍會扣除釋出造成的其他項目損失，並保留你的九項權重。')
+    notes.append('優先守住小幅領先、追回接近落後；大幅領先或落後的項目降低優先度。仍會扣除釋出造成的其他項目損失，並保留你的九項權重。')
     if before['missing']:st.warning('缺上季數據，未估算：'+'、'.join(before['missing']))
     owners=ownership(entries,team)
     unowned=[k for k in pool if k not in owners]
@@ -84,11 +91,11 @@ def render_planner():
             meta[k]={'eligible':positions,'team':nba}
         if st.button('儲存自由市場確認',key='stream_confirm_free'):
             league['free']=confirmed;league.setdefault('player_meta',{}).update(meta);persist(league);st.rerun()
-        st.caption('不在選秀名單內，只代表歸屬未確認；不會自動視為自由球員。其他隊已持有的球員不列入候選。')
+        notes.append('不在選秀名單內，只代表歸屬未確認；不會自動視為自由球員。其他隊已持有的球員不列入候選。')
     research=st.checkbox('也看歸屬未確認的人選（研究用，不能直接套用）',value=not bool(league['free']),key='stream_research')
     allowed=[k for k in unowned if research or k in league['free']]
-    st.caption('自由球員的 NBA 隊伍與 Yahoo 位置可在上方確認；未確認位置者只會安排 UTIL。')
-    st.caption('自動候選至少有上季 20 場樣本，避免少量出賽的極端場均；仍可手動指定其他球員。')
+    notes.append('自由球員的 NBA 隊伍與 Yahoo 位置可在上方確認；未確認位置者只會安排 UTIL。')
+    notes.append('自動候選至少有上季 20 場樣本，避免少量出賽的極端場均；仍可手動指定其他球員。')
     suggested=sorted([k for k in allowed if float(pool[k].get('GP',0))>=20],key=lambda k:weighted_z(pool[k],ref,weights),reverse=True)[:36]
     with st.container(key='planner_candidates'):
         candidates,droppable=st.columns(2)
@@ -125,12 +132,19 @@ def render_planner():
     for i,r in enumerate(chosen):
         key=r['key'];p=pool[key];after=r['after'];confirmed=key in league['free']
         with st.container(border=True,key='planner_plan_'+str(i)):
-            photo,content,a,b,c=st.columns([.8,2.3,1,1,1])
-            photo.image(f'https://cdn.nba.com/headshots/nba/latest/260x190/{key}.png',width=85)
-            content.markdown(f"**{i+1}. 加入 {p['PLAYER_NAME']}**")
-            content.write('釋出 '+pool[r['drop']]['PLAYER_NAME'] if r['drop'] else '使用空位，不需釋出')
-            content.caption('✅ 已確認自由球員' if confirmed else '⚠️ 歸屬未確認，僅供研究')
-            a.metric('候選可排場次',after['counts'].get(key,0));b.metric('全隊淨增場次',f"{after['g']-before['g']:+d}");c.metric('對局適配提升',f"{r['gain']:+.2f}")
+            if st.session_state.get('device_view')=='手機版':
+                import html
+                drop_label='釋出 '+pool[r['drop']]['PLAYER_NAME'] if r['drop'] else '使用空位，不需釋出'
+                ownership_label='✅ 已確認自由球員' if confirmed else '⚠️ 歸屬未確認，僅供研究'
+                st.markdown(f'<div class="planner-mobile-player"><img src="https://cdn.nba.com/headshots/nba/latest/260x190/{key}.png" alt=""><div><b>{i+1}. {html.escape(p["PLAYER_NAME"])}</b><span>{html.escape(drop_label)}</span><small>{ownership_label}</small></div></div>',unsafe_allow_html=True)
+                a,b,c=st.columns(3)
+            else:
+                photo,content,a,b,c=st.columns([.8,2.3,1,1,1])
+                photo.image(f'https://cdn.nba.com/headshots/nba/latest/260x190/{key}.png',width=85)
+                content.markdown(f"**{i+1}. 加入 {p['PLAYER_NAME']}**")
+                content.write('釋出 '+pool[r['drop']]['PLAYER_NAME'] if r['drop'] else '使用空位，不需釋出')
+                content.caption('✅ 已確認自由球員' if confirmed else '⚠️ 歸屬未確認，僅供研究')
+            a.metric('可排場次',after['counts'].get(key,0));b.metric('淨增場次',f"{after['g']-before['g']:+d}");c.metric('適配提升',f"{r['gain']:+.2f}")
             if r['targets']:st.caption('補強接近項目：'+'、'.join(LABELS[c] for c in r['targets']))
             st.write('改善最多：'+(LABELS[r['best']] if r['gain']>0 else '尚無整體改善'))
             if mode=='長期適配':st.caption(f"每場加權 Z 淨變化 {r['long']:+.2f}；尚未預測成長、健康或交易市價。")
@@ -140,6 +154,6 @@ def render_planner():
                     x,y=team_value(before,cat),team_value(after,cat)
                     change='—' if x is None or y is None else f'{(y-x)*100:+.2f} 個百分點' if cat in ('FG','FT') else f'{y-x:+.1f}'
                     rows.append({'項目':LABELS[cat],'改變':change})
-                st.table(rows);st.caption('TO 淨減少才是改善；FG/FT 由總命中／總出手加權。適配分不是勝率。')
+                st.table(rows);notes.append('TO 淨減少才是改善；FG/FT 由總命中／總出手加權。適配分不是勝率。')
             if r['gain']<=0:st.caption('這個方案沒有提高目前的對局適配分；保留原名單也是選項。')
             st.button('套用到共用名單（使用 1 次 add）',key='stream_apply_'+str(i),disabled=not confirmed,on_click=apply_plan,args=(r['rows'],'stream_adds_'+team+'_'+str(monday),remaining))

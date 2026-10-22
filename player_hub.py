@@ -108,7 +108,6 @@ def render_watchroom():
         st.download_button('下載加星名單備份',json.dumps({'ids':stars}),'player_watchlist.json','application/json')
     ids=list(dict.fromkeys(list(mine)+stars)) if view=='全部' else list(mine) if view=='我的球員' else stars
     names={**{str(p['PLAYER_ID']):p['PLAYER_NAME'] for p in players},**mine}
-    st.caption('頭像卡只顯示重點；按「⋯ 展開」才讀取新聞與完整資料。歸屬依這份共用聯盟紀錄，不代表已與 Yahoo 同步。')
     if not ids:st.info('目前沒有球員；可先選擇球隊或加星追蹤。');return
     per_row=5 if st.session_state.get('device_view')=='手機版' else 10
     def open_player(player):st.session_state['watch_open']=player

@@ -3,13 +3,18 @@ import streamlit as st
 import streamlit.components.v1 as components
 CSS='''
 
+.mobile-stat-heading img,.mobile-stat-avatar{width:32px;height:28px;object-fit:contain;flex:0 0 32px}
+.planner-mobile-player{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.planner-mobile-player img{width:60px!important;height:58px!important;max-height:58px!important;object-fit:contain;flex:0 0 60px}
+.planner-mobile-player>div{min-width:0;display:flex;flex-direction:column;gap:5px;line-height:1.45}
+.planner-mobile-player b{font-size:14px;overflow-wrap:anywhere}.planner-mobile-player span{font-size:12px}.planner-mobile-player small{font-size:11px}
 .mobile-player-rows{width:100%;min-width:0}
 .mobile-stat-player{padding:6px 0;border-bottom:1px solid #84939b55;min-width:0}
-.mobile-stat-heading{display:flex;justify-content:space-between;gap:6px;font-size:12px;line-height:1.4}
-.mobile-stat-heading b{min-width:0;overflow-wrap:anywhere}.mobile-stat-heading span{white-space:nowrap;font-size:11px}
-.mobile-stat-values{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;margin-top:4px}
+.mobile-stat-heading{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:12px;line-height:1.4}
+.mobile-stat-heading b{flex:1;min-width:0;overflow-wrap:anywhere}.mobile-stat-heading span{white-space:nowrap;font-size:11px}
+.mobile-stat-values{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:2px;margin-top:3px}
 .mobile-stat-values>span{display:flex;flex-direction:column;min-width:0;text-align:center}
-.mobile-stat-values small{font-size:9px;opacity:.8}.mobile-stat-values b{font-size:11px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.mobile-stat-values small{font-size:8px;opacity:.8}.mobile-stat-values b{font-size:clamp(8px,2.4vw,11px);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .mobile-rank-list{max-height:340px;overflow-y:auto;width:100%}
 .mobile-rank-list>div{display:grid;grid-template-columns:30px minmax(0,1fr) 65px;gap:5px;padding:5px 0;border-bottom:1px solid #84939b44;font-size:12px}
 .mobile-rank-list>div>span{overflow-wrap:anywhere}
@@ -59,6 +64,9 @@ CSS='''
 }
 .st-key-watch_grid{display:grid!important;grid-template-columns:repeat(10,minmax(0,1fr));gap:6px!important;align-items:start}
 .st-key-watch_grid>[data-testid="stLayoutWrapper"]{min-width:0}
+.st-key-watch_grid [class*="st-key-watch_card_"]{height:190px!important;box-sizing:border-box;overflow:hidden}
+.st-key-watch_grid [class*="st-key-watch_card_"] [data-testid="stMarkdownContainer"] p{height:34px;overflow:hidden}
+.st-key-watch_grid [class*="st-key-watch_card_"] [data-testid="stCaptionContainer"]{height:20px;overflow:hidden}
 .st-key-watch_grid [data-testid="stVerticalBlockBorderWrapper"]{padding:6px!important}
 .st-key-watch_grid img{max-height:55px;object-fit:contain}
 .st-key-watch_grid button{font-size:11px!important;padding:5px 8px!important;min-height:36px}
@@ -80,10 +88,6 @@ CSS='''
  [data-testid="stMain"] input{min-width:0!important;font-size:16px!important;padding:6px!important}
  [data-testid="stMain"] button{min-height:36px;padding:5px 8px!important}
  [data-testid="stMain"] [role="radiogroup"]{gap:5px!important;flex-wrap:wrap!important}
- [class*="st-key-planner_plan_"] > [data-testid="stHorizontalBlock"]{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr));align-items:center}
- [class*="st-key-planner_plan_"] > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]{grid-column:span 2}
- [class*="st-key-planner_plan_"] > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:first-child{grid-column:span 1}
- [class*="st-key-planner_plan_"] > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(2){grid-column:span 5}
  [class*="st-key-planner_plan_"] img{max-height:52px!important;width:52px!important;object-fit:contain}
  [class*="st-key-planner_plan_"] [data-testid="stMetric"]{min-height:60px!important;height:60px!important;padding:5px!important}
  [class*="st-key-planner_plan_"] [data-testid="stMetricValue"]{font-size:20px!important}
@@ -101,6 +105,9 @@ CSS='''
  [data-testid="stExpander"] summary{padding:7px 9px!important}
  [data-testid="stVerticalBlockBorderWrapper"]{padding:8px!important}
  .st-key-watch_grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px!important}
+ .st-key-watch_grid [class*="st-key-watch_card_"]{height:150px!important;box-sizing:border-box;overflow:hidden}
+ .st-key-watch_grid [class*="st-key-watch_card_"] [data-testid="stMarkdownContainer"] p{height:34px!important;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+ .st-key-watch_grid [class*="st-key-watch_card_"] [data-testid="stCaptionContainer"]{height:24px!important;overflow:hidden}
  .st-key-watch_grid [class*="st-key-watch_card_"] p{font-size:9px!important;line-height:1.2!important;overflow-wrap:anywhere}
  .st-key-watch_grid [class*="st-key-watch_card_"] [data-testid="stCaptionContainer"] p{font-size:8px!important}
  .st-key-watch_grid [class*="st-key-watch_card_"]{padding:3px!important}

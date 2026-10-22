@@ -71,6 +71,13 @@ def render_streaming():
     render_planner()
 
 def render_trades():
+    notes=[]
+    _render_trades(notes)
+    if notes:
+        with st.expander('手動交易比較 · 使用說明',expanded=False):
+            for note in notes:st.caption(note)
+
+def _render_trades(notes):
     st.subheader('🤝 交易分析室')
     snapshot,entries=load_data()
     players=snapshot['players']; pool=profiles(players,entries)
@@ -87,7 +94,7 @@ def render_trades():
     owned={str(r.get('id')) for r in roster}
     send=st.multiselect('送出球員（可多選）',list(owned),format_func=lambda k:next(r['name'] for r in roster if str(r.get('id'))==k),key='trade_send')
     receive=st.multiselect('換入球員（可多選）',[k for k in pool if k not in owned],format_func=lambda k:pool[k]['PLAYER_NAME'],key='trade_receive')
-    st.caption('使用共用名單；用相同每人1場比較陣容結構；傷病、成長性、薪資及市場成交價格由使用者判斷。不會送出交易。')
+    notes.append('使用共用名單；用相同每人1場比較陣容結構；傷病、成長性、薪資及市場成交價格由使用者判斷。不會送出交易。')
     if not send or not receive:
         st.info('選擇送出與換入球員，查看適配與整體數據價值。')
         return
@@ -103,7 +110,7 @@ def render_trades():
     sent=sum(weighted_z(pool[k],ref,equal) for k in send if k in pool)
     got=sum(weighted_z(pool[k],ref,equal) for k in receive)
     st.write(f'等權Weighted Z合計：送出 {sent:+.3f} → 換入 {got:+.3f}')
-    st.caption('不同人數的Z合計不代表公平價值，尚未加入釋出／補進替補球員成本；請連同席位變化評估。')
+    notes.append('不同人數的Z合計不代表公平價值，尚未加入釋出／補進替補球員成本；請連同席位變化評估。')
     st.write(f'名單席位：{len(roster)} → {len(roster)-len(send)+len(receive)}')
     st.dataframe(pd.DataFrame(package_rows(result)),hide_index=True,width='stretch')
     st.dataframe([{'球員':pool[k]['PLAYER_NAME'],'方向':'送出' if k in send else '換入','位置（對照）':','.join(sorted(pool[k]['eligible'])) or '未知'} for k in send+receive if k in pool],hide_index=True,width='stretch')

@@ -318,7 +318,7 @@ def render_dashboard():
         table.append(item)
     if mobile:
         from mobile_stat_cards import player_rows
-        st.markdown(player_rows(table),unsafe_allow_html=True)
+        st.markdown(player_rows([dict(item,_nba_id=next((r.get('id') for r in roster if r['name']==item['球員']),None)) for item in table]),unsafe_allow_html=True)
     else:st.dataframe(pd.DataFrame(table),hide_index=True,width='stretch')
     with st.expander('各項場均與前週比較 📈 / 📉'):
         comparison=[]
