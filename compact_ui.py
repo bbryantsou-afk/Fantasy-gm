@@ -3,7 +3,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 CSS='''
 /* Keep the sidebar toggle, remove platform promotion and overflow actions. */
-[data-testid="stToolbarActions"],[data-testid="stMainMenu"],[data-testid="stAppDeployButton"],footer{display:none!important}
+[data-testid="stToolbarActions"],[data-testid="stMainMenu"],[data-testid="stAppDeployButton"],[class*="viewerBadge"],[class*="viewer-badge"],[data-testid="stAppViewerBadge"],footer{display:none!important}
 
 /* Large, visible navigation targets; preserve native widget behaviour. */
 [data-testid="stExpandSidebarButton"],[data-testid="stCollapseSidebarButton"],[data-testid="stSidebarCollapseButton"] button,[data-testid="stSidebarCollapsedControl"] button,button[aria-label="Expand sidebar"],button[aria-label="Collapse sidebar"]{min-width:44px!important;min-height:44px!important;padding:8px!important}
@@ -144,6 +144,14 @@ try{
  try{
   const shell=w.parent.document;
   const hideAttribution=()=>{
+   // Cloud's mobile badge is icon-only until tapped, so text matching misses it.
+   shell.querySelectorAll('[class*="viewerBadge"],[class*="viewer-badge"],[data-testid="app-viewer-badge"]').forEach(el=>el.style.setProperty('display','none','important'));
+   shell.querySelectorAll('div,aside,a,button').forEach(el=>{
+    const style=shell.defaultView.getComputedStyle(el),rect=el.getBoundingClientRect();
+    if(style.position==='fixed'&&rect.width>0&&rect.width<=420&&rect.height>0&&rect.height<=180&&rect.bottom>=shell.defaultView.innerHeight-100&&rect.right>=shell.defaultView.innerWidth-120&&el.querySelector('svg,img')&&!el.querySelector('iframe')){
+     el.style.setProperty('display','none','important');
+    }
+   });
    shell.querySelectorAll('a,span,p,footer').forEach(el=>{
     const label=(el.textContent||'').trim();
     if(label.length>160||!(/^(Created by|Hosted with Streamlit)/i.test(label)))return;
