@@ -4,6 +4,14 @@ LITE_CSS = """
 #lineup-app .board{display:block;min-width:0}
 #lineup-app .board>.roster{display:none}
 #lineup-app .middle{padding:6px}
+#lineup-app .summary{padding:7px;margin-top:8px}
+#lineup-app #weekly-table .table-wrap{width:100%;min-width:0}
+#lineup-app #weekly-table table{width:100%;min-width:0;table-layout:fixed;font-size:11px;border-spacing:0}
+#lineup-app #weekly-table th,#lineup-app #weekly-table td{padding:5px 3px;line-height:1.25;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+#lineup-app #weekly-table th{font-size:10px}
+#lineup-app #weekly-table th:first-child,#lineup-app #weekly-table td:first-child{width:14%;text-align:left}
+#lineup-app #weekly-table th:last-child,#lineup-app #weekly-table td:last-child{width:22%;text-align:center}
+
 #lineup-app .head,#lineup-app .lineup-row{grid-template-columns:minmax(0,1fr) 26px minmax(0,1fr);gap:3px}
 #lineup-app .lineup-row,#lineup-app .slot{min-height:47px}
 #lineup-app .slot{padding:2px}
@@ -101,6 +109,7 @@ LITE_JS = r"""
 """
 
 def enhance_lite(js):
+    js=js.replace('["9-Cat","我的球隊","差距（我方 − 對手）","對手球隊","領先方"]', '["項目","我方","差距","對手","領先"]',1)
     js=js.replace('      function card(p,side,inSlot=false) {', LITE_JS+'\n      function card(p,side,inSlot=false) {\n        return liteCard(p,side,inSlot);',1)
     js=js.replace('            dropTarget(slot,side,pos);', '''            slot.dataset.liteSide=side;slot.dataset.litePos=pos;
             slot.onclick=()=>{if(picked?.side===side)moveLite(side,picked.id,pos);};
