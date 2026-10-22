@@ -221,7 +221,7 @@ button[data-testid="stExpandSidebarButton"],[data-testid="stExpandSidebarButton"
 .st-key-sidebar_close button [data-testid="stIconMaterial"]{font-size:24px!important;line-height:24px!important}
 
 .stApp .st-key-sidebar_close button{gap:0!important}
-.stApp .st-key-sidebar_close button [data-testid="stMarkdownContainer"]{display:none!important;width:0!important}
+.stApp .st-key-sidebar_close button [data-testid="stMarkdownContainer"]{display:flex!important;width:100%!important;align-items:center!important;justify-content:center!important}
 .stApp .st-key-sidebar_close button [data-testid="stIconMaterial"]{display:flex!important;align-items:center!important;justify-content:center!important;margin:0!important;width:24px!important;height:24px!important;padding:0!important}
 .stApp .st-key-app_status_bar [data-testid="stColumn"]{display:flex!important;align-items:center!important;justify-content:center!important;min-height:42px!important}
 .stApp .st-key-app_status_bar [data-testid="stColumn"] > div{width:100%!important}
@@ -230,6 +230,9 @@ button[data-testid="stExpandSidebarButton"],[data-testid="stExpandSidebarButton"
 .stApp .mvp-body{align-items:stretch!important;min-height:170px}
 .stApp .mvp-photo{position:relative!important;flex:0 0 35%!important;max-width:none!important;min-height:170px!important;align-self:stretch!important}
 .stApp .mvp-photo img{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-height:none!important;object-fit:cover!important;object-position:center top!important;border-radius:8px!important}
+
+button:has(>[data-fgm-expand-emoji])>*:not([data-fgm-expand-emoji]){display:none!important}
+button>[data-fgm-expand-emoji]{display:flex!important;align-items:center;justify-content:center;width:100%;font-size:22px;line-height:1;margin:0;padding:0}
 
 '''
 NAV='''<script>
@@ -259,6 +262,11 @@ try{
  }catch(e){}
 
  const install=()=>{
+  d.querySelectorAll('button[data-testid="stExpandSidebarButton"],[data-testid="stExpandSidebarButton"] button,[data-testid="stSidebarCollapsedControl"] button,button[aria-label="Expand sidebar"]').forEach(button=>{
+   if(button.querySelector('[data-fgm-expand-emoji]'))return;
+   const emoji=d.createElement('span');emoji.dataset.fgmExpandEmoji='1';emoji.textContent='▶️';
+   button.appendChild(emoji);
+  });
   d.querySelectorAll('[data-baseweb="popover"],[data-testid="stSelectboxVirtualDropdown"],[data-testid="stMultiSelectDropdown"]').forEach(pop=>{
    if(!pop.querySelector('[role="listbox"]')||pop.querySelector('[data-fgm-done]'))return;
    const done=d.createElement('button');done.type='button';done.textContent='完成選擇 · 收起';done.dataset.fgmDone='1';

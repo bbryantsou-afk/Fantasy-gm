@@ -113,7 +113,7 @@ def refresh_current_page():
 with st.sidebar:
     with st.container(key='sidebar_actions'):
         menu_col,sync_col,refresh_col=st.columns([1,1,1])
-        menu_col.button(' ',icon=':material/keyboard_double_arrow_left:',key='sidebar_close',help='收起功能選單',use_container_width=True)
+        menu_col.button('◀️',key='sidebar_close',help='收起功能選單',use_container_width=True)
         def open_mobile_sync():st.session_state['main_navigation']='⚙️ 設定'
         sync_col.button('Y',help='開啟聯盟同步',on_click=open_mobile_sync,key='mobile_sync_shortcut',use_container_width=True)
         refresh_col.button('🔃',key='refresh_current_page',help='重新整理實績並檢查 Drive；不會執行 Yahoo 名單同步。',on_click=refresh_current_page,use_container_width=True)
@@ -348,7 +348,7 @@ if st.session_state.get("visual_theme")=="簡約淺色":
 
 from compact_ui import render_compact_ui
 render_compact_ui()
-st.caption("版本 2026.10.23-ui33 · 電腦／手機共用版本")
+st.caption("版本 2026.10.23-ui34 · 電腦／手機共用版本")
 
 save_browser_records()
 
