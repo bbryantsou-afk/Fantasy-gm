@@ -172,6 +172,8 @@ CSS='''
 .sidebar-identity{display:flex;flex-direction:column;gap:9px;padding:3px 0 5px}
 .sidebar-account{font-size:12px;line-height:1.5;overflow-wrap:anywhere}
 .st-key-sidebar_actions button p{font-size:11px!important;white-space:nowrap!important;line-height:1.3!important}
+.st-key-mobile_sync_shortcut button p{color:#7200d2!important;font-size:24px!important;font-weight:900!important;font-family:system-ui,sans-serif!important}
+.st-key-refresh_current_page button p{font-size:20px!important}
 .sidebar-brand{font-size:clamp(28px,9vw,40px);font-weight:800;line-height:1.2;letter-spacing:-.04em;white-space:nowrap;width:100%}
 [data-testid="stSidebar"] [role="radiogroup"]{gap:4px!important;width:100%!important}
 [data-testid="stSidebar"] [role="radiogroup"]>div{width:100%!important}

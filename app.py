@@ -115,8 +115,8 @@ with st.sidebar:
         menu_col,sync_col,refresh_col=st.columns([.8,1,1])
         menu_col.button('☰',key='sidebar_close',help='收起功能選單',use_container_width=True)
         def open_mobile_sync():st.session_state['main_navigation']='聯盟同步 League Sync'
-        sync_col.button('🔄 同步',help='開啟聯盟同步',on_click=open_mobile_sync,key='mobile_sync_shortcut',use_container_width=True)
-        refresh_col.button('🔃 重整',key='refresh_current_page',help='重新整理實績並檢查 Drive；不會執行 Yahoo 名單同步。',on_click=refresh_current_page,use_container_width=True)
+        sync_col.button('Y',help='開啟聯盟同步',on_click=open_mobile_sync,key='mobile_sync_shortcut',use_container_width=True)
+        refresh_col.button('🔃',key='refresh_current_page',help='重新整理實績並檢查 Drive；不會執行 Yahoo 名單同步。',on_click=refresh_current_page,use_container_width=True)
     import html as sidebar_html
     account_name=st.session_state.get('_account_user_name','') if st.session_state.get('_account_id') else '尚未登入'
     with st.container(key='sidebar_identity'):
@@ -338,7 +338,7 @@ if st.session_state.get("visual_theme")=="簡約淺色":
 
 from compact_ui import render_compact_ui
 render_compact_ui()
-st.caption("版本 2026.10.23-ui28 · 電腦／手機共用版本")
+st.caption("版本 2026.10.23-ui29 · 電腦／手機共用版本")
 
 save_browser_records()
 
