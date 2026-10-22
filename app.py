@@ -141,8 +141,12 @@ with st.container(key='current_feature'):
 if st.session_state.pop('_page_refresh_notice',False):st.toast('已重新整理頁面，正在檢查實績與 Drive。',icon='🔄')
 
 with st.container(key='app_status_bar'):
-    brand,display,cloud=st.columns([1.15,1.85,1.5])
+    brand,team_view,display,cloud=st.columns([.9,1.35,1.7,1.1])
     brand.markdown('**Fantasy GM**')
+    from ninecat_strategy import load_data as status_data
+    from roster_store import active_team,team_label
+    _,status_entries=status_data()
+    team_view.markdown('**'+sidebar_html.escape(team_label(active_team(status_entries)))+'**')
     with display:
         view=st.segmented_control('顯示版本',['電腦版','手機版'],selection_mode='single',key='device_view',required=True,label_visibility='collapsed',width='stretch')
     st.query_params['view']='mobile' if view=='手機版' else 'desktop'
@@ -344,7 +348,7 @@ if st.session_state.get("visual_theme")=="簡約淺色":
 
 from compact_ui import render_compact_ui
 render_compact_ui()
-st.caption("版本 2026.10.23-ui32 · 電腦／手機共用版本")
+st.caption("版本 2026.10.23-ui33 · 電腦／手機共用版本")
 
 save_browser_records()
 

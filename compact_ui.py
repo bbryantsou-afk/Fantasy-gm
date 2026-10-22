@@ -155,7 +155,7 @@ CSS='''
  [class*="st-key-pie_row_"] [data-testid="stHorizontalBlock"]{flex-wrap:nowrap!important;gap:4px!important}
  [class*="st-key-pie_row_"] [data-testid="stColumn"]{min-width:0!important;width:calc(20% - 3px)!important;flex:1 1 0!important}
  [class*="st-key-pie_row_"] p{font-size:11px!important}
- .mvp-photo img{height:85px!important}
+
 }
 [data-testid="stElementContainer"]:has(> .stMarkdown > div > [data-testid="stMarkdownContainer"] > style:only-child){display:none!important}
 [data-testid="stSidebar"] .st-key-main_navigation,[data-testid="stSidebar"] [data-testid="stRadio"]{width:100%!important;max-width:none!important}
@@ -219,6 +219,17 @@ CSS='''
 
 button[data-testid="stExpandSidebarButton"],[data-testid="stExpandSidebarButton"] button,[data-testid="stSidebarCollapsedControl"] button,button[aria-label="Expand sidebar"]{width:44px!important;min-width:44px!important;max-width:44px!important;height:44px!important;min-height:44px!important;max-height:44px!important;padding:0!important;display:flex!important;align-items:center!important;justify-content:center!important;border-radius:10px!important;box-sizing:border-box!important}
 .st-key-sidebar_close button [data-testid="stIconMaterial"]{font-size:24px!important;line-height:24px!important}
+
+.stApp .st-key-sidebar_close button{gap:0!important}
+.stApp .st-key-sidebar_close button [data-testid="stMarkdownContainer"]{display:none!important;width:0!important}
+.stApp .st-key-sidebar_close button [data-testid="stIconMaterial"]{display:flex!important;align-items:center!important;justify-content:center!important;margin:0!important;width:24px!important;height:24px!important;padding:0!important}
+.stApp .st-key-app_status_bar [data-testid="stColumn"]{display:flex!important;align-items:center!important;justify-content:center!important;min-height:42px!important}
+.stApp .st-key-app_status_bar [data-testid="stColumn"] > div{width:100%!important}
+.stApp .st-key-app_status_bar :is(p,[data-testid="stCaptionContainer"]){margin:0!important;line-height:1.35!important}
+.stApp .st-key-app_status_bar [data-testid="stMarkdownContainer"]{display:flex!important;align-items:center!important;min-height:40px!important}
+.stApp .mvp-body{align-items:stretch!important;min-height:170px}
+.stApp .mvp-photo{position:relative!important;flex:0 0 35%!important;max-width:none!important;min-height:170px!important;align-self:stretch!important}
+.stApp .mvp-photo img{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-height:none!important;object-fit:cover!important;object-position:center top!important;border-radius:8px!important}
 
 '''
 NAV='''<script>
