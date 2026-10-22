@@ -3,7 +3,8 @@ import streamlit as st
 import streamlit.components.v1 as components
 CSS='''
 /* Large, visible navigation targets; preserve native widget behaviour. */
-[data-testid="stSidebarCollapseButton"] button,[data-testid="stSidebarCollapsedControl"] button,button[aria-label="Expand sidebar"],button[aria-label="Collapse sidebar"]{min-width:44px!important;min-height:44px!important;padding:8px!important}
+[data-testid="stExpandSidebarButton"],[data-testid="stCollapseSidebarButton"],[data-testid="stSidebarCollapseButton"] button,[data-testid="stSidebarCollapsedControl"] button,button[aria-label="Expand sidebar"],button[aria-label="Collapse sidebar"]{min-width:44px!important;min-height:44px!important;padding:8px!important}
+[data-testid="stSelectbox"] button[aria-haspopup],[data-testid="stMultiSelect"] button[aria-haspopup]{min-width:40px!important;min-height:40px!important}
 [data-baseweb="select"] svg{min-width:22px;min-height:22px}
 [data-baseweb="select"] [role="button"]{min-width:32px;min-height:32px}
 [data-testid="stExpander"] summary{min-height:44px!important;cursor:pointer}
@@ -137,11 +138,11 @@ NAV='''<script>
 try{
  const w=window.parent,d=w.document;
  const install=()=>{
-  d.querySelectorAll('[data-baseweb="popover"]').forEach(pop=>{
+  d.querySelectorAll('[data-baseweb="popover"],[data-testid="stSelectboxVirtualDropdown"],[data-testid="stMultiSelectDropdown"]').forEach(pop=>{
    if(!pop.querySelector('[role="listbox"]')||pop.querySelector('[data-fgm-done]'))return;
    const done=d.createElement('button');done.type='button';done.textContent='完成選擇 · 收起';done.dataset.fgmDone='1';
    done.style.cssText='position:sticky;bottom:0;width:100%;min-height:44px;border:1px solid #8c9aa8;border-radius:6px;background:var(--fgm-feature-bg,#f7f8fa);color:var(--fgm-feature-fg,#202936);font-size:14px;z-index:2;cursor:pointer';
-   done.onclick=()=>{const active=d.activeElement;active?.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',code:'Escape',bubbles:true}));active?.blur();d.body.dispatchEvent(new w.MouseEvent('mousedown',{bubbles:true}));};
+   done.onclick=()=>{const dismiss=pop.querySelector('button[aria-label="Dismiss"]');if(dismiss){dismiss.click();return;}const active=d.activeElement;active?.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',code:'Escape',bubbles:true}));active?.blur();d.body.dispatchEvent(new w.MouseEvent('mousedown',{bubbles:true}));};
    pop.appendChild(done);
   });
  };
@@ -151,7 +152,7 @@ try{
   d.addEventListener('click',e=>{
    if(!e.target.closest('[data-testid="stSidebar"] [data-testid="stRadioOption"]'))return;
    w.setTimeout(()=>{
-    const close=d.querySelector('[data-testid="stSidebarCollapseButton"] button')||d.querySelector('[data-testid="stSidebar"] button[aria-label="Collapse sidebar"]');
+    const close=d.querySelector('[data-testid="stCollapseSidebarButton"]')||d.querySelector('[data-testid="stSidebarCollapseButton"] button')||d.querySelector('[data-testid="stSidebar"] button[aria-label="Collapse sidebar"]');
     if(close)close.click();
    },180);
   },true);
