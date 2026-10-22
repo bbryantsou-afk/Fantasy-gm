@@ -107,7 +107,7 @@ with st.sidebar:
         menu_col.button('☰ 收起',key='sidebar_close',help='收起功能選單',use_container_width=True)
         def open_mobile_sync():st.session_state['main_navigation']='聯盟同步 League Sync'
         sync_col.button('🔄 同步',help='開啟聯盟同步',on_click=open_mobile_sync,key='mobile_sync_shortcut',use_container_width=True)
-    st.markdown('<div class="sidebar-brand">Fantasy GM</div>',unsafe_allow_html=True)
+    st.markdown('<div class="sidebar-brand"><svg viewBox="0 0 230 44" role="img" aria-label="Fantasy GM" style="width:100%;height:auto;display:block"><text x="0" y="35" textLength="230" lengthAdjust="spacingAndGlyphs" fill="currentColor" font-family="system-ui,sans-serif" font-weight="800" font-size="40">Fantasy GM</text></svg></div>',unsafe_allow_html=True)
     if st.session_state.get('_account_id'):
         st.caption('☁️ '+st.session_state.get('_account_user_name',''))
     else:st.caption('☁️ 尚未登入')
@@ -116,7 +116,7 @@ with st.sidebar:
         ["總覽 Dashboard", "球員觀察室 Player Watch",
          "每週補強 Weekly Planner", "交易分析 Trade Lab",
      "9-Cat Strategy", "模擬對局 Matchup Simulator", "比賽戰況", "Data Source 資料中心", "聯盟同步 League Sync", "⚙️ 設定"],
-        key="main_navigation",label_visibility="collapsed",format_func=lambda name:dict(zip(
+        key="main_navigation",width="stretch",label_visibility="collapsed",format_func=lambda name:dict(zip(
             ["總覽 Dashboard","球員觀察室 Player Watch","每週補強 Weekly Planner","交易分析 Trade Lab","9-Cat Strategy","模擬對局 Matchup Simulator","聯盟同步 League Sync","比賽戰況","Data Source 資料中心","⚙️ 設定"],
             ["📊 總覽","⭐ 球員觀察室","📅 每週補強","🤝 交易分析","🎯 九項策略","🏀 模擬對局","🔄 聯盟同步","🏆 比賽戰況","🗂️ 資料中心","⚙️ 設定"])).get(name,name),
         index=9 if st.query_params.get("code") or st.query_params.get("error") else 8 if st.query_params.get("phone_sync") else 0
@@ -335,7 +335,7 @@ if st.session_state.get("visual_theme")=="簡約淺色":
 
 from compact_ui import render_compact_ui
 render_compact_ui()
-st.caption("版本 2026.10.23-ui20a · 電腦／手機共用版本")
+st.caption("版本 2026.10.23-ui20b · 電腦／手機共用版本")
 
 save_browser_records()
 

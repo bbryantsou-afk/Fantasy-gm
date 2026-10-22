@@ -137,6 +137,7 @@ CSS='''
  .mvp-photo img{height:85px!important}
 }
 [data-testid="stElementContainer"]:has(> .stMarkdown > div > [data-testid="stMarkdownContainer"] > style:only-child){display:none!important}
+[data-testid="stSidebar"] .st-key-main_navigation,[data-testid="stSidebar"] [data-testid="stRadio"]{width:100%!important;max-width:none!important}
 /* Compact full-width sidebar, with its two actions above the brand. */
 [data-testid="stSidebarUserContent"]{padding:8px 12px!important}
 [data-testid="stSidebarHeader"]{display:none!important}
