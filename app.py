@@ -96,10 +96,10 @@ st.markdown("""
 from court_theme import render_court_theme, theme_slug, clear_oauth_query
 render_court_theme()
 
-# View belongs to this device/URL, not the cloud profile: a phone must not flip a desktop.
+# A fresh browser session (including a full refresh) always starts in mobile mode.
+# Keep manual switches during normal widget reruns; never inherit an old URL mode.
 if 'device_view' not in st.session_state:
-    requested=st.query_params.get('view')
-    st.session_state['device_view']='手機版' if requested=='mobile' or (not requested and st.query_params.get('phone_sync')) else '電腦版'
+    st.session_state['device_view']='手機版'
 
 with st.sidebar:
     with st.container(key='sidebar_actions'):
@@ -335,7 +335,7 @@ if st.session_state.get("visual_theme")=="簡約淺色":
 
 from compact_ui import render_compact_ui
 render_compact_ui()
-st.caption("版本 2026.10.23-ui20b · 電腦／手機共用版本")
+st.caption("版本 2026.10.23-ui21 · 電腦／手機共用版本")
 
 save_browser_records()
 

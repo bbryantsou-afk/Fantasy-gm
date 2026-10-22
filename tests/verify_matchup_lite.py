@@ -10,7 +10,11 @@ assert news_tone('Player ruled out after injury')[0]=='🔴'
 assert news_tone('Player could return after injury')[0]=='⚪'
 assert news_tone('Player records career-high in win')[0]=='🟢'
 assert news_tone('Player speaks at media day')[0]=='⚪'
-a=AppTest.from_file(str(ROOT/'app.py'),default_timeout=40).run()
+a=AppTest.from_file(str(ROOT/'app.py'),default_timeout=40)
+a.query_params['view']='desktop'
+a.run()
+assert a.segmented_control(key='device_view').value=='手機版'
+assert a.query_params['view'] in ('mobile',['mobile'])
 a.segmented_control(key='device_view').set_value('手機版').run()
 a.sidebar.radio[0].set_value('模擬對局 Matchup Simulator').run()
 assert not a.exception,a.exception
@@ -19,6 +23,11 @@ assert any('Lite' in x.value for x in a.subheader)
 a.segmented_control(key='device_view').set_value('電腦版').run()
 assert not a.exception,a.exception
 assert any('Matchup Simulator' in x.value for x in a.title)
+a.run()
+assert a.segmented_control(key='device_view').value=='電腦版'
+b=AppTest.from_file(str(ROOT/'app.py'),default_timeout=40)
+b.query_params['view']='desktop';b.run()
+assert b.segmented_control(key='device_view').value=='手機版'
 source=(ROOT/'matchup_simulator_v15.py').read_text();tree=ast.parse(source)
 js=next(n.value.value for n in ast.walk(tree) if isinstance(n,ast.Assign) and any(isinstance(x,ast.Name) and x.id=='JS' for x in n.targets))
 node='/Users/zoupeien/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node'
