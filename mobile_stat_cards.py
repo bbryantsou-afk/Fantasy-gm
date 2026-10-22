@@ -17,11 +17,13 @@ def player_rows(rows):
     out=['<div class="mobile-player-rows">']
     for row in rows:
         raw_name=str(row.get('球員',''));name=html.escape(raw_name)
+        position=html.escape(str(row.get('位置') or ''))
+        position_html=f'<small class="mobile-stat-position">{position}</small>' if position else ''
         pid=str(row.get('_nba_id') or portraits().get(raw_name,''))
         photo=f'<img loading="lazy" src="https://cdn.nba.com/headshots/nba/latest/260x190/{pid}.png" alt="{name}">' if pid.isdigit() else '<span class="mobile-stat-avatar">🏀</span>'
         games=row.get('場次',row.get('GP'));games='—' if games is None else str(games)
         icon=trend_icon(row.get('週場均趨勢',''))
-        out.append(f'<div class="mobile-stat-player"><div class="mobile-stat-heading">{photo}<b>{name}</b><span>{games} 場　{icon}</span></div><div class="mobile-stat-values">')
+        out.append(f'<div class="mobile-stat-player"><div class="mobile-stat-heading">{photo}<b>{name} {position_html}</b><span>{games} 場　{icon}</span></div><div class="mobile-stat-values">')
         for cat in CATS:
             label=LABELS[cat];value=row.get(label,row.get(cat))
             if value is None and cat in ('FG','FT') and row.get(cat+'A'):value=f"{row[cat+'M']/row[cat+'A']:.1%}"

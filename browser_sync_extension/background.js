@@ -41,7 +41,16 @@ async function collect(league,date,report){
         else report({kind:'progress',message:'名單已讀取；對戰排程未更新：'+result.error});
       }catch(e){report({kind:'progress',message:'對戰排程未更新：'+e.message});}
     }
-    const snapshot={...batch.primary,history:batch.history,...(schedule?{matchupSchedule:schedule}:{})};
+    let matchupResults;
+    try{
+      const result=await execute(tab.id,async(lid,day,weeks)=>{
+        async function read(path){const r=await fetch(path,{credentials:'same-origin',signal:AbortSignal.timeout(15000)});if(!r.ok)throw Error('Yahoo '+r.status);return new DOMParser().parseFromString(await r.text(),'text/html');}
+        try{return {ok:true,results:await collectYahooMatchupResults(read,lid,day,weeks)};}catch(e){return {ok:false,error:e.message};}
+      },[league,date,schedule||[]]);
+      if(result.ok)matchupResults=result.results;
+      else report({kind:'progress',message:'名單已讀取；官方比分未更新：'+result.error});
+    }catch(e){report({kind:'progress',message:'官方比分未更新：'+e.message});}
+    const snapshot={...batch.primary,history:batch.history,...(schedule?{matchupSchedule:schedule}:{}),...(matchupResults?{matchupResults}:{})};
     stored.snapshots=stored.snapshots||{};
     // Keep daily data once; repeating a full week inside every cached date exceeds Chrome quota.
     const {history:unusedHistory,...dailySnapshot}=snapshot;stored.snapshots[date]=dailySnapshot;

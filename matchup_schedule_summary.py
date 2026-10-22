@@ -8,7 +8,7 @@ def schedule_summary(schedule, week_dates, team_ids, all_games=False):
     leaders=sorted(team for team,n in counts.items() if n==maximum and maximum)
     def logo_grid(teams):
         return '<div class="sched-cards">'+''.join(
-            f'<div class="sched-card" title="{t}"><img loading="lazy" src="https://cdn.nba.com/logos/nba/{team_ids[t]}/primary/L/logo.svg" alt="{t} 隊徽"><strong>{t}</strong></div>' for t in teams)+'</div>'
+            f'<div class="sched-card" title="{t}"><img loading="lazy" src="https://cdn.nba.com/logos/nba/{team_ids[t]}/primary/L/logo.svg" alt="{t} 隊徽"></div>' for t in teams)+'</div>'
     cards=f'<div class="sched-game-count">本週最多 <strong>{maximum} 場</strong> · {len(leaders)} 隊並列</div>'+logo_grid(leaders[:15])
     if len(leaders)>15:
         cards+=f'<details class="sched-more"><summary><span class="sched-expand">⋯ 展開其餘 {len(leaders)-15} 隊</span><span class="sched-collapse">收起</span></summary>'+logo_grid(leaders[15:])+'</details>'
@@ -31,7 +31,7 @@ def schedule_summary(schedule, week_dates, team_ids, all_games=False):
                 cells.append(f'<td class="sched-b2b" title="{html.escape(tip)}">{marker}</td>')
             else:
                 cells.append('<td>·</td>')
-        rows.append(f'<tr><th><img src="https://cdn.nba.com/logos/nba/{team_ids[team]}/primary/L/logo.svg" alt="">{team} · {counts[team]} 場</th>'+''.join(cells)+'</tr>')
+        rows.append(f'<tr><th><img src="https://cdn.nba.com/logos/nba/{team_ids[team]}/primary/L/logo.svg" alt="{team}" title="{team}"> {counts[team]} 場</th>'+''.join(cells)+'</tr>')
     calendar=('<div class="sched-calendar"><table><thead><tr><th>球隊</th>'+headers+'</tr></thead><tbody>'+''.join(rows)+'</tbody></table></div>') if rows else '<p>本週沒有 back-to-back。</p>'
     return cards,calendar,leaders
 

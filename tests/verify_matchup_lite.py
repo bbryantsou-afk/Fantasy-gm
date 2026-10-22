@@ -19,10 +19,12 @@ a.segmented_control(key='device_view').set_value('手機版').run()
 a.sidebar.radio[0].set_value('模擬對局 Matchup Simulator').run()
 assert not a.exception,a.exception
 assert len(a.selectbox(key='sim_my_team').options)==14
-assert any('Lite' in x.value for x in a.subheader)
+assert a.session_state['device_view']=='手機版'
+assert not any('Matchup Simulator' in x.value for x in list(a.title)+list(a.subheader))
 a.segmented_control(key='device_view').set_value('電腦版').run()
 assert not a.exception,a.exception
-assert any('Matchup Simulator' in x.value for x in a.title)
+assert a.session_state['device_view']=='電腦版'
+assert not any('Matchup Simulator' in x.value for x in list(a.title)+list(a.subheader))
 a.run()
 assert a.segmented_control(key='device_view').value=='電腦版'
 b=AppTest.from_file(str(ROOT/'app.py'),default_timeout=40)

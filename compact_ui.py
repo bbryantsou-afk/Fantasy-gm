@@ -36,6 +36,7 @@ CSS='''
 .mobile-stat-player{padding:6px 0;border-bottom:1px solid #84939b55;min-width:0}
 .mobile-stat-heading{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:12px;line-height:1.4}
 .mobile-stat-heading b{flex:1;min-width:0;overflow-wrap:anywhere}.mobile-stat-heading span{white-space:nowrap;font-size:11px}
+.mobile-stat-position{font-size:10px!important;font-weight:500;opacity:.8;margin-left:4px;white-space:nowrap}
 .mobile-stat-values{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:2px;margin-top:3px}
 .mobile-stat-values>span{display:flex;flex-direction:column;min-width:0;text-align:center}
 .mobile-stat-values small{font-size:8px;opacity:.8}.mobile-stat-values b{font-size:clamp(8px,2.4vw,11px);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
@@ -102,6 +103,9 @@ CSS='''
 .st-key-watch_grid [class*="st-key-watch_detail_"] img{max-height:none}
 @media(min-width:900px){.st-key-dashboard_controls [data-testid="stHorizontalBlock"],.st-key-watch_controls [data-testid="stHorizontalBlock"]{flex-wrap:nowrap!important;gap:12px!important}}
 @media(max-width:640px){
+ .sched-calendar{max-height:none!important;height:auto!important;overflow:visible!important}
+ .mobile-rank-list{max-height:none!important;overflow-y:visible!important}
+
 
  /* Keep related controls together instead of Streamlit's one-column stacking. */
  [data-testid="stMain"] [data-testid="stHorizontalBlock"]{flex-wrap:nowrap!important;gap:6px!important}

@@ -133,7 +133,6 @@ def pie_details(rows,cat,ref):
 
 
 def render_dashboard():
-    st.subheader('球隊總覽 · 九項貢獻')
     mobile=st.session_state.get('device_view')=='手機版'
     snapshot, entries = load_data()
     players = snapshot['players']
@@ -279,8 +278,14 @@ def render_dashboard():
     else:
         st.info('🏆 本期尚無可評選的出賽紀錄。')
     legend_color = '#465a6a' if st.session_state.get('visual_theme') == '簡約淺色' else '#edf3fb'
-    legend=' '.join('<span style="display:inline-flex;align-items:center;gap:5px;margin:3px 12px 3px 0;color:'+legend_color+';font-size:12px"><span style="background:'+COLORS[i%len(COLORS)]+';width:9px;height:9px;border-radius:50%;display:inline-block"></span>'+html.escape(r['name'])+'</span>' for i,r in enumerate(rows))
-    st.markdown(legend,unsafe_allow_html=True)
+    color_index={r['name']:i for i,r in enumerate(rows)}
+    top_names=[r['name'] for r in scores[:3]]
+    remaining=[r['name'] for r in rows if r['name'] not in top_names]
+    def legend_markup(names):
+        return ' '.join('<span style="display:inline-flex;align-items:center;gap:5px;margin:3px 12px 3px 0;color:'+legend_color+';font-size:12px"><span style="background:'+COLORS[color_index[name]%len(COLORS)]+';width:9px;height:9px;border-radius:50%;display:inline-block"></span>'+html.escape(name)+'</span>' for name in names)
+    if top_names:st.markdown(legend_markup(top_names),unsafe_allow_html=True)
+    if remaining:
+        with st.expander(f'其餘球員顏色圖例（{len(remaining)}）',expanded=False):st.markdown(legend_markup(remaining),unsafe_allow_html=True)
     chart_names=[r['name'] for r in rows]
     mobile=st.session_state.get('device_view')=='手機版'
     charts_per_row=5 if mobile else 3
@@ -314,19 +319,28 @@ def render_dashboard():
     st.markdown('#### 本期球員名單與產量')
     score_map={r['name']:r['score'] for r in scores}
     table=[]
+    roster_by_name={r['name']:r for r in roster}
+    injured_names={r['name'] for r in roster if r.get('status')=='IL'}
     for r in rows:
         item={'球員':r['name'],'NBA球隊':r['team'],'場次':r['gp'] if r['covered'] else None,'狀態':r['reason'] if r['gp'] else '無實績/未開賽',
               **{LABELS[c]:round(r['tot'][c],1) if r['covered'] else None for c in CATS if c not in ('FG','FT')}}
         for c in ('FG','FT'):
             item[LABELS[c]]=f"{r['tot'][c+'M']/r['tot'][c+'A']:.1%}" if r['covered'] and r['tot'][c+'A'] else '—'
-        item={**{k:item[k] for k in ('球員','NBA球隊','場次','狀態')},**{LABELS[c]:item[LABELS[c]] for c in CATS}}
+        item['位置']='/'.join(roster_by_name.get(r['name'],{}).get('eligible',[])) or '—'
+        item={**{k:item[k] for k in ('球員','位置','NBA球隊','場次','狀態')},**{LABELS[c]:item[LABELS[c]] for c in CATS}}
         item['週場均趨勢']=trends[r['name']] if r['covered'] else '— 資料待確認'
         item['MVP分']=round(score_map[r['name']],3) if r['name'] in score_map else None
         table.append(item)
-    if mobile:
-        from mobile_stat_cards import player_rows
-        st.markdown(player_rows([dict(item,_nba_id=next((r.get('id') for r in roster if r['name']==item['球員']),None)) for item in table]),unsafe_allow_html=True)
-    else:st.dataframe(pd.DataFrame(table),hide_index=True,width='stretch')
+    active_table=[item for item in table if item['球員'] not in injured_names]
+    injured_table=[item for item in table if item['球員'] in injured_names]
+    def show_production(items):
+        if mobile:
+            from mobile_stat_cards import player_rows
+            st.markdown(player_rows([dict(item,_nba_id=roster_by_name.get(item['球員'],{}).get('id')) for item in items]),unsafe_allow_html=True)
+        else:st.dataframe(pd.DataFrame(items),hide_index=True,width='stretch')
+    show_production(active_table)
+    if injured_table:
+        with st.expander(f'傷兵／IL（{len(injured_table)}）',expanded=False):show_production(injured_table)
     with st.expander('各項場均與前週比較 📈 / 📉'):
         comparison=[]
         for r in weekly:

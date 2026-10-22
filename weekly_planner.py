@@ -35,7 +35,6 @@ def render_planner():
 
 def _render_planner(notes):
     from team_workbench import lineup_week,team_value,matchup_score
-    st.subheader('📅 每週補強')
     snapshot,entries=load_data();players=snapshot['players'];pool=profiles(players,entries)
     with st.container(key='planner_teams'):
         mine,theirs=st.columns(2)

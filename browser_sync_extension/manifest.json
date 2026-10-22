@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Fantasy GM 私人聯盟同步",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "按下同步後，以已登入的 Yahoo 網頁唯讀取得指定日期陣容，不傳送登入憑證。",
   "permissions": [
     "storage",

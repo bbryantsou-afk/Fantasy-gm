@@ -196,7 +196,6 @@ elif page == "Data Source 資料中心":
     render_data_center()
 
 elif page == "⚙️ 設定":
-    st.subheader('⚙️ 設定')
     render_account()
     poll_account()
     from setup_guide import render_setup_guide
@@ -339,7 +338,7 @@ if st.session_state.get("visual_theme")=="簡約淺色":
 
 from compact_ui import render_compact_ui
 render_compact_ui()
-st.caption("版本 2026.10.23-ui24 · 電腦／手機共用版本")
+st.caption("版本 2026.10.23-ui25 · 電腦／手機共用版本")
 
 save_browser_records()
 

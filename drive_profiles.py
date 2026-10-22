@@ -44,6 +44,19 @@ class CloudClient:
             after=self.request('GET','files/'+fid,version=2,params={'fields':'id,etag'}).json().get('etag')
             if before!=after:raise CloudConflict('讀取期間其他裝置已更新 Drive 資料。')
         return data,before
+    def storage_usage(self):
+        """Read app-owned file metadata only; never modify or delete cloud data."""
+        files=[];cursor=None
+        for _ in range(20):
+            params={'spaces':'appDataFolder','q':'trashed = false','fields':'files(name,size,quotaBytesUsed),nextPageToken','pageSize':100}
+            if cursor:params['pageToken']=cursor
+            body=self.request('GET','files',params=params).json()
+            for f in body.get('files',[]):
+                files.append({'name':f.get('name',''),'size':int(f.get('size',0)),'quota':int(f.get('quotaBytesUsed',f.get('size',0)))})
+            cursor=body.get('nextPageToken')
+            if not cursor:return files
+        raise CloudError('Drive 檔案數量超出本次檢查範圍，未顯示不完整統計。')
+
     def load(self,owner):
         fid=self.lookup()
         if not fid:return None

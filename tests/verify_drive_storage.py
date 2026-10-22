@@ -54,3 +54,11 @@ with patch('drive_profiles.access_token',return_value='private-access'),patch('d
  try:CloudClient().load(owner);raise AssertionError('duplicates silently accepted')
  except CloudError:pass
 print('PASS PKCE, state tamper/expiry, encrypted login restore, Drive appData-only requests, conditional writes and duplicate protection (mock HTTP)')
+
+with patch.object(CloudClient,'request') as request:
+ request.return_value=Response({'files':[{'name':'fantasy-gm-league-7-v1.json','size':'1024','quotaBytesUsed':'2048'},{'name':'fantasy-gm-profile-v1.json','size':'512','quotaBytesUsed':'512'}]})
+ usage=CloudClient().storage_usage()
+ assert sum(f['size'] for f in usage)==1536 and sum(f['quota'] for f in usage)==2560
+ assert request.call_args.args[0]=='GET'
+ assert request.call_args.kwargs['params']['spaces']=='appDataFolder'
+print('PASS storage audit reads current file sizes and Google quota without creating or deleting files')

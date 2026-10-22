@@ -17,6 +17,8 @@ def render_calendar():
     cards,calendar,_=schedule_summary(schedule,days,team_ids,all_games=mode=='全部球隊出賽')
     st.markdown(f'**{monday:%m/%d}–{days[-1]:%m/%d} · NBA 出賽週曆**')
     st.markdown(CSS,unsafe_allow_html=True)
+    if st.session_state.get('device_view')=='手機版':
+        st.markdown('<style>.sched-calendar{max-height:none!important;height:auto!important;overflow:visible!important}</style>',unsafe_allow_html=True)
     st.markdown(calendar,unsafe_allow_html=True)
     with st.expander('本週出賽最多',expanded=False):st.markdown(cards,unsafe_allow_html=True)
     with st.expander('週曆說明',expanded=False):st.caption('日期採美東；✓ 為有賽程，B2B 模式只標連續兩天出賽，* 為跨週。球隊有賽程不代表球員確定上場。使用與模擬對局相同的賽程快照。')

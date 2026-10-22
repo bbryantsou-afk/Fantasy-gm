@@ -78,7 +78,6 @@ def render_trades():
             for note in notes:st.caption(note)
 
 def _render_trades(notes):
-    st.subheader('🤝 交易分析室')
     snapshot,entries=load_data()
     players=snapshot['players']; pool=profiles(players,entries)
     with st.container(key='trade_teams'):

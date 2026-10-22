@@ -28,10 +28,7 @@ def process_simulation_save(change):
 
 def render_matchup_simulator(lite=False):
     if lite:
-        st.subheader("🏀 Matchup Simulator Lite")
         st.markdown('<style>[data-testid="stMainBlockContainer"]{padding-top:2rem}</style>',unsafe_allow_html=True)
-    else:
-        st.title("🏀 Fantasy GM — Matchup Simulator")
     page_caption("過去與今天載入該日 Fantasy 先發及實績；未來可套用上季場均或自訂預測。日期採美東比賽日。")
 
     today = datetime.now(ZoneInfo("America/New_York")).date()

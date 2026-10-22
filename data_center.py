@@ -59,7 +59,9 @@ def store():
     if '_results' not in st.session_state:
         try:st.session_state['_results']=json.loads(private_path(FILE).read_text())
         except (ValueError,OSError):st.session_state['_results']={'weeks':{},'days':{}}
-    return st.session_state['_results']
+    from yahoo_matchup_results import merge_into_store
+    today=datetime.now(ZoneInfo('America/New_York')).date()
+    return merge_into_store(st.session_state['_results'],st.session_state.get('_league',{}),today)
 
 def save(data):
     path=private_path(FILE);temp=path.with_suffix('.tmp');temp.write_text(json.dumps(data,ensure_ascii=False));temp.replace(path)
@@ -100,7 +102,6 @@ def totals_table(totals):
 
 def render_data_center():
     _,entries=load_data();league=state(entries);teams=list(league['teams']);data=store()
-    st.subheader('📚 Data Source · 資料中心')
     page_caption('選秀為原始紀錄；週結果與積分榜使用已保存實績。登入 Google 後保存至個人 Drive；訪客請下載備份。')
     draft_tab,schedule_tab,weekly_tab=st.tabs(['選秀結果','每週對手排程','原始數據與備份'])
     with schedule_tab:
@@ -224,6 +225,8 @@ def week_view(data,team,key,today):
     enemy=week.get('teams',{}).get(opponent) if opponent else None
     if start>today:return {'status':'尚未開賽','opponent':opponent,'a':None,'b':None,'missing':[],'stamp':''}
     if not record or not enemy:return {'status':'對手尚未設定','opponent':None,'a':None,'b':None,'missing':[],'stamp':''}
+    if week.get('source')=='Yahoo 官方對局總表':
+        return {'status':'Yahoo 官方週比分（週已結束）' if week.get('final') else 'Yahoo 官方即時比分','opponent':opponent,'a':record['totals'],'b':enemy['totals'],'missing':[],'stamp':week.get('updated_at','')}
     if week.get('final'):
         return {'status':'已結算','opponent':opponent,'a':record['totals'],'b':enemy['totals'],'missing':[],'stamp':week.get('updated_at','')}
     days=[start+timedelta(days=i) for i in range((min(end,today)-start).days+1)]
@@ -245,7 +248,6 @@ def week_view(data,team,key,today):
 def render_matchup_results():
     from roster_store import choose_team
     _,entries=load_data();league=state(entries);teams=list(league['teams']);data=store()
-    st.subheader('🏟️ 比賽戰況')
     today=datetime.now(ZoneInfo('America/New_York')).date()
     left,right=st.columns(2)
     with left:team=choose_team(entries,'results_team','查看隊伍')
@@ -255,6 +257,8 @@ def render_matchup_results():
     current=str(today-timedelta(days=today.weekday()))
     with right:key=st.selectbox('對戰週',weeks,index=weeks.index(current) if current in weeks else 0,format_func=lambda k:f"{k} ～ {date.fromisoformat(k)+timedelta(days=6)}",key='results_week')
     view=week_view(data,team,key,today)
+    from daily_evidence import refresh_live_page
+    refresh_live_page()
     st.caption('美東比賽日 · '+view['status']+((' · 更新：'+view['stamp']) if view['stamp'] else ''))
     opponent=view['opponent']
     st.markdown('### '+team_label(team)+'　vs　'+(team_label(opponent) if opponent else '對手待確認'))

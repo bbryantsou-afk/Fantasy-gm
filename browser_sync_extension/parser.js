@@ -156,3 +156,47 @@ function parseYahooTeamSchedule(doc,league){
   return out;
 }
 if(typeof module!=='undefined')Object.assign(module.exports,{parseYahooMatchupWeek,parseYahooTeamSchedule,collectYahooSchedule,collectYahooRosterWeek});
+
+function parseYahooMatchupTotals(doc,league,expectedIds){
+  const table=doc.querySelector('#matchup-wall-header table');
+  if(!table)throw Error('Yahoo 對局總表尚未載入。');
+  const headers=[...table.querySelectorAll('thead th')].map(c=>c.textContent.trim());
+  const counts={'3PTM':'FG3M','PTS':'PTS','REB':'REB','AST':'AST','ST':'STL','BLK':'BLK','TO':'TOV'};
+  const index=label=>{const n=headers.indexOf(label);if(n<0)throw Error('Yahoo 對局缺少 '+label);return n;};
+  const rows=[...table.querySelectorAll('tbody tr')].map(row=>{
+    const link=[...row.querySelectorAll('a[href]')].find(a=>new URL(a.getAttribute('href'),'https://basketball.fantasysports.yahoo.com').pathname.match(new RegExp('^/nba/'+league+'/\\d+/?$')));
+    const id=link&&new URL(link.getAttribute('href'),'https://basketball.fantasysports.yahoo.com').pathname.split('/').filter(Boolean).at(-1);
+    if(!id)throw Error('Yahoo 對局隊伍無法確認。');
+    const totals={};
+    for(const [label,key] of Object.entries(counts)){
+      const raw=row.cells[index(label)]?.textContent.trim().replaceAll(',','');
+      if(!/^\d+(\.\d+)?$/.test(raw??''))throw Error('Yahoo 對局數據未完整，保留上次比分。');
+      totals[key]=Number(raw);
+    }
+    for(const prefix of ['FG','FT']){
+      const raw=row.cells[index(prefix+'M/A*')]?.textContent.trim().replaceAll(',','');
+      const match=/^(\d+)\/(\d+)$/.exec(raw??'');
+      if(!match||Number(match[1])>Number(match[2]))throw Error('Yahoo 對局命中／出手不完整。');
+      totals[prefix+'M']=Number(match[1]);totals[prefix+'A']=Number(match[2]);
+    }
+    return {id,totals};
+  });
+  if(rows.length!==2||rows[0].id===rows[1].id||expectedIds.some(id=>!rows.some(r=>r.id===id)))throw Error('Yahoo 對局隊伍不符。');
+  return rows.map((r,i)=>({...r,opponent:rows[1-i].id}));
+}
+async function collectYahooMatchupResults(read,league,day,schedule,report=()=>{}){
+  const week=(schedule??[]).find(w=>w.start<=day&&day<=w.end);
+  if(!week||!week.pairs?.length)throw Error('尚無所選日期的官方對手配對。');
+  const teams=[];let cursor=0;
+  async function worker(){while(cursor<week.pairs.length){
+    const pair=week.pairs[cursor++];report('讀取 Yahoo Week '+week.week+' 官方比分…');
+    const doc=await read(`/nba/${league}/matchup?week=${week.week}&date=totals&mid1=${pair[0]}&mid2=${pair[1]}`);
+    const dates=parseYahooMatchupWeek(doc,league,week.week);
+    if(dates.start!==week.start||dates.end!==week.end)throw Error('Yahoo 比分週次／日期不符。');
+    teams.push(...parseYahooMatchupTotals(doc,league,pair));
+  }}
+  await Promise.all([worker(),worker()]);
+  if(new Set(teams.map(t=>t.id)).size!==week.pairs.length*2)throw Error('Yahoo 比分隊伍重複。');
+  return {week:week.week,start:week.start,end:week.end,capturedAt:new Date().toISOString(),teams};
+}
+if(typeof module!=='undefined')Object.assign(module.exports,{parseYahooMatchupTotals,collectYahooMatchupResults});

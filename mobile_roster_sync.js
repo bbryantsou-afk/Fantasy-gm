@@ -33,7 +33,10 @@
         try{localStorage.setItem(cacheKey,JSON.stringify({day,weeks:schedule}));}catch{}
       }
     }catch(e){status('名單已讀取；對戰表暫未更新：'+e.message);}
-    const snapshot={...batch.primary,history:batch.history,...(schedule?{matchupSchedule:schedule}:{})};
+    let matchupResults;
+    try{matchupResults=await collectYahooMatchupResults(read,league,day,schedule,status);}
+    catch(e){status('名單已讀取；官方比分未更新：'+e.message);}
+    const snapshot={...batch.primary,history:batch.history,...(schedule?{matchupSchedule:schedule}:{}),...(matchupResults?{matchupResults}:{})};
     let bytes=new TextEncoder().encode(JSON.stringify(snapshot));let prefix='#yahoo-roster=';
     if(typeof CompressionStream!=='undefined'){
       bytes=new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());prefix='#yahoo-roster-gzip=';

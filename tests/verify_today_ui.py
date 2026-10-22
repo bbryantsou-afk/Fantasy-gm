@@ -62,3 +62,12 @@ league['daily_rosters']={str(today):{'teams':{team:[r]},'stats_scope':'day','cap
 b.session_state['_league']=league;b.run();assert not b.exception,b.exception
 assert not any('暫定 MVP · NBA 名單實績' in m.value for m in b.markdown)
 print('PASS fresh user reference MVP and automatic switch back to verified Fantasy production')
+
+assert '位置' in next(t.value for t in b.dataframe if '狀態' in t.value.columns).columns
+league=b.session_state['_league'];team=list(league['teams'])[0]
+injured=league['teams'][team][1]['name'];league['teams'][team][1]['status']='IL'
+b.session_state['_league']=league;b.run();assert not b.exception,b.exception
+assert any(x.label.startswith('傷兵／IL') for x in b.expander)
+assert any(x.label.startswith('其餘球員顏色圖例') for x in b.expander)
+assert injured not in next(t.value for t in b.dataframe if '狀態' in t.value.columns)['球員'].tolist()
+print('PASS collapsed legend, separate IL table and displayed positions')

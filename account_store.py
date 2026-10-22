@@ -187,6 +187,22 @@ def render_account():
         render_login('drive_settings_login')
         return
     st.write('已登入：'+st.session_state['_account_user_name'])
+    with st.expander('Google Drive 空間與保存方式',expanded=False):
+        st.write('每個聯盟使用一份 JSON 檔；後續修改覆寫同一檔案。雲端版本數字是更新次數，不代表新增了同樣數量的檔案。')
+        st.caption('每日陣容、每週比分和已保存模擬會讓檔案內容增加；舊版單聯盟紀錄保留作為遷移備份。不會自動刪除歷史。')
+        if st.button('檢查 Drive 實際占用',key='drive_storage_check'):
+            try:st.session_state['_account_storage_audit']=client().storage_usage()
+            except CloudError as exc:st.error(str(exc))
+        audit=st.session_state.get('_account_storage_audit')
+        if audit is not None:
+            st.write(f"App 專用資料夾：{len(audit)} 份檔案 · 最新內容共 {sum(f['size'] for f in audit)/1024:.1f} KB · Google 回報占用 {sum(f['quota'] for f in audit)/1024:.1f} KB")
+            st.dataframe([{'檔案':f['name'],'最新內容（KB）':round(f['size']/1024,1),'Google 計入空間（KB）':round(f['quota']/1024,1)} for f in audit],hide_index=True,width='stretch')
+        current=snapshot()
+        labels={'league_rosters.json':'名單與每日陣容','league_results.json':'每週比分與當日總數','simulations.json':'已保存模擬'}
+        sizes=[{'內容':labels.get(name,name),'本裝置內容（KB）':round(len(json.dumps(body,ensure_ascii=False).encode())/1024,1)} for name,body in current['files'].items()]
+        st.dataframe(sizes,hide_index=True,width='stretch')
+        league=current['files'].get('league_rosters.json',{})
+        st.caption(f"目前保存 {len(league.get('daily_rosters',{}))} 天陣容、{len(current['files'].get('simulations.json',{}))} 個命名模擬。本裝置內容統計不代表尚未保存的變更已上雲端。")
     with st.expander('Google Drive 現在保存什麼？'):
         st.write('聯盟球隊與球員名單（含 IL、每日先發快照）、已同步的每週對手排程、已保存週比分與即時數據、星號觀察名單、9-Cat 母體與權重、交易偏好與評語，以及按「儲存模擬」保存的雙方七日排陣、每日數據套用、自訂預測與新增球員。')
         st.caption('保存於你自己的 Drive 隱藏 App 資料夾。Google／Yahoo 密鑰不放進紀錄；未按儲存的模擬編輯不會上傳。NBA 原始資料由網站提供，不會整份複製至個人 Drive。')

@@ -8,14 +8,14 @@ from fantasy_schedule import week_for
 def weekly_score(league, saved, team, start, end, today, live=None):
     record=saved.get('weeks',{}).get(str(start),{})
     old=record.get('teams',{}).get(team,{})
-    pairing=week_for(league,start) or {}
+    pairing=week_for(league,start) or week_for(league,end) or {}
     opponent=pairing.get('opponents',{}).get(team) or old.get('opponent')
     result={'opponent':opponent,'score':None,'status':'對手尚未同步'}
     if not opponent:return result
     if start>today:return dict(result,status='尚未開賽')
     enemy=record.get('teams',{}).get(opponent)
-    if record.get('final') and enemy and old.get('totals') is not None:
-        a,b=old['totals'],enemy['totals'];status='已結算'
+    if (record.get('final') or record.get('source')=='Yahoo 官方對局總表') and enemy and old.get('totals') is not None:
+        a,b=old['totals'],enemy['totals'];status=('Yahoo 官方週比分（週已結束）' if record.get('source')=='Yahoo 官方對局總表' else '已結算') if record.get('final') else 'Yahoo 官方即時比分'
     else:
         stats_start=max(start,date(2026,10,20))
         left,ma,_,_=fantasy_period(league,team,stats_start,end,today,live)

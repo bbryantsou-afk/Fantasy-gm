@@ -95,7 +95,6 @@ def player_bio(pid):
 
 def render_watchroom():
     from roster_store import active_team,ownership,availability,editor,identity
-    st.subheader('⭐ 球員觀察室')
     snapshot,entries=load_data();players=snapshot['players']
     with st.container(key='watch_controls'):
         controls=st.columns([1.1,1.1,2])

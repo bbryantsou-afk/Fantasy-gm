@@ -61,6 +61,9 @@ def validate_backup(data,teams,allow_history=True):
     if data.get('matchup_schedule'):
         from fantasy_schedule import validate_schedule
         output['matchup_schedule']=validate_schedule(data['matchup_schedule'],teams)
+    if data.get('yahoo_matchups'):
+        from yahoo_matchup_results import validate_stored_results
+        output['yahoo_matchups']=validate_stored_results(data['yahoo_matchups'],teams)
     return output
 
 def render_league_settings():
