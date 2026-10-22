@@ -333,6 +333,8 @@ elif page == "Matchup Simulator Lite":
 
 elif page == "模擬對局 Matchup Simulator":
     render_matchup_simulator(lite=view=='手機版')
+from page_guidance import render as render_page_guidance
+render_page_guidance()
 st.divider()
 st.caption("Fantasy NBA GM · 9-Cat 整合版" if page in ("9-Cat Strategy", "總覽 Dashboard", "模擬對局 Matchup Simulator", "Matchup Simulator Lite", "聯盟同步 League Sync", "比賽戰況", "Data Source 資料中心", "⚙️ 設定", "球員觀察室 Player Watch", "每週補強 Weekly Planner", "交易分析 Trade Lab") else "Fantasy NBA GM · Demo Version 0.2")
 
@@ -344,7 +346,7 @@ if st.session_state.get("visual_theme")=="簡約淺色":
 
 from compact_ui import render_compact_ui
 render_compact_ui()
-st.caption("版本 2026.10.22-ui17a · 電腦／手機共用版本")
+st.caption("版本 2026.10.23-ui18 · 電腦／手機共用版本")
 
 save_browser_records()
 

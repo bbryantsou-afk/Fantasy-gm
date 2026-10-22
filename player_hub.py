@@ -1,3 +1,4 @@
+from page_guidance import caption as page_caption
 from app_storage import private_path
 """Shared roster selection, persistent watch stars, and public news."""
 import json,re
@@ -151,7 +152,7 @@ def show_player_detail(selected,pool,names):
             except Exception:
                 st.info('官方基本資料暫時無法連線，請使用官方球員頁。')
     st.markdown('#### 近14天新聞')
-    st.caption('🟢 正面訊號 · 🔴 負面訊號 · ⚪ 中性／待確認。依標題關鍵字初步標示，請點原文確認，不代表確定出賽狀態。')
+    page_caption('🟢 正面訊號 · 🔴 負面訊號 · ⚪ 中性／待確認。依標題關鍵字初步標示，請點原文確認，不代表確定出賽狀態。')
     if st.button('更新這位球員的新聞',key='watch_refresh_news'):
         player_news.clear()
     try:

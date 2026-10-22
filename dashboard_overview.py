@@ -1,3 +1,4 @@
+from page_guidance import caption as page_caption
 from app_storage import private_path
 """Roster overview with calendar, nine pies and explainable period MVP."""
 import html
@@ -250,8 +251,8 @@ def render_dashboard():
         photo_record=record_map.get(norm(winner['name']))
         photo_id=str(photo_record['PLAYER_ID']) if photo_record else ''
         with st.expander('MVP 評分與趨勢說明',expanded=False):
-            st.caption('MVP採當期九項等權累積標準化貢獻；TO反向、FG/FT以出手量Impact計算。標準化尺度仍使用2025–26選秀母體；所有產量均為所選期間實績。')
-            st.caption('📈／📉：整週每場九項綜合貢獻對比前週，➖為持平；🆕為前週未出賽。單日檢視也顯示所屬整週趨勢；未完賽週僅比較目前已發生場次。')
+            page_caption('MVP採當期九項等權累積標準化貢獻；TO反向、FG/FT以出手量Impact計算。標準化尺度仍使用2025–26選秀母體；所有產量均為所選期間實績。')
+            page_caption('📈／📉：整週每場九項綜合貢獻對比前週，➖為持平；🆕為前週未出賽。單日檢視也顯示所屬整週趨勢；未完賽週僅比較目前已發生場次。')
         photo_url=f'https://cdn.nba.com/headshots/nba/latest/1040x760/{photo_id}.png' if photo_id.isdigit() else ''
         photo_html=(f'<div class="mvp-photo"><img class="portrait" src="{html.escape(photo_url,quote=True)}" alt="{html.escape(winner['name'],quote=True)} MVP 球員照"></div>' if photo_url else '')
         hero=f"""<style>
@@ -342,5 +343,5 @@ def render_dashboard():
             from mobile_stat_cards import player_rows
             st.markdown(player_rows([dict(r,場次=r['本週場次']) for r in comparison]),unsafe_allow_html=True)
         else:st.dataframe(pd.DataFrame(comparison),hide_index=True,width='stretch')
-        st.caption('每項以本週總數÷實際出賽場次；FG/FT為總命中÷總出手。TO越低越好。pp代表百分點。')
+        page_caption('每項以本週總數÷實際出賽場次；FG/FT為總命中÷總出手。TO越低越好。pp代表百分點。')
     st.download_button('下載本期名單與貢獻CSV',pd.DataFrame(table).to_csv(index=False).encode('utf-8-sig'),f'overview_{start}_{end}.csv','text/csv')

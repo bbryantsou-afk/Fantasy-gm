@@ -2,6 +2,17 @@
 import streamlit as st
 import streamlit.components.v1 as components
 CSS='''
+/* Large, visible navigation targets; preserve native widget behaviour. */
+[data-testid="stSidebarCollapseButton"] button,[data-testid="stSidebarCollapsedControl"] button,button[aria-label="Expand sidebar"],button[aria-label="Collapse sidebar"]{min-width:44px!important;min-height:44px!important;padding:8px!important}
+[data-baseweb="select"] svg{min-width:22px;min-height:22px}
+[data-baseweb="select"] [role="button"]{min-width:32px;min-height:32px}
+[data-testid="stExpander"] summary{min-height:44px!important;cursor:pointer}
+[data-testid="stMain"] h1{font-weight:750!important;letter-spacing:-.02em}
+[data-testid="stMain"] h2,[data-testid="stMain"] h3{font-weight:700!important}
+[data-testid="stCaptionContainer"]{color:var(--fgm-muted)!important}
+[data-testid="stCaptionContainer"] p{font-size:12px!important;line-height:1.5!important;color:inherit!important}
+[data-testid="stMetricValue"]{font-weight:700!important;font-variant-numeric:tabular-nums}
+
 
 .mobile-stat-heading img,.mobile-stat-avatar{width:32px;height:28px;object-fit:contain;flex:0 0 32px}
 .planner-mobile-player{display:flex;align-items:center;gap:10px;margin-bottom:8px}
@@ -125,6 +136,16 @@ CSS='''
 NAV='''<script>
 try{
  const w=window.parent,d=w.document;
+ const install=()=>{
+  d.querySelectorAll('[data-baseweb="popover"]').forEach(pop=>{
+   if(!pop.querySelector('[role="listbox"]')||pop.querySelector('[data-fgm-done]'))return;
+   const done=d.createElement('button');done.type='button';done.textContent='完成選擇 · 收起';done.dataset.fgmDone='1';
+   done.style.cssText='position:sticky;bottom:0;width:100%;min-height:44px;border:1px solid #8c9aa8;border-radius:6px;background:var(--fgm-feature-bg,#f7f8fa);color:var(--fgm-feature-fg,#202936);font-size:14px;z-index:2;cursor:pointer';
+   done.onclick=()=>{const active=d.activeElement;active?.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',code:'Escape',bubbles:true}));active?.blur();d.body.dispatchEvent(new w.MouseEvent('mousedown',{bubbles:true}));};
+   pop.appendChild(done);
+  });
+ };
+ if(!w.__fgmSelectDone){w.__fgmSelectDone=new w.MutationObserver(install);w.__fgmSelectDone.observe(d.body,{childList:true,subtree:true});}install();
  if(!w.__fgmAutoNav){
   w.__fgmAutoNav=true;
   d.addEventListener('click',e=>{
@@ -141,7 +162,7 @@ try{
 def render_compact_ui():
     theme=st.session_state.get('visual_theme','黑色鏡面')
     bg,fg,border={'簡約淺色':('#f7f8fa','#202936','#d5dce5'),'戰術板草圖':('#142b29','#f0eee3','#54736a')}.get(theme,('#0b1020','#edf2f7','#384152'))
-    variables=f'.stApp{{--fgm-feature-bg:{bg};--fgm-feature-fg:{fg};--fgm-feature-border:{border};}}'
+    variables=f'.stApp{{--fgm-feature-bg:{bg};--fgm-feature-fg:{fg};--fgm-feature-border:{border};--fgm-muted:{'#526174' if theme=='簡約淺色' else '#b8c7d2'};}}'
     responsive=CSS.replace('@media(max-width:640px)','@media(max-width:100000px)') if st.session_state.get('device_view')=='手機版' else CSS
     st.markdown('<style>'+variables+responsive+'</style>',unsafe_allow_html=True)
     components.html(NAV,height=0)

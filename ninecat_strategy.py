@@ -1,3 +1,4 @@
+from page_guidance import caption as page_caption
 from app_storage import private_path
 """Native Streamlit version of the approved 9-Cat baseline lab."""
 import json
@@ -64,7 +65,7 @@ def package_rows(result):
 def render_ninecat_strategy():
     if st.session_state.get('visual_theme')!='簡約淺色':st.markdown('<style>\n/* Keep the native dark page legible even if a browser is using the light theme. */\n.stApp { color:#edf3fb; --text-color:#edf3fb; color-scheme:dark; }\n[data-testid="stWidgetLabel"] p,\n[data-testid="stRadio"] label p,\n[data-testid="stCheckbox"] label p,\n[data-testid="stMetricLabel"] p,\n[data-testid="stMetricValue"],\n[data-testid="stExpander"] summary p,\n[data-testid="stSlider"] label p { color:#edf3fb !important; }\n[data-testid="stCaptionContainer"] p { color:#bdcadd !important; }\n[data-testid="stMarkdownContainer"] { color:#edf3fb; }\n[data-testid="stBaseButton-secondary"],\n[data-testid="stBaseButton-secondaryFormSubmit"],\n[data-testid="stDownloadButton"] button,\n[data-testid="stButton"] button[kind="secondary"] {\n background:#e8eff8 !important; color:#152b45 !important;\n border:1px solid #93a9c1 !important; }\n[data-testid="stBaseButton-secondary"] *,\n[data-testid="stBaseButton-secondaryFormSubmit"] *,\n[data-testid="stDownloadButton"] button *,\n[data-testid="stButton"] button[kind="secondary"] * { color:#152b45 !important; }\n[data-testid="stBaseButton-primary"] {\n background:#167366 !important; border-color:#39b6a2 !important; color:#ffffff !important; }\n[data-testid="stBaseButton-primary"] * { color:#ffffff !important; }\n[data-testid="stButton"] button:disabled,\n[data-testid="stDownloadButton"] button:disabled {\n background:#293449 !important; color:#a7b6cc !important; border-color:#45516a !important; opacity:1 !important; }\n[data-testid="stButton"] button:disabled *,\n[data-testid="stDownloadButton"] button:disabled * { color:#a7b6cc !important; }\n[data-baseweb="select"] > div { background:#edf2f8 !important; color:#162c45 !important; }\n[data-baseweb="select"] input { color:#162c45 !important; caret-color:#162c45 !important; }\n[data-baseweb="select"] svg { fill:#29415e !important; }\n[data-baseweb="tag"] { background:#244460 !important; }\n[data-baseweb="tag"] * { color:#f3f7ff !important; fill:#f3f7ff !important; }\n[data-testid="stTextInput"] input,\n[data-testid="stNumberInput"] input {\n background:#edf2f8 !important; color:#162c45 !important; caret-color:#162c45 !important; }\ninput::placeholder { color:#5a6b80 !important; opacity:1 !important; }\n[data-baseweb="popover"] [role="option"],\n[data-baseweb="popover"] [role="listbox"] { background:#edf2f8 !important; color:#162c45 !important; }\n[data-baseweb="popover"] [role="option"] * { color:#162c45 !important; }\n.nc-baseline-strip {\n display:grid; grid-template-columns:repeat(9,minmax(62px,1fr));\n overflow-x:auto; background:#151e33; border:1px solid #34425b;\n border-radius:8px; margin:4px 0 10px; padding:7px 3px; gap:0; }\n.nc-baseline-stat { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;\n white-space:nowrap; padding:1px 4px; border-right:1px solid #34425b; }\n.nc-baseline-stat:last-child { border-right:0; }\n.nc-baseline-label { color:#bbcadf; font-size:11px; font-weight:500; }\n.nc-baseline-value { color:#f4f8ff; font-size:14px; font-weight:650; font-variant-numeric:tabular-nums; }\n</style>', unsafe_allow_html=True)
     st.subheader('9-Cat 基準實驗室')
-    st.caption('原生 App 整合版 · 歷史場均與球隊適配分析 · 不會操作 Yahoo 加入、釋出或交易')
+    page_caption('原生 App 整合版 · 歷史場均與球隊適配分析 · 不會操作 Yahoo 加入、釋出或交易')
     try:
         snapshot, entries = load_data()
     except (OSError, ValueError) as exc:
@@ -130,7 +131,7 @@ def render_ninecat_strategy():
     st.divider()
     st.subheader('我的球隊 · 每次計分出賽貢獻')
     st.caption('目前使用上方所選球隊的共用名單；可在總覽編輯名單、位置及 IL。')
-    st.caption('預設有資料者各1場。可改成預期實際計入的場次；板凳、IL及缺資料者不進入歷史估算。這不是本週實績。')
+    page_caption('預設有資料者各1場。可改成預期實際計入的場次；板凳、IL及缺資料者不進入歷史估算。這不是本週實績。')
     roster = st.session_state.nc_roster
     with st.expander('編輯名單、IL及計分場次', expanded=not bool(roster)):
         if roster:
@@ -164,7 +165,7 @@ def render_ninecat_strategy():
                 st.rerun()
             except (ValueError, TypeError, AttributeError) as exc:
                 st.error(str(exc))
-        st.caption('儲存在本機 ninecat_state.json；雲端磁碟可能不持久，請下載備份。')
+        page_caption('儲存在本機 ninecat_state.json；雲端磁碟可能不持久，請下載備份。')
 
     st.subheader('策略權重')
     wc = st.columns(3)
@@ -207,7 +208,7 @@ def render_ninecat_strategy():
         st.button('加入比較包裹', on_click=add_custom, key='nc_custom_add')
     with st.expander('適配分計算方式'):
         scale = st.select_slider('差距敏感範圍', options=[.1, .2, .4], value=.2, format_func=lambda v: f'{v:.0%}', key='nc_scale')
-        st.caption('r＝（我方平均−母體平均）÷母體平均，TO反向。U(r)＝1/(1+exp(−r/s))；適配分＝100×加權平均(U換入後−U原本)。此曲線尚未經勝率校準。')
+        page_caption('r＝（我方平均−母體平均）÷母體平均，TO反向。U(r)＝1/(1+exp(−r/s))；適配分＝100×加權平均(U換入後−U原本)。此曲線尚未經勝率校準。')
     additions = [pool[k] for k in adds]
     ready = bool(drops) or vacancy
     st.write(f'釋出 **{len(drops)} 人** → 加入 **{len(adds)} 人**；名單 **{len(roster)} → {len(roster)-len(drops)+len(adds)} 人**。')
@@ -265,7 +266,7 @@ def render_ninecat_strategy():
     records.sort(key=lambda r: (-r[0], r[1]))
     ranked = [{'排名': i+1, **rec} for i, (_, _, rec) in enumerate(records) if norm(query) in norm(rec['球員']+' '+rec['NBA球隊'])]
     if fit_ranking:
-        st.caption('每列比較加入該球員對現有球隊的幫助；若選了加入／釋出包裹，則一併試算。排名可直接瀏覽，套用名單才檢查人數。缺資料者不排名。')
+        page_caption('每列比較加入該球員對現有球隊的幫助；若選了加入／釋出包裹，則一併試算。排名可直接瀏覽，套用名單才檢查人數。缺資料者不排名。')
     if st.session_state.get('device_view')=='手機版':
         score_key=('包裹＋此人適配分' if additions or drops else '加入適配分') if fit_ranking else 'Weighted Z'
         import html
@@ -282,7 +283,7 @@ def render_ninecat_strategy():
     else:st.dataframe(pd.DataFrame(ranked), hide_index=True, width='stretch')
 
     with st.expander('進階：輸入某週實際總數'):
-        st.caption('七項計數總數÷球員計分出賽場次；FG/FT用總命中÷總出手。此區僅紀錄與比較，不取代上方歷史估算。')
+        page_caption('七項計數總數÷球員計分出賽場次；FG/FT用總命中÷總出手。此區僅紀錄與比較，不取代上方歷史估算。')
         label = st.text_input('週次名稱', key='nc_week_label')
         inputs = st.columns(3)
         raw = {c: inputs[i % 3].number_input('本週 '+('計分出賽場次' if c == 'GP' else c), 0, value=0, step=1, key='nc_week_'+c) for i, c in enumerate(('GP', *KEYS))}
@@ -294,7 +295,7 @@ def render_ninecat_strategy():
                 save_state()
                 st.success('已儲存')
         else:
-            st.caption('請填入大於0的場次；命中不可大於出手，三分命中不可大於投籃命中，得分不可小於三分總得分。')
+            page_caption('請填入大於0的場次；命中不可大於出手，三分命中不可大於投籃命中，得分不可小於三分總得分。')
         history = st.session_state.nc_weeks
         if history:
             st.dataframe(pd.DataFrame([{'週次': w['label'], '場次': w['values']['GP'], 'PTS/場': w['values']['PTS']/w['values']['GP']} for w in history]), hide_index=True)

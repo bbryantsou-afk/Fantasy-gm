@@ -1,3 +1,4 @@
+from page_guidance import caption as page_caption
 from datetime import date, timedelta, datetime
 from zoneinfo import ZoneInfo
 import unicodedata
@@ -31,7 +32,7 @@ def render_matchup_simulator(lite=False):
         st.markdown('<style>[data-testid="stMainBlockContainer"]{padding-top:2rem}</style>',unsafe_allow_html=True)
     else:
         st.title("🏀 Fantasy GM — Matchup Simulator")
-    st.caption("過去與今天載入該日 Fantasy 先發及實績；未來可套用上季場均或自訂預測。日期採美東比賽日。")
+    page_caption("過去與今天載入該日 Fantasy 先發及實績；未來可套用上季場均或自訂預測。日期採美東比賽日。")
 
     today = datetime.now(ZoneInfo("America/New_York")).date()
     PLAYERS = {}
@@ -81,7 +82,7 @@ def render_matchup_simulator(lite=False):
     logs = historical_logs() if selected_season=='2025-26' else []
     default_date=season_begin if selected_season=='2025-26' else max(season_begin,min(season_end,today))
     date_key='sim_date_'+selected_season
-    current_date=st.session_state.get(date_key,default_date)
+    current_date=st.session_state.get(date_key) or default_date
     st.session_state['sim_date_mode']='過去' if current_date<today else '今天' if current_date==today else '未來'
     def choose_date_mode():
         mode=st.session_state['sim_date_mode']
@@ -93,6 +94,9 @@ def render_matchup_simulator(lite=False):
         value=None if date_key in st.session_state else default_date,
         min_value=season_begin, max_value=season_end, key="sim_date_"+selected_season,
     )
+    if selected_date is None:
+        st.info('請先選擇比賽日期。')
+        return
     week_start = selected_date - timedelta(days=selected_date.weekday())
     week_dates = [week_start + timedelta(days=i) for i in range(7)]
     st.caption(f"🏀 Matchup Week：{week_dates[0]:%Y-%m-%d} ～ {week_dates[6]:%Y-%m-%d}")
@@ -107,7 +111,8 @@ def render_matchup_simulator(lite=False):
         if pairing and not st.session_state.pop('_sim_manual_restore',False):st.session_state['sim_opp_team']=pairing
         st.session_state['_sim_pairing_context']=context
     opp_team=right.selectbox('對手球隊',teams,index=1,key='sim_opp_team',format_func=team_formatter())
-    sim_notes=st.expander('資料來源／操作說明',expanded=False)
+    from types import SimpleNamespace
+    sim_notes=SimpleNamespace(caption=page_caption) if lite else st.expander('資料來源／操作說明',expanded=False)
     if pairing:sim_notes.caption(f"Yahoo Week {known_week['week']} · 預設對手：{team_label(pairing)}（可自行切換研究）")
     else:sim_notes.caption('此週尚無已同步的 Yahoo 對手；請先同步，或自行選擇對手。')
     for side,team in [('my',my_team),('opp',opp_team)]:
@@ -164,7 +169,7 @@ def render_matchup_simulator(lite=False):
         schedule = {}
         for r in logs:
             schedule.setdefault(r['TEAM_ABBREVIATION'],set()).add(date.fromisoformat(r['GAME_DATE'][:10]))
-        st.caption('上季賽程與單場實績使用已保存的 2025–26 NBA 例行賽紀錄；沿用目前聯盟名單回測，並非歷史 Fantasy 名單。')
+        page_caption('上季賽程與單場實績使用已保存的 2025–26 NBA 例行賽紀錄；沿用目前聯盟名單回測，並非歷史 Fantasy 名單。')
     weekly_counts = [(team, sum(day in dates for day in week_dates)) for team, dates in schedule.items()]
     max_games = max((games for _, games in weekly_counts), default=0)
     top_teams = sorted((team, games) for team, games in weekly_counts if games == max_games)
@@ -185,7 +190,7 @@ def render_matchup_simulator(lite=False):
             calendar_mode=st.radio('週曆顯示',['B2B','全部球隊出賽'],horizontal=True,key='sim_calendar_mode',label_visibility='collapsed')
             if calendar_mode=='全部球隊出賽':_,calendar,_=schedule_summary(schedule,week_dates,TEAM_IDS,all_games=True)
             st.markdown(calendar,unsafe_allow_html=True)
-            st.caption("✓ 連兩天出賽的日期 · * 跨週 B2B · 滑鼠移上可看相鄰日期。表內可捲動。")
+            page_caption("✓ 連兩天出賽的日期 · * 跨週 B2B · 滑鼠移上可看相鄰日期。表內可捲動。")
         sim_notes.caption("日期採美東。B2B 依球隊賽程判定，不代表球員確定出場；下方球員綠／紅格分別代表有／無賽程。")
 
     # NBA 球員資料庫：包含不在目前兩隊名單中的球員（例如 Seth Curry）。
@@ -739,9 +744,9 @@ def render_matchup_simulator(lite=False):
       root.querySelector("#editor-close").onclick=()=>{root.querySelector("#editor").hidden=true;};
       root.querySelector("#editor-save").onclick=()=>saveEditor(false);
       root.querySelector("#editor-clear").onclick=()=>saveEditor(true);
-      root.querySelector("#editor").addEventListener("click",e=>{
+      root.querySelector("#editor").onclick=e=>{
         if(e.target.id==="editor")root.querySelector("#editor").hidden=true;
-      });
+      };
 
       function card(p,side,inSlot=false) {
         const el=document.createElement("div");
@@ -1069,19 +1074,19 @@ def render_matchup_simulator(lite=False):
         summary();
       }
 
-      root.querySelector("#auto-day").addEventListener("click",()=>{
+      root.querySelector("#auto-day").onclick=()=>{
         const a=autoFill("my",dayIndex),b=autoFill("opp",dayIndex);
         render();setMessage(`已按名單排名自動排陣：我方 ${a}/10、對手 ${b}/10。`);
-      });
+      };
 
-      root.querySelector("#auto-week").addEventListener("click",()=>{
+      root.querySelector("#auto-week").onclick=()=>{
         let my=0,opp=0;
         for(let i=0;i<weekDates.length;i++){
           my+=autoFill("my",i);
           opp+=autoFill("opp",i);
         }
         render();setMessage(`整週已排完：我方 ${my}、對手 ${opp} 球員場次；策略：名單排名。`);
-      });
+      };
 
       const bulk=root.querySelector('#bulk-profile');bulk.replaceChildren();
       for(const [value,label] of Object.entries(profileLabels)){
@@ -1115,6 +1120,14 @@ def render_matchup_simulator(lite=False):
     """
 
     if lite:
+        # Optional prose belongs below the mobile workflow, outside the live board.
+        import re as guidance_re
+        def collect_guidance(match):
+            page_caption(guidance_re.sub('<[^>]+>', '', match.group(0)))
+            return ''
+        main_html, editor_html = HTML.split('<div id="editor"', 1)
+        main_html = guidance_re.sub(r'<details class="guide">.*?</details>|<div class="note">.*?</div>|<p class="cat-rule">.*?</p>|<span>已完賽實績.*?</span>|<span>每天可獨立調整.*?</span>', collect_guidance, main_html, flags=guidance_re.S)
+        HTML = main_html + '<div id="editor"' + editor_html
         from matchup_lite import LITE_CSS, enhance_lite
         HTML = HTML.replace("名單依選秀輪次排序。拖曳新增球員到垃圾桶可移除；點擊先發球員即可編輯預測數據。", "從底部選擇我的／對手球隊，拖曳或點選姓名再點位置；點頭像查看當天數據。")
         CSS += LITE_CSS
@@ -1179,4 +1192,4 @@ def render_matchup_simulator(lite=False):
         process_simulation_save(change)
         st.rerun() if saved_simulations!=load_simulations() else None
     if st.session_state.get('_sim_save_status'):st.info(st.session_state['_sim_save_status'])
-    st.caption("過去／今天採已同步的 Fantasy 單日實績或 NBA 單場數據，顯示更新時間；未來可使用場均與自訂預測。資料缺失會留白。")
+    page_caption("過去／今天採已同步的 Fantasy 單日實績或 NBA 單場數據，顯示更新時間；未來可使用場均與自訂預測。資料缺失會留白。")

@@ -1,3 +1,4 @@
+from page_guidance import caption as page_caption
 """Private browser-assisted roster snapshots. No Yahoo credentials on the server."""
 import copy,io,json,re,zipfile,hashlib
 from pathlib import Path
@@ -116,13 +117,13 @@ def extension_zip():
 def render_sync_connection(full=False):
     """Always mounted before every analysis page so a fresh cloud session restores its private cache."""
     snapshot,entries=load_data();league=state(entries)
-    if full:st.caption('0.3.1：電腦自動同步每 5 分鐘更新；手動同步立即執行。電腦請更新擴充功能，手機書籤不需因這次頻率調整而更換。')
+    if full:page_caption('0.3.1：電腦自動同步每 5 分鐘更新；手動同步立即執行。電腦請更新擴充功能，手機書籤不需因這次頻率調整而更換。')
     today=datetime.now(ZoneInfo('America/New_York')).date()
     if full:
         if st.session_state.get('device_view')=='手機版':
             mobile_league=st.session_state.get('_sync_requested_league',league.get('sync_league','71585'))
             st.link_button('🔄 前往 Yahoo 更新名單',f'https://basketball.fantasysports.yahoo.com/nba/{mobile_league}')
-            st.caption('開啟 Yahoo 後點「Fantasy GM 同步」書籤，完成後返回此網站。')
+            page_caption('開啟 Yahoo 後點「Fantasy GM 同步」書籤，完成後返回此網站。')
         with st.expander('手機直接同步（不需電腦）',expanded=bool(st.query_params.get('phone_sync'))):
             from mobile_roster import render_mobile_setup
             render_mobile_setup()
@@ -136,8 +137,8 @@ def render_sync_connection(full=False):
         with st.expander('首次安裝／同步說明',expanded=False):
             st.download_button('下載同步擴充功能 ZIP',extension_zip(),'fantasy-gm-sync.zip','application/zip')
             st.markdown('1. 解壓縮 ZIP。\n2. 在桌面 Chrome 開啟 `chrome://extensions`，開啟「開發人員模式」。\n3. 按「載入未封裝項目」，選取含 manifest.json 的 fantasy-gm-sync 資料夾。\n4. 在同一個 Chrome 登入 Yahoo，再開啟這個 App，重新整理後按同步。')
-            st.caption('目前版本 0.3.1：自動更新改為每 5 分鐘；保留整週每日先發與單日實績。下載新版替換原資料夾，在 chrome://extensions 按重新載入，再重新整理 App。開啟自動檢查後約每 5 分鐘更新一次。')
-            st.caption('本機保存最近 14 個日期。網站重開後會自動讀取此瀏覽器已保存的今天名單；若沒有今天快照，請按同步。')
+            page_caption('目前版本 0.3.1：自動更新改為每 5 分鐘；保留整週每日先發與單日實績。下載新版替換原資料夾，在 chrome://extensions 按重新載入，再重新整理 App。開啟自動檢查後約每 5 分鐘更新一次。')
+            page_caption('本機保存最近 14 個日期。網站重開後會自動讀取此瀏覽器已保存的今天名單；若沒有今天快照，請按同步。')
         if re.fullmatch(r'\d{1,10}',source):sync_link.link_button('先登入／查看 Yahoo 聯盟',f'https://basketball.fantasysports.yahoo.com/nba/{source}')
     else:
         source=str(st.session_state.get('_sync_requested_league',league.get('sync_league','71585')))
@@ -155,7 +156,7 @@ def render_sync_connection(full=False):
     if full:result=bridge(**args)
     else:
         with st.expander('名單同步狀態／立即更新',expanded=False):
-            st.caption('全站共用同一個同步接收器。已在此瀏覽器完成配對後，重新連線會自動載入已保存的今天名單。')
+            page_caption('全站共用同一個同步接收器。已在此瀏覽器完成配對後，重新連線會自動載入已保存的今天名單。')
             result=bridge(**args)
     if phone_result and st.query_params.get('phone_sync'):
         result=phone_result
@@ -225,7 +226,7 @@ def render_sync():
         st.markdown('### 已同步的每日陣容')
         date_column,team_column=st.columns(2)
         with date_column:selected=st.selectbox('查看已保存日期',sorted(archives,reverse=True),key='sync_view_date');saved=archives[selected]
-        st.caption('日期以美東比賽日為準。要看當天陣容，先在上方選日期並同步，再在這裡選相同日期。PG～Util 為先發，BN 為板凳，IL 為傷兵。')
+        page_caption('日期以美東比賽日為準。要看當天陣容，先在上方選日期並同步，再在這裡選相同日期。PG～Util 為先發，BN 為板凳，IL 為傷兵。')
         st.caption('讀取時間：'+saved['captured_at']+'。這是當時快照，並非已驗證的最終鎖定紀錄。')
         with team_column:selected_team=st.selectbox('查看當日球隊',['全部球隊']+list(saved['teams']),format_func=team_formatter(),key='sync_daily_team')
         table=[]

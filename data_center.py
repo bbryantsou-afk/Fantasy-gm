@@ -1,3 +1,4 @@
+from page_guidance import caption as page_caption
 """Private weekly evidence store. NBA live reads never imply Yahoo settlement."""
 import copy,json,math
 from datetime import date,datetime,timedelta
@@ -100,7 +101,7 @@ def totals_table(totals):
 def render_data_center():
     _,entries=load_data();league=state(entries);teams=list(league['teams']);data=store()
     st.subheader('📚 Data Source · 資料中心')
-    st.caption('選秀為原始紀錄；週結果與積分榜使用已保存實績。登入 Google 後保存至個人 Drive；訪客請下載備份。')
+    page_caption('選秀為原始紀錄；週結果與積分榜使用已保存實績。登入 Google 後保存至個人 Drive；訪客請下載備份。')
     draft_tab,schedule_tab,weekly_tab=st.tabs(['選秀結果','每週對手排程','原始數據與備份'])
     with schedule_tab:
         from fantasy_schedule import render_schedule
@@ -112,7 +113,7 @@ def render_data_center():
         frame=pd.DataFrame(records);st.dataframe(frame,hide_index=True,width='stretch')
         st.download_button('下載選秀結果 CSV',frame.to_csv(index=False).encode('utf-8-sig'),'draft_results.csv','text/csv')
     with weekly_tab:
-        st.caption('對戰比分與積分排名請到左側「比賽戰況」；這裡維護每週來源資料。對手尚未匯入時不會自行猜測。')
+        page_caption('對戰比分與積分排名請到左側「比賽戰況」；這裡維護每週來源資料。對手尚未匯入時不會自行猜測。')
         st.markdown('#### 保存／核對一週結果')
         day=st.date_input('選擇對戰週內任一天',value=date(2026,10,20),key='ds_week')
         start=day-timedelta(days=day.weekday());end=start+timedelta(days=6);key=str(start)
@@ -156,7 +157,7 @@ def render_data_center():
 
 
 def render_standings(data,teams):
-    st.caption('H2H Each Category：每項各算勝敗，勝率＝（勝＋0.5×和）÷總項數。僅計入已結算週；同勝率暫同名次，未套用 Yahoo 額外同分規則。')
+    page_caption('H2H Each Category：每項各算勝敗，勝率＝（勝＋0.5×和）÷總項數。僅計入已結算週；同勝率暫同名次，未套用 Yahoo 額外同分規則。')
     scores=standings(data['weeks'],teams);records=[];last=None;rank=0
     for i,s in enumerate(scores):
         if s['pct']!=last:rank=i+1;last=s['pct']
@@ -166,7 +167,7 @@ def render_standings(data,teams):
 
 
 def render_live_data(league,teams,data):
-    st.caption('NBA 官方即時 boxscore × 各日已同步先發。按更新抓取當日數據；不是 Yahoo 官方計分，不會自動結算。')
+    page_caption('NBA 官方即時 boxscore × 各日已同步先發。按更新抓取當日數據；不是 Yahoo 官方計分，不會自動結算。')
     today=datetime.now(ZoneInfo('America/New_York')).date()
     start=today-timedelta(days=today.weekday());days=[start+timedelta(days=i) for i in range((today-start).days+1)]
     st.write(f'本週 {start} ～ {start+timedelta(days=6)} · 美東今天 {today}')
@@ -184,7 +185,7 @@ def render_live_data(league,teams,data):
         manual_day=st.date_input('實績日期（美東）',value=today,max_value=today,key='ds_manual_day')
         old=data['days'].get(str(manual_day),{}).get('totals',{})
         frame=pd.DataFrame([{'隊伍':team_label(t),**old.get(t,dict.fromkeys(KEYS,0.))} for t in teams])
-        st.caption('請填各隊當日計分先發的實際總數；不要填球員場均或整週累計。可補存本週較早日期。')
+        page_caption('請填各隊當日計分先發的實際總數；不要填球員場均或整週累計。可補存本週較早日期。')
         st.download_button('下載當日 CSV 範本',frame.to_csv(index=False).encode('utf-8-sig'),'daily_totals.csv','text/csv')
         uploaded=st.file_uploader('匯入已填妥的當日 CSV',type=['csv'],key='ds_daily_csv')
         try:
@@ -211,7 +212,7 @@ def render_live_data(league,teams,data):
         st.caption('今天最後更新：'+saved['updated_at'])
         st.dataframe(saved['statuses'],hide_index=True)
         if saved['unknown']:st.warning('未配對 NBA ID，未計入：'+'、'.join(saved['unknown']))
-    st.caption('此版需在各日按更新保存；過去日期可用上方手動實績補存。名單快照可能在賽前改動，請以 Yahoo 最終結算核對。')
+    page_caption('此版需在各日按更新保存；過去日期可用上方手動實績補存。名單快照可能在賽前改動，請以 Yahoo 最終結算核對。')
     if data['days']:st.dataframe([{'實績日期':d,'來源':v.get('source','手動輸入／CSV'),'更新時間':v['updated_at']} for d,v in sorted(data['days'].items(),reverse=True)],hide_index=True)
 
 
@@ -270,7 +271,7 @@ def render_matchup_results():
         rows=[{'項目':LABELS[c],'我方':display(a,c),'對手':display(b,c),'戰況':{1:'🟢 領先',-1:'🔴 落後',0:'➖ 平手'}[result]} for c,result in zip(CATS,results)]
         if view['missing']:st.warning('只計入已保存日期；缺少：'+ '、'.join(view['missing']))
     st.dataframe(rows,hide_index=True,width='stretch')
-    st.caption('FG／FT 以總命中÷總出手；TO 越低越好。進行中結果不加入聯盟總積分。')
+    page_caption('FG／FT 以總命中÷總出手；TO 越低越好。進行中結果不加入聯盟總積分。')
     st.divider();st.markdown('### 聯盟總積分')
     render_standings(data,teams)
     with st.expander('更新當日數據／匯入實績',expanded=False):
