@@ -2,6 +2,9 @@
 import streamlit as st
 import streamlit.components.v1 as components
 CSS='''
+/* Keep the sidebar toggle, remove platform promotion and overflow actions. */
+[data-testid="stToolbarActions"],[data-testid="stMainMenu"],[data-testid="stAppDeployButton"],footer{display:none!important}
+
 /* Large, visible navigation targets; preserve native widget behaviour. */
 [data-testid="stExpandSidebarButton"],[data-testid="stCollapseSidebarButton"],[data-testid="stSidebarCollapseButton"] button,[data-testid="stSidebarCollapsedControl"] button,button[aria-label="Expand sidebar"],button[aria-label="Collapse sidebar"]{min-width:44px!important;min-height:44px!important;padding:8px!important}
 [data-testid="stSelectbox"] button[aria-haspopup],[data-testid="stMultiSelect"] button[aria-haspopup]{min-width:40px!important;min-height:40px!important}
@@ -137,6 +140,21 @@ CSS='''
 NAV='''<script>
 try{
  const w=window.parent,d=w.document;
+ // Community Cloud renders its visitor attribution outside the app iframe.
+ try{
+  const shell=w.parent.document;
+  const hideAttribution=()=>{
+   shell.querySelectorAll('a,span,p,footer').forEach(el=>{
+    const label=(el.textContent||'').trim();
+    if(label.length>160||!(/^(Created by|Hosted with Streamlit)/i.test(label)))return;
+    const group=el.closest('footer')||el.parentElement;
+    if(group&&(group.textContent||'').length<400)group.style.setProperty('display','none','important');
+   });
+  };
+  hideAttribution();
+  if(!w.__fgmCloudAttribution){w.__fgmCloudAttribution=new w.MutationObserver(hideAttribution);w.__fgmCloudAttribution.observe(shell.body,{childList:true,subtree:true});}
+ }catch(e){}
+
  const install=()=>{
   d.querySelectorAll('[data-baseweb="popover"],[data-testid="stSelectboxVirtualDropdown"],[data-testid="stMultiSelectDropdown"]').forEach(pop=>{
    if(!pop.querySelector('[role="listbox"]')||pop.querySelector('[data-fgm-done]'))return;
