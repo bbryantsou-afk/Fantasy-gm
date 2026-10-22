@@ -32,7 +32,9 @@ def render_weekly_score(league,saved,team,start,end,today,live=None):
     import streamlit as st
     from roster_store import team_label
     view=weekly_score(league,saved,team,start,end,today,live)
-    opponent=team_label(view['opponent']) if view['opponent'] else '對手待確認'
-    score='–'.join(map(str,view['score'])) if view['score'] is not None else '—'
-    st.markdown('**當週大比分　'+score+'**　'+team_label(team)+' vs '+opponent)
-    st.caption(view['status']+' · 勝–敗–和（九項）')
+    import html
+    opponent=team_label(view['opponent']) if view['opponent'] else '—'
+    own,other=(view['score'][:2] if view['score'] is not None else ('—','—'))
+    light=st.session_state.get('visual_theme')=='簡約淺色'
+    blue,purple=('#236a9a','#79509a') if light else ('#7cc7ff','#d5a0ff')
+    st.markdown(f'<div class="dashboard-big-score" aria-label="{html.escape(view["status"],quote=True)}"><div class="dashboard-score-numbers"><strong style="color:{blue}">{own}</strong><span>—</span><strong style="color:{purple}">{other}</strong></div><div class="dashboard-score-opponent">vs {html.escape(opponent)}</div></div>',unsafe_allow_html=True)

@@ -2,6 +2,12 @@
 import streamlit as st
 import streamlit.components.v1 as components
 CSS='''
+.dashboard-big-score{padding:14px 10px;border:1px solid var(--fgm-feature-border,#46658d);border-radius:12px;text-align:center;background:var(--fgm-feature-bg,#1c2b44)}
+.dashboard-score-numbers{display:flex;align-items:center;justify-content:center;gap:24px}
+.dashboard-score-numbers strong{font-size:52px!important;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.dashboard-score-numbers>span{font-size:22px;opacity:.6}
+.dashboard-score-opponent{font-size:13px;line-height:1.4;margin-top:8px;overflow-wrap:anywhere}
+
 /* Keep the sidebar toggle, remove platform promotion and overflow actions. */
 [data-testid="stToolbarActions"],[data-testid="stMainMenu"],[data-testid="stAppDeployButton"],[class*="viewerBadge"],[class*="viewer-badge"],[data-testid="stAppViewerBadge"],footer{display:none!important}
 
