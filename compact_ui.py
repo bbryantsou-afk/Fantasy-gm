@@ -46,7 +46,9 @@ CSS='''
 .mobile-stat-values{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:2px;margin-top:3px}
 .mobile-stat-values>span{display:flex;flex-direction:column;min-width:0;text-align:center}
 .mobile-stat-values small{font-size:8px;opacity:.8}.mobile-stat-values b{font-size:clamp(8px,2.4vw,11px);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
-.mobile-rank-list{max-height:340px;overflow-y:auto;width:100%}
+.mobile-rank-list{max-height:576px;overflow-y:auto;width:100%}
+.mobile-rank-list>div{height:36px;box-sizing:border-box;align-items:center;overflow:hidden}
+.mobile-rank-list>div:first-child{position:sticky;top:0;background:var(--fgm-feature-bg,#f6f7f9);z-index:1}
 .mobile-rank-list>div{display:grid;grid-template-columns:30px minmax(0,1fr) 65px;gap:5px;padding:5px 0;border-bottom:1px solid #84939b44;font-size:12px}
 .mobile-rank-list>div>span{overflow-wrap:anywhere}
 
@@ -101,7 +103,7 @@ CSS='''
 .st-key-watch_grid [class*="st-key-watch_card_"] [data-testid="stCaptionContainer"]{height:20px;overflow:hidden}
 .st-key-watch_grid [data-testid="stVerticalBlockBorderWrapper"]{padding:6px!important}
 .st-key-watch_grid img{max-height:55px;object-fit:contain}
-.st-key-watch_grid button{font-size:11px!important;padding:5px 8px!important;min-height:36px}
+.st-key-watch_grid [class*="st-key-watch_card_"] button{font-size:11px!important;padding:5px 8px!important;min-height:36px}
 .st-key-watch_controls [data-baseweb="select"]>div{max-height:68px;overflow-y:auto}
 .st-key-watch_grid [class*="st-key-watch_card_"] [data-testid="stVerticalBlock"]{gap:3px!important}
 .st-key-watch_grid [class*="st-key-watch_card_"] p{font-size:11px!important;line-height:1.3!important;overflow-wrap:anywhere}
@@ -110,7 +112,7 @@ CSS='''
 @media(min-width:900px){.st-key-dashboard_controls [data-testid="stHorizontalBlock"],.st-key-watch_controls [data-testid="stHorizontalBlock"]{flex-wrap:nowrap!important;gap:12px!important}}
 @media(max-width:640px){
  .sched-calendar{max-height:none!important;height:auto!important;overflow:visible!important}
- .mobile-rank-list{max-height:none!important;overflow-y:visible!important}
+ .mobile-rank-list{max-height:576px!important;overflow-y:auto!important}
 
 
  /* Keep related controls together instead of Streamlit's one-column stacking. */
@@ -139,9 +141,9 @@ CSS='''
  [data-testid="stMetricValue"]{font-size:1.3rem!important}
  [data-testid="stExpander"] summary{padding:7px 9px!important}
  [data-testid="stVerticalBlockBorderWrapper"]{padding:8px!important}
- .st-key-watch_grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px!important}
- .st-key-watch_grid > [data-testid="stLayoutWrapper"]:has(> [class*="st-key-watch_card_"]){height:150px!important;min-height:150px!important}
- .st-key-watch_grid [class*="st-key-watch_card_"]{height:150px!important;min-height:150px!important;flex:0 0 150px!important;box-sizing:border-box;overflow:hidden}
+ .st-key-watch_grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px!important}
+ .st-key-watch_grid > [data-testid="stLayoutWrapper"]:has(> [class*="st-key-watch_card_"]){height:170px!important;min-height:170px!important}
+ .st-key-watch_grid [class*="st-key-watch_card_"]{height:170px!important;min-height:170px!important;flex:0 0 170px!important;box-sizing:border-box;overflow:hidden}
  .st-key-watch_grid [class*="st-key-watch_card_"] [data-testid="stMarkdownContainer"] p{height:34px!important;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
  .st-key-watch_grid [class*="st-key-watch_card_"] [data-testid="stCaptionContainer"]{height:24px!important;overflow:hidden}
  .st-key-watch_grid [class*="st-key-watch_card_"] p{font-size:9px!important;line-height:1.2!important;overflow-wrap:anywhere}
@@ -149,7 +151,7 @@ CSS='''
  .st-key-watch_grid [class*="st-key-watch_card_"]{padding:3px!important}
  .st-key-watch_grid img{max-height:40px;width:42px!important}
  .st-key-watch_grid [data-testid="stVerticalBlock"]{gap:.25rem!important}
- .st-key-watch_grid button{font-size:12px!important;white-space:normal!important;width:100%;padding:2px!important}
+ .st-key-watch_grid [class*="st-key-watch_card_"] button{font-size:12px!important;white-space:normal!important;width:100%;padding:2px!important}
  [class*="st-key-pie_row_"] [data-testid="stHorizontalBlock"]{flex-wrap:nowrap!important;gap:4px!important}
  [class*="st-key-pie_row_"] [data-testid="stColumn"]{min-width:0!important;width:calc(20% - 3px)!important;flex:1 1 0!important}
  [class*="st-key-pie_row_"] p{font-size:11px!important}
@@ -157,7 +159,9 @@ CSS='''
 }
 [data-testid="stElementContainer"]:has(> .stMarkdown > div > [data-testid="stMarkdownContainer"] > style:only-child){display:none!important}
 [data-testid="stSidebar"] .st-key-main_navigation,[data-testid="stSidebar"] [data-testid="stRadio"]{width:100%!important;max-width:none!important}
-[data-testid="stSidebar"]{width:225px!important;min-width:225px!important;max-width:225px!important;flex-basis:225px!important}
+[data-testid="stSidebar"][aria-expanded="true"]{width:225px!important;min-width:225px!important;max-width:225px!important;flex-basis:225px!important}
+[data-testid="stSidebar"][aria-expanded="false"]{width:0!important;min-width:0!important;max-width:0!important;flex-basis:0!important;margin-left:0!important;margin-right:0!important;padding:0!important;border:0!important}
+[data-testid="stAppViewContainer"]:has([data-testid="stSidebar"][aria-expanded="false"]) [data-testid="stMain"]{margin-left:0!important;width:100%!important;max-width:100%!important;flex:1 1 100%!important}
 .st-key-current_feature p,.st-key-current_feature strong{font-size:28px!important;font-weight:800!important;line-height:1.2!important;letter-spacing:-.025em}
 .st-key-current_feature{min-height:48px!important;padding:7px 8px!important}
 /* Compact full-width sidebar, with its two actions above the brand. */
@@ -186,6 +190,32 @@ CSS='''
 .st-key-app_status_bar [data-testid="stButtonGroup"] button{padding:4px 6px!important;min-height:32px!important;font-size:12px!important;transition:background .18s ease}
 .st-key-watch_grid [class*="st-key-watch_card_"] [data-testid="stImage"],.st-key-watch_grid [class*="st-key-watch_card_"] [data-testid="stImage"] img{width:100%!important;max-width:100%!important;height:auto!important;max-height:68px!important;object-fit:contain!important}
 .st-key-watch_grid [class*="st-key-watch_card_"] button{width:100%!important;min-height:26px!important;height:26px!important;padding:0 4px!important}
+
+/* Equal action boxes and explicit sidebar direction. */
+.st-key-sidebar_actions button{height:40px!important;min-height:40px!important;max-height:40px!important;box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:center!important}
+.st-key-sidebar_close button p{font-size:20px!important;font-weight:700!important}
+[data-testid="stExpandSidebarButton"] svg,[data-testid="stSidebarCollapsedControl"] button svg,button[aria-label="Expand sidebar"] svg{display:none!important}
+[data-testid="stExpandSidebarButton"]::after,[data-testid="stSidebarCollapsedControl"] button::after,button[aria-label="Expand sidebar"]::after{content:">>";font-size:20px;font-weight:700}
+.watch-card-content{display:grid;grid-template-rows:60px 34px 24px;gap:3px;text-align:center;min-width:0}
+.watch-portrait{height:60px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.st-key-watch_grid .watch-portrait img{width:100%!important;height:60px!important;max-height:60px!important;object-fit:contain}
+.watch-name{font-size:11px;font-weight:700;line-height:17px;overflow:hidden;overflow-wrap:anywhere}
+.watch-meta,.watch-availability{font-size:9px;line-height:12px;overflow:hidden;overflow-wrap:anywhere}
+.st-key-watch_grid [class*="st-key-watch_card_"] button{display:flex!important;align-items:center!important;justify-content:center!important}
+.st-key-watch_grid [class*="st-key-watch_card_"] button [data-testid="stMarkdownContainer"] p{height:auto!important;min-height:0!important;display:block!important;margin:0!important;line-height:20px!important;overflow:visible!important}
+
+.st-key-watch_grid [class*="st-key-watch_detail_"]{height:auto!important;overflow:visible!important;position:relative}
+.st-key-watch_grid [class*="st-key-watch_detail_"] button{min-height:40px!important;height:auto!important;pointer-events:auto!important;white-space:normal!important;font-size:14px!important;padding:6px 10px!important}
+.st-key-watch_grid .watch-detail-portrait img{width:100%!important;max-width:260px!important;height:auto!important;max-height:190px!important;object-fit:contain}
+.watch-detail-portrait{width:100%;text-align:center}
+.watch-detail-stats{display:block;width:100%;white-space:nowrap;overflow-x:auto;font-size:11px;line-height:1.8;padding:6px 0;font-variant-numeric:tabular-nums}
+
+/* Match the actual outer boxes, including theme borders and label wrappers. */
+.stApp [data-testid="stSidebar"] .st-key-sidebar_actions [data-testid="stHorizontalBlock"]{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;align-items:start!important}
+.stApp [data-testid="stSidebar"] .st-key-sidebar_actions [data-testid="stColumn"]{width:100%!important;min-width:0!important;max-width:none!important}
+.stApp [data-testid="stSidebar"] .st-key-sidebar_actions button{width:100%!important;height:44px!important;min-height:44px!important;max-height:44px!important;margin:0!important;padding:0!important;border-width:1.5px!important;box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:center!important}
+.stApp [data-testid="stSidebar"] .st-key-sidebar_actions button [data-testid="stMarkdownContainer"]{display:flex!important;align-items:center!important;justify-content:center!important;height:24px!important;min-height:0!important;padding:0!important;margin:0!important}
+.stApp [data-testid="stSidebar"] .st-key-sidebar_actions button p{height:24px!important;min-height:0!important;line-height:24px!important;margin:0!important;padding:0!important;font-size:22px!important;display:block!important}
 
 '''
 NAV='''<script>

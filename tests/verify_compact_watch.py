@@ -23,5 +23,5 @@ assert [t.value for t in a.text if t.value.startswith('DETAIL:')]==['DETAIL:'+se
 next(b for b in a.button if b.key=='watch_collapse').click().run();assert not a.exception
 assert not [t for t in a.text if t.value.startswith('DETAIL:')]
 a.session_state['device_view']='手機版';a.run();assert not a.exception
-assert any('repeat(5,minmax' in m.value for m in a.markdown)
-print('PASS watch controls, ten-column desktop/five-column mobile, switching expanded rows and collapse without duplicate widgets')
+assert any('repeat(4,minmax' in m.value for m in a.markdown)
+print('PASS watch controls, ten-column desktop/four-column mobile, switching expanded rows and collapse without duplicate widgets')

@@ -95,7 +95,9 @@ def render_ninecat_strategy():
         if r.get('id') is None:
             pool.setdefault(roster_key(r), {'PLAYER_ID': None, 'PLAYER_NAME': r['name']})
 
-    kinds = {'第三組 · 聯盟選秀名單': 'draft', '第一組 · 六項前120名': '120', '第二組 · 六項前100名': '100'}
+    kinds = {'第三組 · 聯盟選秀名單': 'draft', '第二組 · 六項前100名': '100'}
+    if st.session_state.get('nc_cohort') not in kinds:
+        st.session_state['nc_cohort'] = next(iter(kinds))
     chosen = st.radio('參考母體', list(kinds), horizontal=True, key='nc_cohort')
     kind = kinds[chosen]
     default_ref = cohort_ids(players, entries, kind)
@@ -181,8 +183,8 @@ def render_ninecat_strategy():
     for key, valid in [('nc_adds', set(add_options)), ('nc_drops', set(drop_options))]:
         st.session_state[key] = [k for k in st.session_state.get(key, []) if k in valid]
     left, right = st.columns(2)
-    drops = left.multiselect('準備釋出（輸入姓名搜尋，可多選）', drop_options, format_func=lambda k: names[k], key='nc_drops', placeholder='輸入我方球員姓名…')
-    adds = right.multiselect('準備加入（輸入姓名搜尋，可多選）', add_options,
+    drops = left.multiselect('釋出', drop_options, format_func=lambda k: names[k], key='nc_drops', placeholder='輸入我方球員姓名…')
+    adds = right.multiselect('加入', add_options,
                              format_func=lambda k: pool[k]['PLAYER_NAME'] + (' · 無歷史資料' if pool[k].get('PLAYER_ID') is None else ''),
                              key='nc_adds', placeholder='輸入球員姓名…')
     controls = st.columns(3)
@@ -192,7 +194,8 @@ def render_ninecat_strategy():
         st.session_state.nc_vacancy_default_v2 = True
     vacancy = controls[1].checkbox('有空位，允許非等人數加入', key='nc_vacancy')
     controls[2].button('清空比較包裹', on_click=reset_package, key='nc_clear')
-    with st.expander('加入無數據姓名，例如 Mikel Brown Jr.'):
+    extra_controls = st.columns(2)
+    with extra_controls[0].expander('加入無數據球員'):
         custom = st.text_input('球員姓名', key='nc_custom_name')
         def add_custom():
             name = custom.strip()
@@ -205,7 +208,7 @@ def render_ninecat_strategy():
                 st.session_state.nc_custom[key] = p
             st.session_state.nc_adds = list(dict.fromkeys(st.session_state.nc_adds + [key]))
         st.button('加入比較包裹', on_click=add_custom, key='nc_custom_add')
-    with st.expander('適配分計算方式'):
+    with extra_controls[1].expander('適配分計算方式'):
         scale = st.select_slider('差距敏感範圍', options=[.1, .2, .4], value=.2, format_func=lambda v: f'{v:.0%}', key='nc_scale')
         page_caption('r＝（我方平均−母體平均）÷母體平均，TO反向。U(r)＝1/(1+exp(−r/s))；適配分＝100×加權平均(U換入後−U原本)。此曲線尚未經勝率校準。')
     additions = [pool[k] for k in adds]
@@ -270,16 +273,15 @@ def render_ninecat_strategy():
         score_key=('包裹＋此人適配分' if additions or drops else '加入適配分') if fit_ranking else 'Weighted Z'
         import html
         summary='<div class="mobile-rank-list"><div><b>排名</b><b>球員</b><b>適配分</b></div>'
-        for r in ranked[:100]:
+        for r in ranked:
             summary+='<div><span>'+str(r['排名'])+'</span><span>'+html.escape(r['球員'])+'</span><b>'+f"{r[score_key]:.3f}"+'</b></div>'
         st.markdown(summary+'</div>',unsafe_allow_html=True)
-        if len(ranked)>100:st.caption('先顯示前 100 位；可輸入球員名稱搜尋其他人選。')
         with st.expander('查看球員九項數據'):
             if ranked:
                 detail=st.selectbox('球員',range(len(ranked)),format_func=lambda i:ranked[i]['球員'],key='nc_mobile_detail')
                 from mobile_stat_cards import player_rows
                 st.markdown(player_rows([ranked[detail]]),unsafe_allow_html=True)
-    else:st.dataframe(pd.DataFrame(ranked), hide_index=True, width='stretch')
+    else:st.dataframe(pd.DataFrame(ranked), hide_index=True, width='stretch', height=min(563,38+35*len(ranked)),row_height=35)
 
     with st.expander('進階：輸入某週實際總數'):
         page_caption('七項計數總數÷球員計分出賽場次；FG/FT用總命中÷總出手。此區僅紀錄與比較，不取代上方歷史估算。')

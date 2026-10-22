@@ -3,7 +3,7 @@ FONT_CSS = "@import url('https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC
 FAMILY = '"Patrick Hand","LXGW WenKai TC","Kaiti TC",KaiTi,cursive'
 APP_CSS = FONT_CSS + '''
 .stApp {background-color:#142b29 !important;background-image:radial-gradient(ellipse at 25% 15%,#ffffff08,transparent 60%),repeating-linear-gradient(3deg,#ffffff02 0px,#ffffff02 1px,transparent 1px,transparent 7px) !important;color:#eeeede !important;}
-.stApp [data-testid="stSidebar"] {background:#0d211e55 !important;border-right:2px dashed #bfcdb657;}
+.stApp [data-testid="stSidebar"] {background:#0d211e !important;border-right:2px dashed #bfcdb657;}
 .stApp [data-testid="stHeader"] {background:linear-gradient(#142b29ee,#142b2900) !important;}
 .stApp h1,.stApp h2,.stApp h3,.stApp p,.stApp label,.stApp button,.stApp input,.stApp textarea,.stApp select,.stApp table,.stApp [data-baseweb="select"],.stApp [data-testid="stCaptionContainer"],.stApp .nc-baseline-strip {font-family:HAND_FONT !important;letter-spacing:.25px;}
 .stApp h1,.stApp h2,.stApp h3 {color:#f3eed5 !important;text-shadow:1px 1px #ffffff33 !important;}
@@ -73,3 +73,27 @@ APP_CSS += '''
 .stApp [data-testid="stLinkButton"] a *,.stApp a[data-testid^="stBaseLinkButton"] *,.stApp a[kind] * {color:#f4f0df !important;}
 .stApp [data-testid="stTable"],.stApp [data-testid="stTable"] th,.stApp [data-testid="stTable"] td,.stApp [data-testid="stJson"],.stApp pre {background:#16322f !important;color:#f4f0df !important;border-color:#cbd4bc88 !important;}
 '''.replace('HAND_FONT',FAMILY)
+
+APP_CSS += '''
+.stApp [data-testid="stSidebar"],
+.stApp [data-testid="stSidebar"] [data-testid="stSidebarContent"],
+.stApp [data-testid="stSidebar"] [data-testid="stSidebarUserContent"]{background-color:#0d211e!important;background-image:none!important;opacity:1!important;backdrop-filter:none!important}
+.stApp [data-testid="stSidebar"] [data-testid="stRadioOption"]{background:#16322f!important;color:#f4f0df!important}
+.stApp [data-testid="stSidebar"] [data-testid="stRadioOption"]:hover{background:#28463c!important}
+.stApp [data-testid="stSidebar"] [data-testid="stRadioOption"]:has(input:checked){background:#3b5041!important;border-color:#ecd68e!important}
+'''
+
+# The sidebar may be mounted outside .stApp by the Streamlit shell.
+APP_CSS += '''
+[data-testid="stSidebar"],
+[data-testid="stSidebar"] > div,
+[data-testid="stSidebarContent"],
+[data-testid="stSidebarUserContent"]{
+ background:#0d211e!important;background-image:none!important;opacity:1!important;
+ backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+}
+[data-testid="stSidebar"]::before{content:"";position:absolute;inset:0;background:#0d211e;pointer-events:none;z-index:0}
+[data-testid="stSidebar"] > div{position:relative;z-index:1}
+[data-testid="stSidebar"] [data-testid="stRadioOption"]{background:#16322f!important;color:#f4f0df!important}
+[data-testid="stSidebar"] [data-testid="stRadioOption"]:has(input:checked){background:#3b5041!important}
+'''

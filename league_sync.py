@@ -122,8 +122,10 @@ def extension_zip():
 def render_sync_connection(full=False):
     """Always mounted before every analysis page so a fresh cloud session restores its private cache."""
     snapshot,entries=load_data();league=state(entries)
-    if full:st.info('官方對局比分需要同步工具 0.3.2；電腦請更新擴充功能，手機請重新複製最新版書籤。')
-    if full:page_caption('0.3.2：電腦自動同步每 5 分鐘更新；手動同步立即執行。電腦請更新擴充功能，手機請更新同步書籤，才能取得官方每週比分。')
+    if full:
+        with st.expander('同步版本與更新說明',expanded=False):
+            st.caption('同步工具 0.3.2：電腦請更新擴充功能，手機請重新複製最新版書籤，以取得官方對局比分。')
+
     today=datetime.now(ZoneInfo('America/New_York')).date()
     if full:
         if st.session_state.get('device_view')=='手機版':

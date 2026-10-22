@@ -1,7 +1,7 @@
 from page_guidance import caption as page_caption
 from app_storage import private_path
 """Shared roster selection, persistent watch stars, and public news."""
-import json,re
+import json,re,html
 from pathlib import Path
 from urllib.parse import quote
 import xml.etree.ElementTree as ET
@@ -67,16 +67,34 @@ def profiles(players,entries):
                 if r.get('eligible'):out[k]['eligible']=set(r['eligible'])
     return out
 
-def news_tone(title):
-    """Conservative headline hints, not an injury or availability assessment."""
-    text=title.lower()
-    if re.search(r'\b(could|may|might|unlikely|rumou?r|not ruled out|potential)\b',text):
-        return '⚪', '中性／待確認'
-    positive=bool(re.search(r'\b(career[- ]high|season[- ]high|cleared to play|available to play|returns to action|full practice|will play|breakout)\b|復出|獲准出賽|生涯新高|傷癒',text))
-    negative=bool(re.search(r'\b(ruled out|will miss|injury|injured|surgery|suspended|suspension|setback|out for|doubtful)\b|受傷|缺席|手術|禁賽',text))
-    if positive and not negative:return '🟢','正面訊號'
-    if negative and not positive:return '🔴','負面訊號'
-    return '⚪','中性／待確認'
+def news_time(value):
+    from email.utils import parsedate_to_datetime
+    from zoneinfo import ZoneInfo
+    try:
+        return parsedate_to_datetime(value).astimezone(ZoneInfo('Asia/Taipei')).strftime('%d/%m/%Y %H:%M')
+    except (ValueError,TypeError,OverflowError):
+        return ''
+
+@st.cache_data(ttl=604800,show_spinner=False)
+def chinese_headline(title):
+    # Translate public headlines only; no account or league data is sent.
+    if not re.search(r'[A-Za-z]{3}',title):return title
+    response=requests.get('https://translate.googleapis.com/translate_a/single',params={'client':'gtx','sl':'auto','tl':'zh-TW','dt':'t','q':title},timeout=5)
+    response.raise_for_status()
+    translated=''.join(part[0] for part in response.json()[0] if part and part[0])
+    if not translated:raise ValueError('Empty translation')
+    return translated
+
+def translated_news(items):
+    from concurrent.futures import ThreadPoolExecutor
+    def translate(item):
+        result=dict(item)
+        try:result['title']=chinese_headline(item['title'])
+        except (requests.RequestException,ValueError,TypeError,IndexError,KeyError):
+            result['translation_failed']=True
+        return result
+    with ThreadPoolExecutor(max_workers=6) as executor:
+        return list(executor.map(translate,items))
 
 @st.cache_data(ttl=1800,show_spinner=False)
 def player_news(name):
@@ -109,19 +127,19 @@ def render_watchroom():
     ids=list(dict.fromkeys(list(mine)+stars)) if view=='全部' else list(mine) if view=='我的球員' else stars
     names={**{str(p['PLAYER_ID']):p['PLAYER_NAME'] for p in players},**mine}
     if not ids:st.info('目前沒有球員；可先選擇球隊或加星追蹤。');return
-    per_row=5 if st.session_state.get('device_view')=='手機版' else 10
+    mobile=st.session_state.get('device_view')=='手機版'
+    per_row=4 if mobile else 10
     def open_player(player):st.session_state['watch_open']=player
     st.markdown(f'<style>.st-key-watch_grid{{grid-template-columns:repeat({per_row},minmax(0,1fr))!important}}</style>',unsafe_allow_html=True)
     with st.container(key='watch_grid'):
         for i,k in enumerate(ids):
             p=pool.get(k);name=names.get(k,'未知球員')
             with st.container(border=True,key='watch_card_'+str(i)):
-                if k.isdigit():st.image(f'https://cdn.nba.com/headshots/nba/latest/260x190/{k}.png',use_container_width=True)
-                else:st.markdown('🏀')
-                st.markdown('**'+name+(' ⭐' if k in stars else '')+'**')
-                st.caption((p['team']+' · '+('/'.join(sorted(p['eligible'])) or '位置待確認')) if p else '新秀／資料待補')
-                if per_row!=5:st.caption(availability(entries,team,k))
-                st.button('⋯' if per_row==5 else '⋯ 展開',use_container_width=True,help='展開 '+name+' 的新聞與資料',key='watch_expand_'+k,on_click=open_player,args=(k,))
+                portrait=(f'<img src="https://cdn.nba.com/headshots/nba/latest/260x190/{k}.png" alt="">' if k.isdigit() else '🏀')
+                meta=(p['team']+' · '+('/'.join(sorted(p['eligible'])) or '位置待確認')) if p else '新秀／資料待補'
+                extra='' if mobile else '<div class="watch-availability">'+html.escape(availability(entries,team,k))+'</div>'
+                st.markdown('<div class="watch-card-content"><div class="watch-portrait">'+portrait+'</div><div class="watch-name">'+html.escape(name+(' ⭐' if k in stars else ''))+'</div><div class="watch-meta">'+html.escape(meta)+'</div>'+extra+'</div>',unsafe_allow_html=True)
+                st.button('⋯' if mobile else '⋯ 展開',use_container_width=True,help='展開 '+name+' 的新聞與資料',key='watch_expand_'+k,on_click=open_player,args=(k,))
             # Insert details immediately after the row containing the selected card.
             if (i+1)%per_row==0 or i==len(ids)-1:
                 selected=st.session_state.get('watch_open')
@@ -138,11 +156,11 @@ def show_player_detail(selected,pool,names):
     name=p['PLAYER_NAME'] if p else names.get(selected,'')
     st.markdown('### '+name)
     if selected.isdigit():
-        cols=st.columns([1,3])
-        cols[0].image(f'https://cdn.nba.com/headshots/nba/latest/260x190/{selected}.png',width=130)
+        cols=st.columns([1,1])
+        cols[0].markdown(f'<div class="watch-detail-portrait"><img src="https://cdn.nba.com/headshots/nba/latest/260x190/{selected}.png" alt="球員頭像"></div>',unsafe_allow_html=True)
         cols[1].link_button('NBA 官方球員頁',f'https://www.nba.com/player/{selected}')
         if p:
-            cols[1].write('2025–26｜'+' · '.join([f"FG% {p['FGM']/p['FGA']:.1%}" if p['FGA'] else 'FG% —',f"FT% {p['FTM']/p['FTA']:.1%}" if p['FTA'] else 'FT% —',f"3PT {p['FG3M']}",f"PTS {p['PTS']}",f"REB {p['REB']}",f"AST {p['AST']}",f"ST {p['STL']}",f"BLK {p['BLK']}",f"TO {p['TOV']}"]))
+            st.markdown('<div class="watch-detail-stats">2025–26｜'+' · '.join([f"FG% {p['FGM']/p['FGA']:.1%}" if p['FGA'] else 'FG% —',f"FT% {p['FTM']/p['FTA']:.1%}" if p['FTA'] else 'FT% —',f"3PT {p['FG3M']}",f"PTS {p['PTS']}",f"REB {p['REB']}",f"AST {p['AST']}",f"ST {p['STL']}",f"BLK {p['BLK']}",f"TO {p['TOV']}"])+'</div>',unsafe_allow_html=True)
         if st.button('載入官方基本資料（身高、年齡、選秀）'):
             try:
                 b=player_bio(selected)
@@ -151,18 +169,21 @@ def show_player_detail(selected,pool,names):
             except Exception:
                 st.info('官方基本資料暫時無法連線，請使用官方球員頁。')
     st.markdown('#### 近14天新聞')
-    page_caption('🟢 正面訊號 · 🔴 負面訊號 · ⚪ 中性／待確認。依標題關鍵字初步標示，請點原文確認，不代表確定出賽狀態。')
-    if st.button('更新這位球員的新聞',key='watch_refresh_news'):
-        player_news.clear()
+    def refresh_news():
+        player_news.clear(name)
+        st.session_state['_watch_news_refreshed']=selected
+    st.button('更新這位球員的新聞',key='watch_refresh_news_'+selected,on_click=refresh_news)
     try:
         with st.spinner('整理新聞…'):
-            news=player_news(name)
+            news=translated_news(player_news(name))
+        if st.session_state.pop('_watch_news_refreshed',None)==selected:
+            st.success('新聞已重新讀取。')
         if not news:
             st.info('近14天未找到相關新聞。')
         for n in news:
-            emoji, tone = news_tone(n['title'])
-            st.link_button(emoji+' '+n['title'],n['url'])
-            st.caption(tone+' · '+n['source']+' · '+n['published'])
+            st.link_button(n['title'],n['url'])
+            st.caption(news_time(n['published']))
+            if n.get('translation_failed'):st.caption('翻譯暫時無法連線，先顯示原標題。')
     except Exception:
         st.warning('新聞來源暫時無法讀取。')
         st.link_button('開啟新聞搜尋','https://news.google.com/search?q='+quote(name+' NBA'))

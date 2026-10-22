@@ -112,20 +112,22 @@ def refresh_current_page():
 
 with st.sidebar:
     with st.container(key='sidebar_actions'):
-        menu_col,sync_col,refresh_col=st.columns([.8,1,1])
-        menu_col.button('☰',key='sidebar_close',help='收起功能選單',use_container_width=True)
-        def open_mobile_sync():st.session_state['main_navigation']='聯盟同步 League Sync'
+        menu_col,sync_col,refresh_col=st.columns([1,1,1])
+        menu_col.button('<<',key='sidebar_close',help='收起功能選單',use_container_width=True)
+        def open_mobile_sync():st.session_state['main_navigation']='⚙️ 設定'
         sync_col.button('Y',help='開啟聯盟同步',on_click=open_mobile_sync,key='mobile_sync_shortcut',use_container_width=True)
         refresh_col.button('🔃',key='refresh_current_page',help='重新整理實績並檢查 Drive；不會執行 Yahoo 名單同步。',on_click=refresh_current_page,use_container_width=True)
     import html as sidebar_html
     account_name=st.session_state.get('_account_user_name','') if st.session_state.get('_account_id') else '尚未登入'
     with st.container(key='sidebar_identity'):
         st.markdown('<div class="sidebar-identity"><div class="sidebar-brand"><svg viewBox="0 0 230 44" role="img" aria-label="Fantasy GM" style="width:100%;height:auto;display:block"><text x="0" y="35" textLength="230" lengthAdjust="spacingAndGlyphs" fill="currentColor" font-family="system-ui,sans-serif" font-weight="800" font-size="40">Fantasy GM</text></svg></div><div class="sidebar-account">☁️ '+sidebar_html.escape(account_name)+'</div></div>',unsafe_allow_html=True)
+    if st.session_state.get('main_navigation')=='聯盟同步 League Sync':
+        st.session_state['main_navigation']='⚙️ 設定'
     page = st.radio(
         "功能選單",
         ["總覽 Dashboard", "球員觀察室 Player Watch",
          "每週補強 Weekly Planner", "交易分析 Trade Lab",
-     "9-Cat Strategy", "模擬對局 Matchup Simulator", "📆 賽程週曆", "比賽戰況", "Data Source 資料中心", "聯盟同步 League Sync", "⚙️ 設定"],
+     "9-Cat Strategy", "模擬對局 Matchup Simulator", "📆 賽程週曆", "比賽戰況", "Data Source 資料中心", "⚙️ 設定"],
         key="main_navigation",width="stretch",label_visibility="collapsed",format_func=lambda name:dict(zip(
             ["總覽 Dashboard","球員觀察室 Player Watch","每週補強 Weekly Planner","交易分析 Trade Lab","9-Cat Strategy","模擬對局 Matchup Simulator","聯盟同步 League Sync","比賽戰況","Data Source 資料中心","⚙️ 設定"],
             ["📊 總覽","⭐ 球員觀察室","📅 每週補強","🤝 交易分析","🎯 九項策略","🏀 模擬對局","🔄 聯盟同步","🏆 比賽戰況","🗂️ 資料中心","⚙️ 設定"])).get(name,name),
@@ -158,9 +160,9 @@ from league_sync import render_sync_connection
 if page=='聯盟同步 League Sync':
     with st.expander('Google Drive 更新狀態',expanded=False):poll_account()
     render_sync_connection(full=True)
-else:
+elif page!='⚙️ 設定':
     with st.container(key='background_sync'):
-        if page!='⚙️ 設定':poll_account(show_controls=False)
+        poll_account(show_controls=False)
         render_sync_connection(full=False)
 
 if page == "總覽 Dashboard":
@@ -200,6 +202,10 @@ elif page == "⚙️ 設定":
     poll_account()
     from setup_guide import render_setup_guide
     render_setup_guide()
+    st.markdown('### 🔄 聯盟同步')
+    render_sync_connection(full=True)
+    from league_sync import render_sync
+    render_sync()
     from mobile_share import render_mobile_settings
     render_mobile_settings()
     from court_theme import render_theme_settings
@@ -338,7 +344,7 @@ if st.session_state.get("visual_theme")=="簡約淺色":
 
 from compact_ui import render_compact_ui
 render_compact_ui()
-st.caption("版本 2026.10.23-ui29 · 電腦／手機共用版本")
+st.caption("版本 2026.10.23-ui31 · 電腦／手機共用版本")
 
 save_browser_records()
 

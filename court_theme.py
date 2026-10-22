@@ -71,6 +71,10 @@ def render_court_theme():
 </style>
 """,unsafe_allow_html=True)
 
+    if theme == "黑色鏡面":
+        from dark_theme import APP_CSS
+        st.markdown("<style>"+APP_CSS+"</style>",unsafe_allow_html=True)
+
     if theme == "戰術板草圖":
         from tactics_theme import APP_CSS
         st.markdown("<style>"+APP_CSS+"</style>",unsafe_allow_html=True)
