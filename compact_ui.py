@@ -64,7 +64,8 @@ CSS='''
 }
 .st-key-watch_grid{display:grid!important;grid-template-columns:repeat(10,minmax(0,1fr));gap:6px!important;align-items:start}
 .st-key-watch_grid>[data-testid="stLayoutWrapper"]{min-width:0}
-.st-key-watch_grid [class*="st-key-watch_card_"]{height:190px!important;box-sizing:border-box;overflow:hidden}
+.st-key-watch_grid > [data-testid="stLayoutWrapper"]:has(> [class*="st-key-watch_card_"]){height:190px!important;min-height:190px!important}
+.st-key-watch_grid [class*="st-key-watch_card_"]{height:190px!important;min-height:190px!important;flex:0 0 190px!important;box-sizing:border-box;overflow:hidden}
 .st-key-watch_grid [class*="st-key-watch_card_"] [data-testid="stMarkdownContainer"] p{height:34px;overflow:hidden}
 .st-key-watch_grid [class*="st-key-watch_card_"] [data-testid="stCaptionContainer"]{height:20px;overflow:hidden}
 .st-key-watch_grid [data-testid="stVerticalBlockBorderWrapper"]{padding:6px!important}
@@ -105,7 +106,8 @@ CSS='''
  [data-testid="stExpander"] summary{padding:7px 9px!important}
  [data-testid="stVerticalBlockBorderWrapper"]{padding:8px!important}
  .st-key-watch_grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px!important}
- .st-key-watch_grid [class*="st-key-watch_card_"]{height:150px!important;box-sizing:border-box;overflow:hidden}
+ .st-key-watch_grid > [data-testid="stLayoutWrapper"]:has(> [class*="st-key-watch_card_"]){height:150px!important;min-height:150px!important}
+ .st-key-watch_grid [class*="st-key-watch_card_"]{height:150px!important;min-height:150px!important;flex:0 0 150px!important;box-sizing:border-box;overflow:hidden}
  .st-key-watch_grid [class*="st-key-watch_card_"] [data-testid="stMarkdownContainer"] p{height:34px!important;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
  .st-key-watch_grid [class*="st-key-watch_card_"] [data-testid="stCaptionContainer"]{height:24px!important;overflow:hidden}
  .st-key-watch_grid [class*="st-key-watch_card_"] p{font-size:9px!important;line-height:1.2!important;overflow-wrap:anywhere}
