@@ -161,6 +161,11 @@ CSS='''
 .st-key-sidebar_actions [data-testid="stHorizontalBlock"]{display:flex!important;flex-wrap:nowrap!important;gap:6px!important}
 .st-key-sidebar_actions [data-testid="stColumn"]{min-width:0!important;flex:1 1 0!important}
 .st-key-sidebar_actions button{width:100%!important;min-height:38px!important;padding:5px!important}
+.st-key-sidebar_identity{height:auto!important;min-height:64px!important;flex-shrink:0!important}
+.st-key-sidebar_identity [data-testid="stElementContainer"],.st-key-sidebar_identity [data-testid="stMarkdown"]{height:auto!important;flex-shrink:0!important}
+.sidebar-identity{display:flex;flex-direction:column;gap:9px;padding:3px 0 5px}
+.sidebar-account{font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.st-key-sidebar_actions button p{font-size:11px!important;white-space:nowrap!important;line-height:1.3!important}
 .sidebar-brand{font-size:clamp(28px,9vw,40px);font-weight:800;line-height:1.2;letter-spacing:-.04em;white-space:nowrap;width:100%}
 [data-testid="stSidebar"] [role="radiogroup"]{gap:4px!important;width:100%!important}
 [data-testid="stSidebar"] [role="radiogroup"]>div{width:100%!important}
