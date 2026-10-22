@@ -194,8 +194,8 @@ CSS='''
 /* Equal action boxes and explicit sidebar direction. */
 .st-key-sidebar_actions button{height:40px!important;min-height:40px!important;max-height:40px!important;box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:center!important}
 .st-key-sidebar_close button p{font-size:20px!important;font-weight:700!important}
-[data-testid="stExpandSidebarButton"] svg,[data-testid="stSidebarCollapsedControl"] button svg,button[aria-label="Expand sidebar"] svg{display:none!important}
-[data-testid="stExpandSidebarButton"]::after,[data-testid="stSidebarCollapsedControl"] button::after,button[aria-label="Expand sidebar"]::after{content:">>";font-size:20px;font-weight:700}
+[data-testid="stExpandSidebarButton"] svg,[data-testid="stSidebarCollapsedControl"] button svg,button[aria-label="Expand sidebar"] svg{display:block!important;width:24px!important;height:24px!important}
+[data-testid="stExpandSidebarButton"]::after,[data-testid="stSidebarCollapsedControl"] button::after,button[aria-label="Expand sidebar"]::after{content:none!important;display:none!important}
 .watch-card-content{display:grid;grid-template-rows:60px 34px 24px;gap:3px;text-align:center;min-width:0}
 .watch-portrait{height:60px;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .st-key-watch_grid .watch-portrait img{width:100%!important;height:60px!important;max-height:60px!important;object-fit:contain}
@@ -216,6 +216,9 @@ CSS='''
 .stApp [data-testid="stSidebar"] .st-key-sidebar_actions button{width:100%!important;height:44px!important;min-height:44px!important;max-height:44px!important;margin:0!important;padding:0!important;border-width:1.5px!important;box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:center!important}
 .stApp [data-testid="stSidebar"] .st-key-sidebar_actions button [data-testid="stMarkdownContainer"]{display:flex!important;align-items:center!important;justify-content:center!important;height:24px!important;min-height:0!important;padding:0!important;margin:0!important}
 .stApp [data-testid="stSidebar"] .st-key-sidebar_actions button p{height:24px!important;min-height:0!important;line-height:24px!important;margin:0!important;padding:0!important;font-size:22px!important;display:block!important}
+
+button[data-testid="stExpandSidebarButton"],[data-testid="stExpandSidebarButton"] button,[data-testid="stSidebarCollapsedControl"] button,button[aria-label="Expand sidebar"]{width:44px!important;min-width:44px!important;max-width:44px!important;height:44px!important;min-height:44px!important;max-height:44px!important;padding:0!important;display:flex!important;align-items:center!important;justify-content:center!important;border-radius:10px!important;box-sizing:border-box!important}
+.st-key-sidebar_close button [data-testid="stIconMaterial"]{font-size:24px!important;line-height:24px!important}
 
 '''
 NAV='''<script>
