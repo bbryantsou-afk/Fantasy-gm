@@ -19,6 +19,11 @@ from account_store import init_account,render_account,finish_account,poll_accoun
 startup_status=st.empty()
 startup_status.caption('正在恢復登入與 Google Drive 紀錄…')
 init_account()
+if st.query_params.get('app')=='1':
+    startup_status.empty()
+    from pwa.streamlit_host import render as render_pwa
+    render_pwa()
+    st.stop()
 startup_status.caption('正在恢復瀏覽器紀錄…')
 from browser_records import restore_browser_records,save_browser_records
 restore_browser_records()
@@ -225,6 +230,9 @@ elif page == "Data Source 資料中心":
     render_data_center()
 
 elif page == "⚙️ 設定":
+    if st.button('試用新版 App',key='open_pwa_beta'):
+        st.query_params['app']='1'
+        st.rerun()
     with st.expander('☁️ 帳號',expanded=not st.session_state.get('_account_loaded')):
         render_account()
     poll_account(show_controls=False)
@@ -372,7 +380,7 @@ if st.session_state.get("visual_theme")=="簡約淺色":
 
 from compact_ui import render_compact_ui
 render_compact_ui(apply_styles=False)
-st.caption("版本 2026.10.24-ui45 · 電腦／手機共用版本")
+st.caption("版本 2026.10.24-ui46 · 電腦／手機共用版本")
 
 save_browser_records()
 

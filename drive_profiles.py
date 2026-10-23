@@ -12,10 +12,14 @@ def locks():return {},threading.Lock()
 
 class CloudClient:
     NAME='fantasy-gm-profile-v1.json'
-    def __init__(self,cfg=None):pass
+    def __init__(self,cfg=None,token_provider=None,state=None):
+        self._token_provider=token_provider
+        self._state=state
+    def state(self):
+        return st.session_state if self._state is None else self._state
     def request(self,method,path,upload=False,version=3,**kwargs):
         try:
-            headers={'Authorization':'Bearer '+access_token(),**kwargs.pop('headers',{})}
+            headers={'Authorization':'Bearer '+(self._token_provider() if self._token_provider else access_token()),**kwargs.pop('headers',{})}
             root=('https://www.googleapis.com/upload/drive/' if upload else 'https://www.googleapis.com/drive/')+'v'+str(version)+'/'
             r=requests.request(method,root+path,headers=headers,timeout=25,**kwargs)
             if r.status_code==412:raise CloudConflict('另一個裝置已更新 Drive 資料。')
@@ -61,14 +65,14 @@ class CloudClient:
         fid=self.lookup()
         if not fid:return None
         data,_=self.read(fid,owner)
-        st.session_state['_drive_profile_seen']=(owner,self.stamp)
+        self.state()['_drive_profile_seen']=(owner,self.stamp)
         return data
     def load_if_changed(self,owner):
         fid=self.lookup()
         if not fid:return None
-        if self.stamp[1] is not None and st.session_state.get('_drive_profile_seen')==(owner,self.stamp):return None
+        if self.stamp[1] is not None and self.state().get('_drive_profile_seen')==(owner,self.stamp):return None
         data,_=self.read(fid,owner)
-        st.session_state['_drive_profile_seen']=(owner,self.stamp)
+        self.state()['_drive_profile_seen']=(owner,self.stamp)
         return data
     def save(self,owner,revision,payload):
         mapping,guard=locks()

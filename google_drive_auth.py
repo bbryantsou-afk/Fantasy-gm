@@ -23,7 +23,7 @@ def b64(raw):return base64.urlsafe_b64encode(raw).decode().rstrip('=')
 def challenge(verifier):return b64(hashlib.sha256(verifier.encode()).digest())
 def make_flow(c):
     verifier=secrets.token_urlsafe(48)
-    body=b64(json.dumps({'t':int(time.time()),'n':secrets.token_urlsafe(24),'p':challenge(verifier),'league':str(st.query_params.get('league','')),'theme':str(st.query_params.get('theme','light')),'view':str(st.query_params.get('view','desktop'))},separators=(',',':')).encode())
+    body=b64(json.dumps({'t':int(time.time()),'n':secrets.token_urlsafe(24),'p':challenge(verifier),'league':str(st.query_params.get('league','')),'theme':str(st.query_params.get('theme','light')),'view':str(st.query_params.get('view','desktop')),'app':str(st.query_params.get('app',''))},separators=(',',':')).encode())
     state='fgmdrive.'+body+'.'+b64(hmac.new(c['state_secret'].encode(),body.encode(),hashlib.sha256).digest())
     url='https://accounts.google.com/o/oauth2/v2/auth?'+urlencode({'client_id':c['client_id'],'redirect_uri':c['redirect_uri'],'response_type':'code','scope':SCOPE,'state':state,'code_challenge':challenge(verifier),'code_challenge_method':'S256','access_type':'offline','prompt':'consent','include_granted_scopes':'false'})
     return {'state':state,'verifier':verifier,'url':url,'created':time.time()}
@@ -99,6 +99,7 @@ def init_auth():
             if re.fullmatch(r'\d{1,10}',flow.get('league','')):st.query_params['league']=flow['league']
             if flow.get('theme') in ('light','tactics','mirror'):st.query_params['theme']=flow['theme']
             if flow.get('view') in ('desktop','mobile'):st.query_params['view']=flow['view']
+            if flow.get('app')=='1':st.query_params['app']='1'
             token=token_request(c,{'grant_type':'authorization_code','code':callback['code'],'redirect_uri':c['redirect_uri'],'code_verifier':verifier})
             if not token.get('refresh_token'):raise AuthError('Google 未提供持續授權，請重新登入並允許 App 專用儲存。')
             user=identity(token)

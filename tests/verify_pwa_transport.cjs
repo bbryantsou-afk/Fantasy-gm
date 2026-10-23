@@ -1,0 +1,7 @@
+const fs=require('node:fs'),assert=require('node:assert/strict');
+(async()=>{const sent=[];let handler;global.location={search:'?streamlitUrl=https%3A%2F%2Fexample.test',href:'https://example.test/component/index.html?streamlitUrl=x'};global.screen={availHeight:844};global.parent={innerHeight:844,postMessage:m=>sent.push(m)};global.window={parent,addEventListener:(type,fn)=>{if(type==='message')handler=fn;}};
+const source=fs.readFileSync('pwa/web/transport.js','utf8'),m=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+assert(m.embedded);const a=m.hostedRequest('/api/session'),b=m.hostedRequest('/api/model');assert(!sent.some(x=>x.type==='streamlit:setComponentValue'),'Must wait until host renders');
+handler({source:parent,data:{type:'streamlit:render',args:{}}});let requests=sent.filter(x=>x.type==='streamlit:setComponentValue');assert.equal(requests.length,1);
+handler({source:parent,data:{type:'streamlit:render',args:{response:{id:requests[0].value.id,ok:true,value:{session:true}}}}});requests=sent.filter(x=>x.type==='streamlit:setComponentValue');assert.equal(requests.length,2);
+handler({source:parent,data:{type:'streamlit:render',args:{response:{id:requests[1].value.id,ok:true,value:{model:true}}}}});assert.deepEqual(await a,{session:true});assert.deepEqual(await b,{model:true});console.log('PASS embedded transport waits for readiness and serializes independent requests without reload');})();
