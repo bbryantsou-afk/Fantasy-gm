@@ -319,7 +319,7 @@ html,body{max-width:100%;overflow-x:clip}
 }
 
 /* Minimal menu glyph; keep a full touch target without a decorative frame. */
-.stApp .st-key-sidebar_close button,button:has(>[data-fgm-expand-emoji]){border:0!important;background:transparent!important;box-shadow:none!important;border-radius:8px!important;color:var(--fgm-feature-fg)!important}
+.stApp [data-testid="stSidebar"] .st-key-sidebar_actions .st-key-sidebar_close button,.stApp button:has(>[data-fgm-expand-emoji]),button[aria-label="Expand sidebar"]:has(>[data-fgm-expand-emoji]){border:0!important;background:transparent!important;box-shadow:none!important;border-radius:8px!important;color:var(--fgm-feature-fg)!important}
 .stApp .st-key-sidebar_close button p,button>[data-fgm-expand-emoji]{font-family:Arial,sans-serif!important;font-weight:400!important;font-size:26px!important;line-height:1!important}
 
 '''
