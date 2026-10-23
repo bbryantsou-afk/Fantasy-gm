@@ -159,8 +159,13 @@ def render_sync_connection(full=False):
         return
     ack=st.session_state.get('_sync_mapping_ack') or (league.get('sync_mapping') if league.get('sync_league')==source else None)
     args=dict(force=st.session_state.get('_sync_force_nonce'),league=source,date=str(day),mapping=ack,compact=not full,applied=st.session_state.get('_sync_browser_ack'),key='yahoo_browser_bridge',default=None)
-    phone_result=phone_bridge(enabled=bool(st.query_params.get('phone_sync')),showStatus=full,mapping=ack,key='phone_roster_receiver',default=None)
-    if full:result=bridge(**args)
+    phone_result=phone_bridge(enabled=bool(st.query_params.get('phone_sync')),showStatus=full and bool(st.query_params.get('phone_sync')),mapping=ack,key='phone_roster_receiver',default=None)
+    if full and st.session_state.get('device_view')=='手機版':
+        result=None
+        st.caption('手機更新：在 Safari／Chrome 的 Yahoo 聯盟頁執行同步書籤；回到 App 後登入相同 Google 帳號載入已保存紀錄。')
+        with st.expander('電腦 Chrome 擴充功能（手機不適用）',expanded=False):
+            result=bridge(**args)
+    elif full:result=bridge(**args)
     else:
         with st.expander('名單同步狀態／立即更新',expanded=False):
             page_caption('全站共用同一個同步接收器。已在此瀏覽器完成配對後，重新連線會自動載入已保存的今天名單。')
