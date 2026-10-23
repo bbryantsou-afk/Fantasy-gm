@@ -16,7 +16,10 @@ st.set_page_config(
 )
 
 from account_store import init_account,render_account,finish_account,poll_account,config as account_config
+startup_status=st.empty()
+startup_status.caption('正在恢復登入與 Google Drive 紀錄…')
 init_account()
+startup_status.caption('正在恢復瀏覽器紀錄…')
 from browser_records import restore_browser_records,save_browser_records
 restore_browser_records()
 from profile_preferences import hydrate_preferences
@@ -24,6 +27,7 @@ hydrate_preferences(st.session_state)
 from mobile_share import init_share,watch_share
 init_share()
 watch_share()
+startup_status.caption('正在載入功能頁面…')
 
 DEMO_PLAYERS = [
     {
@@ -349,8 +353,9 @@ if st.session_state.get("visual_theme")=="簡約淺色":
 
 from compact_ui import render_compact_ui
 render_compact_ui()
-st.caption("版本 2026.10.24-ui38 · 電腦／手機共用版本")
+st.caption("版本 2026.10.24-ui39 · 電腦／手機共用版本")
 
 save_browser_records()
 
+startup_status.empty()
 finish_account(show_status=page in ('聯盟同步 League Sync','⚙️ 設定'))

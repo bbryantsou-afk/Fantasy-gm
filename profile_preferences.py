@@ -16,6 +16,7 @@ def validate_preferences(prefs,teams):
  out={}
  for k,v in prefs.items():
   if not preference_key(k):continue
+  if k=='nc_cohort' and v=='第一組 · 六項前120名':v='第三組 · 聯盟選秀名單'
   if k in ENUMS:
    if not isinstance(v,str) or v not in ENUMS[k]:raise ValueError('偏好選項不符。')
   elif k in BOOLS:
