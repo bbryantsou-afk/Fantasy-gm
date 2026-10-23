@@ -252,6 +252,21 @@ button>[data-fgm-expand-emoji]{display:flex!important;align-items:center;justify
 .stApp .st-key-app_status_bar [data-testid="stButtonGroup"] button[aria-pressed="true"]{background:#2f8475!important;color:#fff!important}
 .stApp .st-key-app_status_bar [data-testid="stButtonGroup"] button[aria-pressed="true"] :is(p,span){color:#fff!important;background:transparent!important}
 
+/* Plan cards grow with content; native layout items cannot shrink over neighbours. */
+.stApp [class*="st-key-planner_plan_"]{height:auto!important;min-height:0!important;overflow:visible!important}
+.stApp [class*="st-key-planner_plan_"] [data-testid="stVerticalBlock"]{gap:10px!important;height:auto!important;min-height:0!important}
+.stApp [class*="st-key-planner_plan_"] :is([data-testid="stElementContainer"],[data-testid="stLayoutWrapper"],[data-testid="stMarkdown"]){height:auto!important;min-height:0!important;flex-shrink:0!important;position:relative!important}
+.planner-card-overview{width:100%;box-sizing:border-box;align-items:stretch!important;gap:10px!important;margin:0!important;min-width:0}
+.planner-card-overview>*{box-sizing:border-box;min-width:0;max-width:100%}
+.planner-card-stat{height:auto!important;min-height:68px;justify-content:center;overflow-wrap:anywhere}
+.planner-card-stat :is(span,b){margin:0!important;white-space:normal!important;overflow-wrap:anywhere}
+.planner-plan-insights{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;width:100%;box-sizing:border-box;padding:2px 0;clear:both}
+.planner-plan-insights>div{display:flex;flex-direction:column;gap:4px;padding:8px;min-width:0;border:1px solid var(--fgm-feature-border);border-radius:8px;box-sizing:border-box}
+.planner-plan-insights :is(span,b){display:block;position:static!important;margin:0!important;line-height:1.5!important;white-space:normal!important;overflow-wrap:anywhere;font-size:12px}
+.planner-plan-insights span{font-size:11px;color:var(--fgm-muted)}
+@media(max-width:760px){.planner-card-overview{grid-template-columns:repeat(3,minmax(0,1fr))!important}.planner-card-overview .planner-mobile-player{grid-column:1/-1}.planner-card-stat b{font-size:19px}}
+@media(max-width:350px){.planner-plan-insights{grid-template-columns:minmax(0,1fr)}.planner-card-overview{gap:5px!important}.planner-card-stat{padding:6px 3px}.planner-card-stat span{font-size:10px}}
+
 '''
 NAV='''<script>
 try{

@@ -137,8 +137,9 @@ def _render_planner(notes):
             metrics=[('可排場次',str(after['counts'].get(key,0))),('淨增場次',f"{after['g']-before['g']:+d}"),('適配提升',f"{r['gain']:+.2f}")]
             metric_html=''.join('<div class="planner-card-stat"><span>'+label+'</span><b>'+value+'</b></div>' for label,value in metrics)
             st.markdown(f'<div class="planner-card-overview{layout}"><div class="planner-mobile-player"><img src="https://cdn.nba.com/headshots/nba/latest/260x190/{key}.png" alt=""><div><b>{i+1}. {html.escape(p["PLAYER_NAME"])}</b><span>{html.escape(drop_label)}</span><small>{ownership_label}</small></div></div>{metric_html}</div>',unsafe_allow_html=True)
-            if r['targets']:st.caption('補強接近項目：'+'、'.join(LABELS[c] for c in r['targets']))
-            st.write('改善最多：'+(LABELS[r['best']] if r['gain']>0 else '尚無整體改善'))
+            target_text='、'.join(LABELS[c] for c in r['targets']) if r['targets'] else '—'
+            best_text=LABELS[r['best']] if r['gain']>0 else '尚無整體改善'
+            st.markdown('<div class="planner-plan-insights"><div><span>補強接近項目</span><b>'+html.escape(target_text)+'</b></div><div><span>改善最多</span><b>'+html.escape(best_text)+'</b></div></div>',unsafe_allow_html=True)
             if mode=='長期適配':st.caption(f"每場加權 Z 淨變化 {r['long']:+.2f}；尚未預測成長、健康或交易市價。")
             with st.expander('查看九項變化'):
                 rows=[]
