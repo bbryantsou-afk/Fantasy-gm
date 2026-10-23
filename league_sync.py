@@ -170,6 +170,11 @@ def render_sync_connection(full=False):
         with st.expander('名單同步狀態／立即更新',expanded=False):
             page_caption('全站共用同一個同步接收器。已在此瀏覽器完成配對後，重新連線會自動載入已保存的今天名單。')
             result=bridge(**args)
+    if isinstance(result,dict) and result.get('syncUnavailable'):
+        if result.get('force')==st.session_state.get('_sync_force_nonce') and st.session_state.get('_sync_unavailable_notice')!=result.get('force'):
+            st.session_state['_sync_unavailable_notice']=result.get('force')
+            st.toast('此裝置未連接電腦同步擴充功能；手機請在 Yahoo 執行同步書籤，完成後返回 App。',icon='ℹ️')
+        result=None
     if phone_result and st.query_params.get('phone_sync'):
         result=phone_result
         incoming=result.get('snapshot',{}).get('league')

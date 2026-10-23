@@ -267,6 +267,12 @@ button>[data-fgm-expand-emoji]{display:flex!important;align-items:center;justify
 @media(max-width:760px){.planner-card-overview{grid-template-columns:repeat(3,minmax(0,1fr))!important}.planner-card-overview .planner-mobile-player{grid-column:1/-1}.planner-card-stat b{font-size:19px}}
 @media(max-width:350px){.planner-plan-insights{grid-template-columns:minmax(0,1fr)}.planner-card-overview{gap:5px!important}.planner-card-stat{padding:6px 3px}.planner-card-stat span{font-size:10px}}
 
+@media(max-width:600px){
+.stApp .st-key-app_status_bar [data-testid="stHorizontalBlock"]{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:4px 8px!important}
+.stApp .st-key-app_status_bar [data-testid="stColumn"]{width:100%!important;max-width:100%!important;min-height:32px!important;box-sizing:border-box!important}
+.stApp .st-key-app_status_bar [data-testid="stMarkdown"]{min-height:30px!important;overflow-wrap:anywhere}
+}
+
 '''
 NAV='''<script>
 try{
@@ -304,7 +310,7 @@ try{
  if(!w.__fgmAutoNav){
   w.__fgmAutoNav=true;
   d.addEventListener('click',e=>{
-   if(!e.target.closest('[data-testid="stSidebar"] [data-testid="stRadioOption"],.st-key-sidebar_close'))return;
+   if(!e.target.closest('[data-testid="stSidebar"] [data-testid="stRadioOption"],.st-key-sidebar_close,.st-key-mobile_sync_shortcut,.st-key-refresh_current_page'))return;
    w.setTimeout(()=>{
     const close=d.querySelector('[data-testid="stCollapseSidebarButton"]')||d.querySelector('[data-testid="stSidebarCollapseButton"] button')||d.querySelector('[data-testid="stSidebar"] button[aria-label="Collapse sidebar"]');
     if(close)close.click();

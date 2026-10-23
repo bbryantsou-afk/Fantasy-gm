@@ -15,7 +15,9 @@ with patch('daily_evidence.nba_today',return_value={'phase':'pregame','players':
  assert any('mobile-player-rows' in m.value for m in a.markdown)
  assert a.sidebar.button(key='mobile_sync_shortcut')
  a.sidebar.button(key='mobile_sync_shortcut').click().run();assert not a.exception,a.exception
- assert a.session_state['main_navigation']=='⚙️ 設定'
+ assert a.session_state['main_navigation']=='總覽 Dashboard'
+ assert a.session_state['_sync_force_nonce']
+ a.sidebar.radio(key='main_navigation').set_value('⚙️ 設定').run();assert not a.exception,a.exception
  assert any('前往 Yahoo 更新名單' in str(x.proto) for x in a.get('link_button'))
  a.sidebar.radio(key='main_navigation').set_value('9-Cat Strategy').run();assert not a.exception,a.exception
  assert any('mobile-rank-list' in m.value for m in a.markdown)
