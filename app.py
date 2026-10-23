@@ -121,8 +121,9 @@ with st.sidebar:
     account_name=st.session_state.get('_account_user_name','') if st.session_state.get('_account_id') else '尚未登入'
     with st.container(key='sidebar_identity'):
         st.markdown('<div class="sidebar-identity"><div class="sidebar-brand"><svg viewBox="0 0 230 44" role="img" aria-label="Fantasy GM" style="width:100%;height:auto;display:block"><text x="0" y="35" textLength="230" lengthAdjust="spacingAndGlyphs" fill="currentColor" font-family="system-ui,sans-serif" font-weight="800" font-size="40">Fantasy GM</text></svg></div><div class="sidebar-account">☁️ '+sidebar_html.escape(account_name)+'</div></div>',unsafe_allow_html=True)
-    if st.session_state.get('main_navigation')=='聯盟同步 League Sync':
+    if (st.query_params.get('phone_sync') and not st.session_state.get('_phone_landing_done')) or st.session_state.get('main_navigation')=='聯盟同步 League Sync':
         st.session_state['main_navigation']='⚙️ 設定'
+        st.session_state['_phone_landing_done']=True
     page = st.radio(
         "功能選單",
         ["總覽 Dashboard", "球員觀察室 Player Watch",
@@ -131,7 +132,7 @@ with st.sidebar:
         key="main_navigation",width="stretch",label_visibility="collapsed",format_func=lambda name:dict(zip(
             ["總覽 Dashboard","球員觀察室 Player Watch","每週補強 Weekly Planner","交易分析 Trade Lab","9-Cat Strategy","模擬對局 Matchup Simulator","聯盟同步 League Sync","比賽戰況","Data Source 資料中心","⚙️ 設定"],
             ["📊 總覽","⭐ 球員觀察室","📅 每週補強","🤝 交易分析","🎯 九項策略","🏀 模擬對局","🔄 聯盟同步","🏆 比賽戰況","🗂️ 資料中心","⚙️ 設定"])).get(name,name),
-        index=10 if st.query_params.get("code") or st.query_params.get("error") else 9 if st.query_params.get("phone_sync") else 0
+        index=9 if any(st.query_params.get(k) for k in ("code","error","phone_sync")) else 0
     )
 
 with st.container(key='current_feature'):
@@ -348,7 +349,7 @@ if st.session_state.get("visual_theme")=="簡約淺色":
 
 from compact_ui import render_compact_ui
 render_compact_ui()
-st.caption("版本 2026.10.23-ui37 · 電腦／手機共用版本")
+st.caption("版本 2026.10.24-ui38 · 電腦／手機共用版本")
 
 save_browser_records()
 
