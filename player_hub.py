@@ -146,7 +146,7 @@ def render_watchroom():
                 row_start=(i//per_row)*per_row
                 if selected in ids[row_start:i+1]:
                     with st.container(border=True,key='watch_detail_'+str(i//per_row)):
-                        if st.button('收起新聞與資料',key='watch_collapse'):
+                        if st.button('收起',key='watch_collapse'):
                             st.session_state.pop('watch_open',None);st.rerun()
                         show_player_detail(selected,pool,names)
 
@@ -161,7 +161,7 @@ def show_player_detail(selected,pool,names):
         cols[1].link_button('NBA 官方球員頁',f'https://www.nba.com/player/{selected}')
         if p:
             st.markdown('<div class="watch-detail-stats">2025–26｜'+' · '.join([f"FG% {p['FGM']/p['FGA']:.1%}" if p['FGA'] else 'FG% —',f"FT% {p['FTM']/p['FTA']:.1%}" if p['FTA'] else 'FT% —',f"3PT {p['FG3M']}",f"PTS {p['PTS']}",f"REB {p['REB']}",f"AST {p['AST']}",f"ST {p['STL']}",f"BLK {p['BLK']}",f"TO {p['TOV']}"])+'</div>',unsafe_allow_html=True)
-        if st.button('載入官方基本資料（身高、年齡、選秀）'):
+        if st.button('基本資料'):
             try:
                 b=player_bio(selected)
                 labels={'POSITION':'NBA位置','HEIGHT':'身高（英尺／英吋）','WEIGHT':'體重（磅）','BIRTHDATE':'生日','COUNTRY':'國家','SCHOOL':'學校','DRAFT_YEAR':'選秀年份','DRAFT_ROUND':'輪次','DRAFT_NUMBER':'順位','TEAM_NAME':'官方球隊'}
@@ -172,7 +172,7 @@ def show_player_detail(selected,pool,names):
     def refresh_news():
         player_news.clear(name)
         st.session_state['_watch_news_refreshed']=selected
-    st.button('更新這位球員的新聞',key='watch_refresh_news_'+selected,on_click=refresh_news)
+    st.button('更新新聞',key='watch_refresh_news_'+selected,on_click=refresh_news)
     try:
         with st.spinner('整理新聞…'):
             news=translated_news(player_news(name))

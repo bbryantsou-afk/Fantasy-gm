@@ -122,7 +122,7 @@ def _render_planner(notes):
     for r in results:
         if r['key'] not in seen:chosen.append(r);seen.add(r['key'])
         if len(chosen)==5:break
-    st.markdown('### 精選五個獨立方案')
+    st.markdown('### 推薦方案')
     if not chosen:st.info('候選在剩餘賽程沒有可排入的場次，暫不建議消耗 add。');return
     def apply_plan(rows,key,count):
         save_team(entries,team,rows)
@@ -131,17 +131,17 @@ def _render_planner(notes):
         key=r['key'];p=pool[key];after=r['after'];confirmed=key in league['free']
         with st.container(border=True,key='planner_plan_'+str(i)):
             import html
-            drop_label='釋出 '+pool[r['drop']]['PLAYER_NAME'] if r['drop'] else '使用空位，不需釋出'
-            ownership_label='✅ 已確認自由球員' if confirmed else '⚠️ 歸屬未確認，僅供研究'
-            layout=' planner-card-mobile' if st.session_state.get('device_view')=='手機版' else ''
+            drop_label='釋出 '+pool[r['drop']]['PLAYER_NAME'] if r['drop'] else '使用空位'
+            ownership_label='✅ 自由球員' if confirmed else '⚠️ 歸屬待確認'
             metrics=[('可排場次',str(after['counts'].get(key,0))),('淨增場次',f"{after['g']-before['g']:+d}"),('適配提升',f"{r['gain']:+.2f}")]
-            metric_html=''.join('<div class="planner-card-stat"><span>'+label+'</span><b>'+value+'</b></div>' for label,value in metrics)
-            st.markdown(f'<div class="planner-card-overview{layout}"><div class="planner-mobile-player"><img src="https://cdn.nba.com/headshots/nba/latest/260x190/{key}.png" alt=""><div><b>{i+1}. {html.escape(p["PLAYER_NAME"])}</b><span>{html.escape(drop_label)}</span><small>{ownership_label}</small></div></div>{metric_html}</div>',unsafe_allow_html=True)
+            metric_html=''.join('<div class="plan-number"><span>'+label+'</span><b>'+value+'</b></div>' for label,value in metrics)
             target_text='、'.join(LABELS[c] for c in r['targets']) if r['targets'] else '—'
-            best_text=LABELS[r['best']] if r['gain']>0 else '尚無整體改善'
-            st.markdown('<div class="planner-plan-insights"><div><span>補強接近項目</span><b>'+html.escape(target_text)+'</b></div><div><span>改善最多</span><b>'+html.escape(best_text)+'</b></div></div>',unsafe_allow_html=True)
+            best_text=LABELS[r['best']] if r['gain']>0 else '無改善'
+            summary=(f'<section class="plan-summary"><div class="plan-top"><div class="plan-person"><img src="https://cdn.nba.com/headshots/nba/latest/260x190/{key}.png" alt=""><div><b>{i+1}. {html.escape(p["PLAYER_NAME"])}</b><span>{html.escape(drop_label)}</span><small>{ownership_label}</small></div></div>{metric_html}</div>'
+                     +'<div class="plan-insights"><div><span>接近項目</span><b>'+html.escape(target_text)+'</b></div><div><span>改善最多</span><b>'+html.escape(best_text)+'</b></div></div></section>')
+            st.markdown(summary,unsafe_allow_html=True)
             if mode=='長期適配':st.caption(f"每場加權 Z 淨變化 {r['long']:+.2f}；尚未預測成長、健康或交易市價。")
-            with st.expander('查看九項變化'):
+            with st.expander('九項變化'):
                 rows=[]
                 for cat in CATS:
                     x,y=team_value(before,cat),team_value(after,cat)
@@ -149,4 +149,4 @@ def _render_planner(notes):
                     rows.append({'項目':LABELS[cat],'改變':change})
                 st.table(rows);notes.append('TO 淨減少才是改善；FG/FT 由總命中／總出手加權。適配分不是勝率。')
             if r['gain']<=0:st.caption('這個方案沒有提高目前的對局適配分；保留原名單也是選項。')
-            st.button('套用到共用名單（使用 1 次 add）',key='stream_apply_'+str(i),disabled=not confirmed,on_click=apply_plan,args=(r['rows'],'stream_adds_'+team+'_'+str(monday),remaining))
+            st.button('套用（1 次）',key='stream_apply_'+str(i),disabled=not confirmed,on_click=apply_plan,args=(r['rows'],'stream_adds_'+team+'_'+str(monday),remaining))

@@ -28,6 +28,7 @@ def player_rows(rows):
             label=LABELS[cat];value=row.get(label,row.get(cat))
             if value is None and cat in ('FG','FT') and row.get(cat+'A'):value=f"{row[cat+'M']/row[cat+'A']:.1%}"
             text='—' if value is None else f'{value:g}' if isinstance(value,(int,float)) else str(value)
+            if text.endswith('.0%'):text=text[:-3]+'%'
             out.append('<span><small>'+html.escape(label)+'</small><b>'+html.escape(text)+'</b></span>')
         out.append('</div></div>')
     return ''.join(out)+'</div>'

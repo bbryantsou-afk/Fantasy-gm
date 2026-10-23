@@ -105,6 +105,9 @@ render_court_theme()
 if 'device_view' not in st.session_state:
     st.session_state['device_view']='手機版'
 
+from compact_ui import render_compact_styles
+render_compact_styles()
+
 def refresh_current_page():
     from daily_evidence import nba_today,nba_official_today
     from live_espn import espn_day
@@ -162,16 +165,15 @@ if st.session_state.pop('_sync_force_notice',False):st.toast('已要求 Yahoo �
 if st.session_state.pop('_page_refresh_notice',False):st.toast('已重新整理頁面，正在檢查實績與 Drive。',icon='🔄')
 
 with st.container(key='app_status_bar'):
-    brand,team_view,display,cloud=st.columns([.9,1.35,1.7,1.1])
-    brand.markdown('**Fantasy GM**')
+    team_view,display,cloud=st.columns([1.1,1.2,.6])
     from ninecat_strategy import load_data as status_data
     from roster_store import active_team,team_label
     _,status_entries=status_data()
     team_view.markdown('**'+sidebar_html.escape(team_label(active_team(status_entries)))+'**')
     with display:
-        view=st.segmented_control('顯示版本',['電腦版','手機版'],selection_mode='single',key='device_view',required=True,label_visibility='collapsed',width='stretch')
+        view=st.segmented_control('顯示版本',['電腦版','手機版'],selection_mode='single',key='device_view',required=True,label_visibility='collapsed',width='stretch',format_func=lambda value:'電腦' if value=='電腦版' else '手機')
     st.query_params['view']='mobile' if view=='手機版' else 'desktop'
-    drive_label='☁️ Drive · v'+str(st.session_state.get('_account_revision','—')) if st.session_state.get('_account_loaded') else '☁️ 連接 Drive'
+    drive_label='☁️ '+str(st.session_state.get('_account_revision','—')) if st.session_state.get('_account_loaded') else '☁️ 未連接'
     if st.session_state.get('_account_conflict') or st.session_state.get('_account_save_error'):drive_label+=' ⚠️'
     cloud.caption(drive_label)
 if page not in ("9-Cat Strategy", "總覽 Dashboard", "模擬對局 Matchup Simulator", "Matchup Simulator Lite", "聯盟同步 League Sync", "📆 賽程週曆", "比賽戰況", "Data Source 資料中心", "⚙️ 設定", "球員觀察室 Player Watch", "每週補強 Weekly Planner", "交易分析 Trade Lab"):
@@ -223,20 +225,21 @@ elif page == "Data Source 資料中心":
     render_data_center()
 
 elif page == "⚙️ 設定":
-    render_account()
-    poll_account()
+    with st.expander('☁️ 帳號',expanded=not st.session_state.get('_account_loaded')):
+        render_account()
+    poll_account(show_controls=False)
     from setup_guide import render_setup_guide
     render_setup_guide()
     st.markdown('### 🔄 聯盟同步')
     render_sync_connection(full=True)
     from league_sync import render_sync
-    render_sync()
-    from mobile_share import render_mobile_settings
-    render_mobile_settings()
+    with st.expander('已存陣容',expanded=False):
+        render_sync()
     from court_theme import render_theme_settings
     render_theme_settings()
     from league_settings import render_league_settings
-    render_league_settings()
+    with st.expander('備份與名單設定',expanded=False):
+        render_league_settings()
     # Official Yahoo API settings are hidden until access is available.
     if False:
         st.divider()
@@ -368,8 +371,8 @@ if st.session_state.get("visual_theme")=="簡約淺色":
     st.markdown("<style>"+APP_CSS+"</style>",unsafe_allow_html=True)
 
 from compact_ui import render_compact_ui
-render_compact_ui()
-st.caption("版本 2026.10.24-ui43 · 電腦／手機共用版本")
+render_compact_ui(apply_styles=False)
+st.caption("版本 2026.10.24-ui44 · 電腦／手機共用版本")
 
 save_browser_records()
 

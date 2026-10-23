@@ -268,15 +268,68 @@ button>[data-fgm-expand-emoji]{display:flex!important;align-items:center;justify
 @media(max-width:350px){.planner-plan-insights{grid-template-columns:minmax(0,1fr)}.planner-card-overview{gap:5px!important}.planner-card-stat{padding:6px 3px}.planner-card-stat span{font-size:10px}}
 
 @media(max-width:600px){
-.stApp .st-key-app_status_bar [data-testid="stHorizontalBlock"]{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:4px 8px!important}
+.stApp .st-key-app_status_bar [data-testid="stHorizontalBlock"]{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(110px,1.1fr) minmax(50px,.5fr)!important;gap:5px!important}
 .stApp .st-key-app_status_bar [data-testid="stColumn"]{width:100%!important;max-width:100%!important;min-height:32px!important;box-sizing:border-box!important}
 .stApp .st-key-app_status_bar [data-testid="stMarkdown"]{min-height:30px!important;overflow-wrap:anywhere}
+}
+
+html,body{max-width:100%;overflow-x:clip}
+[data-testid="stAppViewContainer"],[data-testid="stMain"],[data-testid="stMainBlockContainer"]{min-width:0!important;max-width:100%!important;box-sizing:border-box!important}
+[data-testid="stSidebar"] [data-testid="stRadioOption"]{transition:none!important;animation:none!important;white-space:normal}
+@media(max-width:600px){
+.stApp :is(input,textarea,select){font-size:16px!important}
+[data-testid="stMainBlockContainer"]{padding-left:12px!important;padding-right:12px!important}
+[data-testid="stDataFrame"],[data-testid="stTable"]{max-width:100%!important;min-width:0!important;overflow-x:auto}
+}
+
+/* Readable single-row player stats: percentages get extra width. */
+.mobile-stat-player{grid-template-columns:64px minmax(0,1fr);column-gap:5px}
+.mobile-stat-photo img,.mobile-stat-photo .mobile-stat-avatar{width:64px!important}
+.mobile-stat-player .mobile-stat-values{grid-template-columns:1.35fr 1.35fr repeat(7,minmax(0,1fr));column-gap:3px;align-items:start}
+.mobile-stat-player .mobile-stat-values small{font-size:9px!important;line-height:1.4!important;white-space:nowrap}
+.mobile-stat-player .mobile-stat-values b{font-size:clamp(11px,2.9vw,13px)!important;line-height:1.5!important;letter-spacing:-.2px;white-space:nowrap;overflow-wrap:normal}
+.mobile-stat-player .mobile-stat-heading{font-size:12px!important}
+
+/* A single flow box owns the complete plan summary height. */
+.plan-summary{display:flex;flex-direction:column;gap:12px;min-width:0;width:100%;height:auto;box-sizing:border-box;isolation:isolate}
+.plan-summary *{box-sizing:border-box}
+.plan-top{display:grid;grid-template-columns:minmax(180px,2fr) repeat(3,minmax(0,1fr));gap:8px;align-items:stretch}
+.plan-person{display:flex;align-items:flex-start;gap:8px;min-width:0}
+.plan-person img{width:60px;height:64px;object-fit:contain;flex:0 0 60px}
+.plan-person>div{display:flex;flex-direction:column;gap:4px;min-width:0}
+.plan-person :is(b,span,small){display:block;line-height:1.45;overflow-wrap:anywhere;white-space:normal;margin:0}
+.plan-person b{font-size:14px}.plan-person span{font-size:12px}.plan-person small{font-size:11px}
+.plan-number{display:flex;flex-direction:column;justify-content:center;gap:4px;min-width:0;padding:8px;border:1px solid var(--fgm-feature-border);border-radius:8px}
+.plan-number span{font-size:11px;line-height:1.4;overflow-wrap:anywhere}.plan-number b{font-size:22px;line-height:1.3;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.plan-insights{display:flex;flex-wrap:wrap;gap:8px;clear:both}
+.plan-insights>div{flex:1 1 120px;min-width:0;padding:8px;border:1px solid var(--fgm-feature-border);border-radius:8px;display:flex;flex-direction:column;gap:4px}
+.plan-insights span{font-size:11px;line-height:1.4;color:var(--fgm-muted)}.plan-insights b{font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+@media(max-width:760px){.plan-top{grid-template-columns:repeat(3,minmax(0,1fr))}.plan-person{grid-column:1/-1}}
+/* Keep the feature title and expand control on the same horizontal bar. */
+[data-testid="stSidebarCollapsedControl"],[data-testid="stExpandSidebarButton"]{position:fixed!important;top:calc(3rem + env(safe-area-inset-top,0px))!important;left:12px!important;z-index:100002!important}
+[data-testid="stAppViewContainer"]:has([data-testid="stSidebar"][aria-expanded="false"]) .st-key-current_feature{padding-left:58px!important;display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;min-height:48px!important}
+.st-key-current_feature p,.st-key-current_feature strong{white-space:nowrap!important;font-size:26px!important}
+.stApp .st-key-app_status_bar [data-testid="stColumn"]{min-height:36px!important}
+.stApp .st-key-app_status_bar [data-testid="stMarkdown"]{min-height:32px!important}
+
+@media(max-width:600px){
+[data-testid="stMainBlockContainer"]{padding-top:calc(3rem + env(safe-area-inset-top,0px))!important}
+.st-key-current_feature{top:calc(2.875rem + env(safe-area-inset-top,0px))!important}
+[data-testid="stSidebarUserContent"]{padding-top:calc(8px + env(safe-area-inset-top,0px))!important}
 }
 
 '''
 NAV='''<script>
 try{
  const w=window.parent,d=w.document;
+ const setViewport=doc=>{
+  let meta=doc.querySelector('meta[name="viewport"]');
+  if(!meta){meta=doc.createElement('meta');meta.name='viewport';doc.head.appendChild(meta);}
+  const value='width=device-width, initial-scale=1, viewport-fit=cover';
+  if(meta.content!==value)meta.content=value;
+ };
+ setViewport(d);try{setViewport(w.parent.document);}catch(e){}
+
  // Hide only explicit badge leaves. Never infer shell containers from text or position.
  try{
   const shell=w.parent.document;
@@ -307,23 +360,34 @@ try{
   });
  };
  if(!w.__fgmSelectDone){w.__fgmSelectDone=new w.MutationObserver(install);w.__fgmSelectDone.observe(d.body,{childList:true,subtree:true});}install();
- if(!w.__fgmAutoNav){
-  w.__fgmAutoNav=true;
-  d.addEventListener('click',e=>{
-   if(!e.target.closest('[data-testid="stSidebar"] [data-testid="stRadioOption"],.st-key-sidebar_close,.st-key-mobile_sync_shortcut,.st-key-refresh_current_page'))return;
-   w.setTimeout(()=>{
-    const close=d.querySelector('[data-testid="stCollapseSidebarButton"]')||d.querySelector('[data-testid="stSidebarCollapseButton"] button')||d.querySelector('[data-testid="stSidebar"] button[aria-label="Collapse sidebar"]');
-    if(close)close.click();
-   },180);
-  },true);
- }
+ const closeSidebar=()=>{
+  const sidebar=d.querySelector('[data-testid="stSidebar"]');
+  if(!sidebar||sidebar.getAttribute('aria-expanded')==='false')return;
+  const control=d.querySelector('[data-testid="stCollapseSidebarButton"]')||d.querySelector('[data-testid="stSidebarCollapseButton"]')||sidebar.querySelector('button[aria-label="Collapse sidebar"]');
+  const button=control?.matches('button')?control:control?.querySelector('button');
+  button?.click();
+ };
+ if(w.__fgmNavHandler)d.removeEventListener('click',w.__fgmNavHandler,true);
+ w.__fgmNavHandler=e=>{
+  const close=e.target.closest('.st-key-sidebar_close');
+  if(close){e.preventDefault();e.stopImmediatePropagation();closeSidebar();return;}
+  const nav=e.target.closest('[data-testid="stSidebar"] [data-testid="stRadioOption"]');
+  if(!nav&&!e.target.closest('.st-key-mobile_sync_shortcut,.st-key-refresh_current_page'))return;
+  w.setTimeout(closeSidebar,120);w.setTimeout(closeSidebar,450);
+  if(nav)w.setTimeout(()=>{const main=d.querySelector('[data-testid="stMain"]');if(main)main.scrollTop=0;w.scrollTo(0,0);},200);
+ };
+ d.addEventListener('click',w.__fgmNavHandler,true);
+
 }catch(e){}
 </script>'''
 
-def render_compact_ui():
+def render_compact_styles():
     theme=st.session_state.get('visual_theme','黑色鏡面')
     bg,fg,border={'簡約淺色':('#f7f8fa','#202936','#d5dce5'),'戰術板草圖':('#142b29','#f0eee3','#54736a')}.get(theme,('#0b1020','#edf2f7','#384152'))
     variables=f'.stApp{{--fgm-feature-bg:{bg};--fgm-feature-fg:{fg};--fgm-feature-border:{border};--fgm-muted:{'#526174' if theme=='簡約淺色' else '#b8c7d2'};}}'
     responsive=CSS.replace('@media(max-width:640px)','@media(max-width:100000px)') if st.session_state.get('device_view')=='手機版' else CSS
     st.markdown('<style>'+variables+responsive+'</style>',unsafe_allow_html=True)
+
+def render_compact_ui(apply_styles=True):
+    if apply_styles:render_compact_styles()
     components.html(NAV,height=0)
