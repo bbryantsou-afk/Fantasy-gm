@@ -271,27 +271,19 @@ button>[data-fgm-expand-emoji]{display:flex!important;align-items:center;justify
 NAV='''<script>
 try{
  const w=window.parent,d=w.document;
- // Community Cloud renders its visitor attribution outside the app iframe.
+ // Hide only explicit badge leaves. Never infer shell containers from text or position.
  try{
   const shell=w.parent.document;
+  if(w.__fgmCloudAttribution){w.__fgmCloudAttribution.disconnect();delete w.__fgmCloudAttribution;}
   const hideAttribution=()=>{
-   // Cloud's mobile badge is icon-only until tapped, so text matching misses it.
-   shell.querySelectorAll('[class*="viewerBadge"],[class*="viewer-badge"],[data-testid="app-viewer-badge"]').forEach(el=>el.style.setProperty('display','none','important'));
-   shell.querySelectorAll('div,aside,a,button').forEach(el=>{
-    const style=shell.defaultView.getComputedStyle(el),rect=el.getBoundingClientRect();
-    if(style.position==='fixed'&&rect.width>0&&rect.width<=420&&rect.height>0&&rect.height<=180&&rect.bottom>=shell.defaultView.innerHeight-100&&rect.right>=shell.defaultView.innerWidth-120&&el.querySelector('svg,img')&&!el.querySelector('iframe')){
-     el.style.setProperty('display','none','important');
-    }
-   });
-   shell.querySelectorAll('a,span,p,footer').forEach(el=>{
-    const label=(el.textContent||'').trim();
-    if(label.length>160||!(/^(Created by|Hosted with Streamlit)/i.test(label)))return;
-    const group=el.closest('footer')||el.parentElement;
-    if(group&&(group.textContent||'').length<400)group.style.setProperty('display','none','important');
+   shell.querySelectorAll('[data-testid="app-viewer-badge"],[data-testid="stAppViewerBadge"],[class*="viewerBadge"],[class*="viewer-badge"]').forEach(el=>{
+    if(el===shell.body||el===shell.documentElement||el.querySelector('iframe,main,[data-testid="stAppViewContainer"],[data-testid="stMain"]'))return;
+    el.style.setProperty('display','none','important');
    });
   };
   hideAttribution();
-  if(!w.__fgmCloudAttribution){w.__fgmCloudAttribution=new w.MutationObserver(hideAttribution);w.__fgmCloudAttribution.observe(shell.body,{childList:true,subtree:true});}
+  w.__fgmCloudAttribution=new w.MutationObserver(hideAttribution);
+  w.__fgmCloudAttribution.observe(shell.body,{childList:true,subtree:true});
  }catch(e){}
 
  const install=()=>{
