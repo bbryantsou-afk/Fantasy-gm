@@ -23,7 +23,7 @@ def player_rows(rows):
         photo=f'<img loading="lazy" src="https://cdn.nba.com/headshots/nba/latest/260x190/{pid}.png" alt="{name}">' if pid.isdigit() else '<span class="mobile-stat-avatar">🏀</span>'
         games=row.get('場次',row.get('GP'));games='—' if games is None else str(games)
         icon=trend_icon(row.get('週場均趨勢',''))
-        out.append(f'<div class="mobile-stat-player"><div class="mobile-stat-heading">{photo}<b>{name} {position_html}</b><span>{games} 場　{icon}</span></div><div class="mobile-stat-values">')
+        out.append(f'<div class="mobile-stat-player"><div class="mobile-stat-photo">{photo}</div><div class="mobile-stat-heading"><b>{name} {position_html}</b><span>{games} 場　{icon}</span></div><div class="mobile-stat-values">')
         for cat in CATS:
             label=LABELS[cat];value=row.get(label,row.get(cat))
             if value is None and cat in ('FG','FT') and row.get(cat+'A'):value=f"{row[cat+'M']/row[cat+'A']:.1%}"

@@ -234,6 +234,15 @@ button[data-testid="stExpandSidebarButton"],[data-testid="stExpandSidebarButton"
 button:has(>[data-fgm-expand-emoji])>*:not([data-fgm-expand-emoji]){display:none!important}
 button>[data-fgm-expand-emoji]{display:flex!important;align-items:center;justify-content:center;width:100%;font-size:22px;line-height:1;margin:0;padding:0}
 
+.mobile-stat-player{display:grid;grid-template-columns:72px minmax(0,1fr);grid-template-rows:auto auto;column-gap:5px;row-gap:2px;padding:4px 0!important;align-items:center}
+.mobile-stat-photo{grid-column:1;grid-row:1/3;align-self:stretch;display:flex;align-items:center;justify-content:center;min-height:64px;overflow:hidden}
+.mobile-stat-photo img,.mobile-stat-photo .mobile-stat-avatar{width:72px!important;height:100%!important;min-height:64px;max-height:82px;object-fit:cover;object-position:center top}
+.mobile-stat-player .mobile-stat-heading{grid-column:2;grid-row:1;gap:3px;font-size:11px}
+.mobile-stat-player .mobile-stat-heading>span{font-size:9px}
+.mobile-stat-player .mobile-stat-values{grid-column:2;grid-row:2;gap:0;margin-top:0}
+.mobile-stat-player .mobile-stat-values small{font-size:7px;line-height:1.2}
+.mobile-stat-player .mobile-stat-values b{font-size:clamp(7px,2vw,10px);line-height:1.25;letter-spacing:-.3px}
+
 '''
 NAV='''<script>
 try{
