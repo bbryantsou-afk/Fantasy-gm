@@ -226,7 +226,7 @@ button[data-testid="stExpandSidebarButton"],[data-testid="stExpandSidebarButton"
 .stApp .st-key-app_status_bar [data-testid="stColumn"]{display:flex!important;align-items:center!important;justify-content:center!important;min-height:42px!important}
 .stApp .st-key-app_status_bar [data-testid="stColumn"] > div{width:100%!important}
 .stApp .st-key-app_status_bar :is(p,[data-testid="stCaptionContainer"]){margin:0!important;line-height:1.35!important}
-.stApp .st-key-app_status_bar [data-testid="stMarkdownContainer"]{display:flex!important;align-items:center!important;min-height:40px!important}
+.stApp .st-key-app_status_bar [data-testid="stMarkdown"]{display:flex!important;align-items:center!important;min-height:36px!important}
 .stApp .mvp-body{align-items:stretch!important;min-height:170px}
 .stApp .mvp-photo{position:relative!important;flex:0 0 35%!important;max-width:none!important;min-height:170px!important;align-self:stretch!important}
 .stApp .mvp-photo img{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-height:none!important;object-fit:cover!important;object-position:center top!important;border-radius:8px!important}
@@ -242,6 +242,15 @@ button>[data-fgm-expand-emoji]{display:flex!important;align-items:center;justify
 .mobile-stat-player .mobile-stat-values{grid-column:2;grid-row:2;gap:0;margin-top:0}
 .mobile-stat-player .mobile-stat-values small{font-size:7px;line-height:1.2}
 .mobile-stat-player .mobile-stat-values b{font-size:clamp(7px,2vw,10px);line-height:1.25;letter-spacing:-.3px}
+
+/* One continuous segmented switch; label wrappers must not stretch buttons. */
+.stApp .st-key-app_status_bar [data-testid="stButtonGroup"]{display:flex!important;gap:0!important;padding:3px!important;border:1px solid var(--fgm-feature-border)!important;border-radius:11px!important;background:var(--fgm-feature-bg)!important;box-sizing:border-box!important;min-width:0!important}
+.stApp .st-key-app_status_bar [data-testid="stButtonGroup"] button{flex:1 1 0!important;min-width:0!important;width:50%!important;height:32px!important;min-height:32px!important;max-height:32px!important;margin:0!important;padding:0 5px!important;border:0!important;border-radius:8px!important;box-shadow:none!important;display:flex!important;justify-content:center!important;align-items:center!important;white-space:nowrap!important}
+.stApp .st-key-app_status_bar [data-testid="stButtonGroup"] button [data-testid="stMarkdownContainer"]{display:block!important;min-height:0!important;height:auto!important;margin:0!important;padding:0!important}
+.stApp .st-key-app_status_bar [data-testid="stButtonGroup"] button p{font-size:12px!important;line-height:20px!important;white-space:nowrap!important;margin:0!important;padding:0!important}
+.stApp .st-key-app_status_bar [data-testid="stButtonGroup"] button[aria-pressed="false"]{background:transparent!important}
+.stApp .st-key-app_status_bar [data-testid="stButtonGroup"] button[aria-pressed="true"]{background:#2f8475!important;color:#fff!important}
+.stApp .st-key-app_status_bar [data-testid="stButtonGroup"] button[aria-pressed="true"] :is(p,span){color:#fff!important;background:transparent!important}
 
 '''
 NAV='''<script>
