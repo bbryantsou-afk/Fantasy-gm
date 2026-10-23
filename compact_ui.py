@@ -318,6 +318,10 @@ html,body{max-width:100%;overflow-x:clip}
 [data-testid="stSidebarUserContent"]{padding-top:calc(8px + env(safe-area-inset-top,0px))!important}
 }
 
+/* Minimal menu glyph; keep a full touch target without a decorative frame. */
+.stApp .st-key-sidebar_close button,button:has(>[data-fgm-expand-emoji]){border:0!important;background:transparent!important;box-shadow:none!important;border-radius:8px!important;color:var(--fgm-feature-fg)!important}
+.stApp .st-key-sidebar_close button p,button>[data-fgm-expand-emoji]{font-family:Arial,sans-serif!important;font-weight:400!important;font-size:26px!important;line-height:1!important}
+
 '''
 NAV='''<script>
 try{
@@ -347,9 +351,9 @@ try{
 
  const install=()=>{
   d.querySelectorAll('button[data-testid="stExpandSidebarButton"],[data-testid="stExpandSidebarButton"] button,[data-testid="stSidebarCollapsedControl"] button,button[aria-label="Expand sidebar"]').forEach(button=>{
-   if(button.querySelector('[data-fgm-expand-emoji]'))return;
-   const emoji=d.createElement('span');emoji.dataset.fgmExpandEmoji='1';emoji.textContent='▶️';
-   button.appendChild(emoji);
+   let icon=button.querySelector('[data-fgm-expand-emoji]');
+   if(!icon){icon=d.createElement('span');icon.dataset.fgmExpandEmoji='1';button.appendChild(icon);}
+   if(icon.textContent!=='☰')icon.textContent='☰';
   });
   d.querySelectorAll('[data-baseweb="popover"],[data-testid="stSelectboxVirtualDropdown"],[data-testid="stMultiSelectDropdown"]').forEach(pop=>{
    if(!pop.querySelector('[role="listbox"]')||pop.querySelector('[data-fgm-done]'))return;
@@ -367,16 +371,16 @@ try{
   const button=control?.matches('button')?control:control?.querySelector('button');
   button?.click();
  };
- if(w.__fgmNavHandler)d.removeEventListener('click',w.__fgmNavHandler,true);
+ if(w.__fgmNavHandler){d.removeEventListener('click',w.__fgmNavHandler,true);w.removeEventListener('click',w.__fgmNavHandler,true);}
  w.__fgmNavHandler=e=>{
   const close=e.target.closest('.st-key-sidebar_close');
   if(close){e.preventDefault();e.stopImmediatePropagation();closeSidebar();return;}
   const nav=e.target.closest('[data-testid="stSidebar"] [data-testid="stRadioOption"]');
   if(!nav&&!e.target.closest('.st-key-mobile_sync_shortcut,.st-key-refresh_current_page'))return;
-  w.setTimeout(closeSidebar,120);w.setTimeout(closeSidebar,450);
+  if(!w.__fgmAutoNav)w.setTimeout(closeSidebar,180);
   if(nav)w.setTimeout(()=>{const main=d.querySelector('[data-testid="stMain"]');if(main)main.scrollTop=0;w.scrollTo(0,0);},200);
  };
- d.addEventListener('click',w.__fgmNavHandler,true);
+ w.addEventListener('click',w.__fgmNavHandler,true);
 
 }catch(e){}
 </script>'''

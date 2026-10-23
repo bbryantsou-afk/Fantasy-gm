@@ -120,7 +120,7 @@ def refresh_current_page():
 with st.sidebar:
     with st.container(key='sidebar_actions'):
         menu_col,sync_col,refresh_col=st.columns([1,1,1])
-        menu_col.button('◀️',key='sidebar_close',help='收起功能選單',use_container_width=True)
+        menu_col.button('☰',key='sidebar_close',help='收起功能選單',use_container_width=True)
         def open_mobile_sync():
             import uuid
             st.session_state['_account_force_poll']=True
@@ -372,7 +372,7 @@ if st.session_state.get("visual_theme")=="簡約淺色":
 
 from compact_ui import render_compact_ui
 render_compact_ui(apply_styles=False)
-st.caption("版本 2026.10.24-ui44 · 電腦／手機共用版本")
+st.caption("版本 2026.10.24-ui45 · 電腦／手機共用版本")
 
 save_browser_records()
 
