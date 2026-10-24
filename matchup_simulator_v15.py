@@ -565,7 +565,7 @@ def render_matchup_simulator(lite=False):
       const requiredStats=["PTS","REB","AST","STL","BLK","3PM","FGM","FGA","FTM","FTA","TO"];
       const completeStats=s=>requiredStats.every(k=>Number.isFinite(s?.[k])&&s[k]>=0) && s.FGM<=s.FGA && s.FTM<=s.FTA;
       const dailyChoices={my:{},opp:{}};
-      let includeActual=false;
+      let includeActual=true;
       // One record per matchup week, not tied to the selected day.
       const storageKey="fantasy-gm-v12-simulations:"+(data.owner??"guest");
       let savedDB=structuredClone(data.saved_simulations??{});
@@ -575,7 +575,7 @@ def render_matchup_simulator(lite=False):
         daily_choices:structuredClone(dailyChoices),include_actual:includeActual,selected_day:dayIndex,
         context:data.context,saved_at:new Date().toISOString()});
       function restore(payload){
-        includeActual=payload?.include_actual===true;
+        includeActual=payload?.include_actual!==false;
         if(!payload||payload.format!=="fantasy-gm-simulation"||payload.version!==1 ||
            JSON.stringify(payload.week_dates)!==JSON.stringify(weekDates) ||
            !Array.isArray(payload.lineups)||payload.lineups.length!==7 ||
