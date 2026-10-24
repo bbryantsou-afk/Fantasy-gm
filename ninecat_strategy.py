@@ -169,8 +169,10 @@ def render_ninecat_strategy():
         page_caption('儲存在本機 ninecat_state.json；雲端磁碟可能不持久，請下載備份。')
 
     st.subheader('策略權重')
-    wc = st.columns(3)
-    weights = {c: wc[i % 3].slider(LABELS[c]+' 權重', 0.0, 2.0, 1.0, .1, key='nc_weight_'+c) for i, c in enumerate(CATS)}
+    with st.form('nc_weight_form',border=False):
+        wc = st.columns(3)
+        weights = {c: wc[i % 3].slider(LABELS[c]+' 權重', 0.0, 2.0, 1.0, .1, key='nc_weight_'+c) for i, c in enumerate(CATS)}
+        st.form_submit_button('套用權重',type='primary')
     st.caption('0＝不計、1＝正常、2＝優先。適配分會依目前優劣勢遞減；不是對局勝率。')
 
     st.subheader('球員大名單 · Perfect Match')
