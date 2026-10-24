@@ -35,7 +35,7 @@ window.addEventListener('message',e=>{
   status.textContent='已讀取 '+m.snapshot.teams.length+' 隊，等待網站驗證／套用；這還不是套用成功。';
   parentMessage('streamlit:setComponentValue',{value:{requestId:m.requestId,snapshot:m.snapshot,mapping:m.mapping||{}},dataType:'json'});return;
  }
- if(m.kind==='error'){busy=false;status.textContent=m.message;document.querySelectorAll('button').forEach(x=>x.disabled=false);return;}
+ if(m.kind==='error'){if(args.pwa)parentMessage('streamlit:setComponentValue',{value:{syncError:m.message},dataType:'json'});busy=false;status.textContent=m.message;document.querySelectorAll('button').forEach(x=>x.disabled=false);return;}
  if(m.kind==='mapped'){status.textContent=appliedText()||m.message;return;}
  if(m.kind==='scheduled')status.textContent=m.message;
 });

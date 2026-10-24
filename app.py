@@ -129,14 +129,8 @@ with st.sidebar:
         def open_mobile_sync():
             import uuid
             st.session_state['_account_force_poll']=True
-            if st.session_state.get('device_view')=='手機版':
-                st.session_state.pop('_sync_force_nonce',None)
-                st.session_state['_mobile_drive_sync_notice']=True
-            else:
-                st.session_state['_sync_force_nonce']=uuid.uuid4().hex
-                st.session_state['_sync_force_notice']=True
-
-
+            st.session_state['_sync_force_nonce']=uuid.uuid4().hex
+            st.session_state['_sync_force_notice']=True
     import html as sidebar_html
     account_name=st.session_state.get('_account_user_name','') if st.session_state.get('_account_id') else '尚未登入'
     with st.container(key='sidebar_identity'):
@@ -370,7 +364,7 @@ elif page == "Matchup Simulator Lite":
     render_matchup_simulator(lite=True)
 
 elif page == "模擬對局 Matchup Simulator":
-    render_matchup_simulator(lite=view=='手機版')
+    render_matchup_simulator(lite=st.session_state.get('device_view')=='手機版')
 from page_guidance import render as render_page_guidance
 render_page_guidance()
 st.divider()
