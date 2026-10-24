@@ -37,3 +37,5 @@ input[type="date"]::-webkit-date-and-time-value{text-align:left;min-width:0}
  th,td{padding:10px 7px}
  .field-row{gap:16px}
 }
+
+.account-actions{padding:8px 0;border-bottom:1px solid var(--line)}#cloud-state{white-space:nowrap;min-height:36px;font-size:13px;padding:4px 8px}
