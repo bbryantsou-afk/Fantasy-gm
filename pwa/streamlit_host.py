@@ -31,6 +31,9 @@ def dispatch(request):
     if path=='/api/session' and method=='GET':
         c=config();return {'csrf':st.session_state.setdefault('_pwa_csrf',secrets.token_urlsafe(32)),'user':signed_user(),'googleConfigured':bool(c),'embedded':True,'league':st.session_state.get('_account_scope') if str(st.session_state.get('_account_scope','')).isdigit() else st.session_state.get('_league',{}).get('sync_league','')}
     if path=='/api/sim-status' and method=='GET':return simulator_status()
+    if path=='/api/strategy-stats' and method=='GET':
+        from strategy_season import strategy_snapshot
+        return strategy_snapshot(query.get('season',['2026-27'])[0])
     if path=='/api/model' and method=='GET':return public_model()
     if path=='/api/login' and method=='POST':
         c=config()

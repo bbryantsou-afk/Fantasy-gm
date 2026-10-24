@@ -119,6 +119,9 @@ class Handler(BaseHTTPRequestHandler):
             s=self.session(True);cfg=configuration()
             return self.reply(200,{'csrf':s['csrf'],'user':s.get('user'),'googleConfigured':bool(cfg['client_id'] and cfg['client_secret']),'callback':self.server.base+'/auth/callback'}, {'Set-Cookie':self.cookie()})
         if path=='/api/sim-status':return self.reply(200,simulator_status())
+        if path=='/api/strategy-stats':
+            from strategy_season import strategy_snapshot
+            return self.reply(200,strategy_snapshot(parse_qs(urlsplit(self.path).query).get('season',['2026-27'])[0]))
         if path=='/api/model':
             from dashboard_model import regular_schedule
             data=json.loads((ROOT/'ninecat_assets/data.json').read_text())
