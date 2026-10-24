@@ -1,6 +1,6 @@
 """Optional mobile presentation for the shared, unchanged matchup engine."""
 LITE_CSS = """
-#lineup-app{padding-bottom:16px;font-size:11px}
+#lineup-app{padding-bottom:calc(64px + env(safe-area-inset-bottom));font-size:11px}
 #lineup-app .board{display:block;min-width:0}
 #lineup-app .board>.roster{display:none}
 #lineup-app .middle{padding:6px}
@@ -25,8 +25,10 @@ LITE_CSS = """
 #lineup-app .editor-panel{padding:12px}
 #lineup-app .lite-tray{position:fixed;bottom:0;left:0;right:0;max-height:35dvh;overflow-y:auto;z-index:1000;background:#101826;border-top:1px solid #6c8aa8;padding:10px 6px calc(10px + env(safe-area-inset-bottom));margin-top:12px;border-radius:10px;box-shadow:none}
 #lineup-app .lite-tray[hidden]{display:none!important}
-#lineup-app.lite-adjusting{padding-bottom:calc(35dvh + 20px)}
-#lineup-app .lite-tray-toggle{position:sticky;top:0;z-index:20;min-height:44px;width:100%;margin:8px 0}
+#lineup-app.lite-adjusting{padding-bottom:calc(35dvh + 76px)}
+#lineup-app .lite-tray-toggle{position:fixed;bottom:0;left:0;right:0;z-index:1001;min-height:48px;width:100%;margin:0;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:#172238;color:#edf3ff;border:1px solid #6c8aa8;border-radius:10px 10px 0 0}
+#lineup-app.lite-adjusting .lite-tray-toggle{bottom:35dvh;padding:10px 12px}
+#lineup-app .lite-tray{height:35dvh;box-sizing:border-box;margin:0;border-radius:0}
 #lineup-app .lite-tabs{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:6px}
 #lineup-app .lite-tabs button{background:#26384d;border:1px solid #486783;border-radius:7px;color:#edf3ff;padding:7px 10px;min-height:32px}
 #lineup-app .lite-tabs button.active{background:#1c6a63;border-color:#74dfc4}
