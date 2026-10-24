@@ -548,7 +548,9 @@ def render_matchup_simulator(lite=False):
       const empty = () => ({my:Object.fromEntries(positions.map(p=>[p,null])),
                            opp:Object.fromEntries(positions.map(p=>[p,null]))});
       const state = weekDates.map(empty);
+      let officialApplied=false;
       function applyOfficialLineups(){
+        if(officialApplied)return;officialApplied=true;
         for(let i=0;i<weekDates.length;i++)for(const side of ['my','opp']){
           const slots=data.official_lineups?.[weekDates[i]]?.[side];
           if(!data.historical && weekDates[i]<=data.today){

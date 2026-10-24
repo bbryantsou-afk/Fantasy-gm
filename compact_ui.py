@@ -346,6 +346,9 @@ try{
   const shell=w.parent.document;
   if(w.__fgmCloudAttribution){w.__fgmCloudAttribution.disconnect();delete w.__fgmCloudAttribution;}
   const hideAttribution=()=>{
+   shell.querySelectorAll('button,a').forEach(el=>{
+    if(/^Manage app$/i.test((el.textContent||'').trim())&&!el.querySelector('iframe,main'))el.style.setProperty('display','none','important');
+   });
    shell.querySelectorAll('[data-testid="app-viewer-badge"],[data-testid="stAppViewerBadge"],[class*="viewerBadge"],[class*="viewer-badge"]').forEach(el=>{
     if(el===shell.body||el===shell.documentElement||el.querySelector('iframe,main,[data-testid="stAppViewContainer"],[data-testid="stMain"]'))return;
     el.style.setProperty('display','none','important');

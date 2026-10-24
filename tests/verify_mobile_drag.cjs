@@ -1,0 +1,10 @@
+const fs=require('node:fs'),assert=require('node:assert/strict');
+const s=fs.readFileSync('matchup_lite.py','utf8');
+assert.ok(s.includes('el.onpointerdown=e=>{'));
+assert.ok(!s.includes('if(!inSlot)el.onpointerdown'));
+assert.ok(s.includes('benchLite(side,p.id)'));
+assert.ok(s.includes('!location(traySide,p.id)'));
+assert.ok(!s.includes('移回板凳'));
+assert.ok(s.includes('grid-template-columns:repeat(2,minmax(0,1fr))'));
+assert.ok(!s.includes('.lite-tray{position:fixed'));
+console.log('PASS starter/bench dragging, bench-only list and non-overlay wrapping tray');
