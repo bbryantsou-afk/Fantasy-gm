@@ -70,7 +70,7 @@ def render_ninecat_strategy():
     except (OSError, ValueError) as exc:
         st.error(f'無法載入本機資料：{exc}')
         return
-    season=st.selectbox('數據賽季',['2026-27','2025-26'],key='nc_data_season')
+    season=st.selectbox('數據賽季',['2026-27','blended-25','2025-26'],format_func=lambda v:'上季最後25場＋本季全部' if v=='blended-25' else v,key='nc_data_season')
     from strategy_season import strategy_snapshot
     with st.spinner('載入場均…'):snapshot=strategy_snapshot(season)
     players = snapshot['players']
