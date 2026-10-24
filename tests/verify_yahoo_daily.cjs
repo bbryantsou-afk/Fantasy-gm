@@ -19,11 +19,27 @@ const partial=['C','Player','3/7','3/3','0','9','8','-','1','0','1'];
 const partialRow=parseYahooDocument(fixture('2026-10-20','1',partial),'2026-10-20',true).rows[0];
 assert.equal(partialRow.daily_stats.AST,0);assert.equal(partialRow.yahooPlayerId,'1');
 const malformed=[...partial];malformed[7]='unavailable';assert.equal(parseYahooDocument(fixture('2026-10-20','1',malformed),'2026-10-20',true).rows[0].daily_stats,null);
+// Real Yahoo layout: Iron Will / Anthony Edwards, 2026-10-23.
+function ironFixture(actionSpan){
+ const headers=['Pos','Players','Action','Opp','Pre-Season','% Start','% Ros','MIN*','FGM/A*','FG%','FTM/A*','FT%','3PTM','PTS','REB','AST','ST','BLK','TO',''];
+ const values=['PG','Anthony Edwards',...Array(actionSpan).fill('button'),'@ORL','9','99%','100%','33','5/23','.217','3/4','.750','2','15','4','4','4','0','2',''];
+ const link={href:'https://sports.yahoo.com/nba/players/6355',textContent:'Anthony Edwards',closest:()=>({innerText:'Anthony Edwards MIN - PG,SG',querySelector:()=>null})};
+ const row={cells:values.map(textContent=>({textContent})),querySelectorAll:()=>[link]};
+ const header={cells:headers.map(textContent=>({textContent,colSpan:textContent==='Action'?actionSpan:1}))};
+ const table={textContent:"鐵的意志's Players roster for 2026-10-23",querySelectorAll:q=>q==='thead tr'?[header]:[row]};
+ return {querySelectorAll:q=>q==='table'?[table]:q==='li.Selected a[href]'?[{getAttribute:()=>'/nba/71585/9?stat1=S&stat2=D'}]:[]};
+}
+const other=parseYahooDocument(ironFixture(2),'2026-10-23',true).rows[0];
+const own=parseYahooDocument(ironFixture(1),'2026-10-23',true).rows[0];
+assert.deepEqual(other.daily_stats,{PTS:15,FG3M:2,REB:4,AST:4,STL:4,BLK:0,TOV:2,FGM:5,FGA:23,FTM:3,FTA:4});
+assert.deepEqual(own.daily_stats,other.daily_stats);
+console.log('PASS Iron Will real Yahoo row; own/other layouts yield identical correct statistics');
 (async()=>{
  const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
  const v=t=>parts.find(p=>p.type===t).value;const today=v('year')+'-'+v('month')+'-'+v('day');
  let reads=0;const read=async path=>{reads++;const url=new URL(path,'https://basketball.fantasysports.yahoo.com');assert.equal(url.searchParams.get('stat2'),'D');return fixture(url.searchParams.get('date'),url.pathname.split('/')[3]);};
  const first=await collectYahooRosterWeek(read,'7',['1','2'],today);assert.equal(first.primary.date,today);assert.equal(first.primary.teams.length,2);assert(first.history.length<=6);
- reads=0;await collectYahooRosterWeek(read,'7',['1','2'],today,()=>{},first.archives);assert.equal(reads,2); // reread today, reuse settled earlier days
+ reads=0;await collectYahooRosterWeek(read,'7',['1','2'],today,()=>{},first.archives);assert.equal(reads,2); // reread today, reuse only corrected-parser archives
+ const stale=structuredClone(first.archives);for(const a of Object.values(stale))delete a.parserVersion;reads=0;await collectYahooRosterWeek(read,'7',['1','2'],today,()=>{},stale);if(first.history.length)assert(reads>2,'old misaligned history must be refetched');
  console.log('PASS Yahoo day-only mode, genuine zero versus no data, date guards, full week collection and fresh-today cache behavior');
 })().catch(e=>{console.error(e);process.exit(1)});
