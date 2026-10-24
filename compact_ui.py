@@ -435,6 +435,16 @@ def render_compact_styles():
 .stApp .st-key-app_status_bar button{min-height:34px!important;padding:4px 8px!important}
 @media(max-width:380px){.stApp .st-key-app_status_bar [data-testid="stHorizontalBlock"]{grid-template-columns:minmax(0,1fr) 84px 58px!important;gap:4px!important}}
 '''
+    if st.session_state.get('device_view')!='手機版':
+        responsive+='''
+@media(min-width:760px){
+.stApp [data-testid="stMarkdownContainer"] p,.stApp [data-testid="stWidgetLabel"] p,.stApp button p,.stApp input,.stApp select{font-size:16px!important;line-height:1.5!important}
+.stApp table,.stApp table th,.stApp table td{font-size:15px!important;line-height:1.5!important}
+.stApp [data-testid="stCaptionContainer"] p,.stApp small{font-size:14px!important;line-height:1.5!important}
+.stApp .plan-person b{font-size:17px!important}.stApp .plan-person span,.stApp .plan-person small,.stApp .plan-insights b,.stApp .plan-insights span{font-size:14px!important;line-height:1.5!important}
+.stApp .roster-person b{font-size:15px!important}.stApp .roster-person small{font-size:13px!important}
+}
+'''
     st.markdown('<style>'+variables+responsive+'</style>',unsafe_allow_html=True)
 
 def render_compact_ui(apply_styles=True):

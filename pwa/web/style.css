@@ -19,3 +19,21 @@ input[type="date"]::-webkit-date-and-time-value{text-align:left;min-width:0}
 @media(max-width:340px){.overview-period{grid-template-columns:minmax(0,1fr)}}
 
 .roster-gallery .player-tile{grid-template-rows:64px 36px minmax(26px,auto)}
+
+/* Desktop reading sizes; keep compact phone layout unchanged. */
+@media(min-width:760px){
+ body{font-size:16px;line-height:1.5}
+ label,summary,button,input,select,textarea,table{font-size:16px}
+ small,.muted,.tag,.position,.save-state{font-size:14px}
+ .player-name,.rank-list .player-name{font-size:16px}
+ .player-row .statline,.statline,.statline b,.statline span{font-size:15px;line-height:1.5}
+ .player-tile{grid-template-rows:88px minmax(48px,auto) minmax(36px,auto) 36px}
+ .player-tile img{height:88px}
+ .player-tile .player-name{font-size:14px;line-height:1.5}
+ .player-tile small{font-size:13px;line-height:1.4}
+ .roster-gallery .player-tile{grid-template-rows:88px minmax(48px,auto) minmax(36px,auto)}
+ .rank-list .row,.lineup-row,.week-strip button{font-size:15px}
+ .mini-stats>div span,.insights>div span,.overview-period .tag{font-size:15px}
+ th,td{padding:10px 7px}
+ .field-row{gap:16px}
+}
