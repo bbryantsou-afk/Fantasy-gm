@@ -655,10 +655,10 @@ def render_matchup_simulator(lite=False):
       };
       // Server records remain authoritative, including after JSON restore.
       const actual=(p,idx)=>data.actual_by_player?.[p.evidence_id??p.nba_id]?.[weekDates[idx]]??data.actual_by_player?.[p.nba_id]?.[weekDates[idx]]??null;
-      const past=(p,idx)=>Boolean(data.final_teams?.[weekDates[idx]]?.includes(p.team)) || weekDates[idx]<data.today || (data.uncertain_days??[]).includes(weekDates[idx]);
-
-      const isLocked=(p,idx)=>actual(p,idx)!==null;
-      const requiresActual=(p,idx)=>weekDates[idx]<data.today || (weekDates[idx]===data.today && !(data.scheduled_teams??[]).includes(p.team));
+      const canPredict=(p,idx)=>weekDates[idx]>data.today || (weekDates[idx]===data.today && (data.scheduled_teams??[]).includes(p.team));
+      const past=(p,idx)=>weekDates[idx]<data.today || Boolean(data.final_teams?.[weekDates[idx]]?.includes(p.team)) || ((data.uncertain_days??[]).includes(weekDates[idx])&&!canPredict(p,idx));
+      const isLocked=(p,idx)=>!canPredict(p,idx)&&actual(p,idx)!==null;
+      const requiresActual=(p,idx)=>!canPredict(p,idx);
       const dailyStats=(p,side,idx)=>{
         if(isLocked(p,idx))return actual(p,idx);
         if(past(p,idx)||requiresActual(p,idx))return {}; // Missing past/today evidence is not a prediction.
@@ -727,7 +727,7 @@ def render_matchup_simulator(lite=False):
         if(!editing)return;
         const p=getPlayer(editing.side,editing.id);if(!p)return;
         const idx=editing.idx;
-        if(isLocked(p,idx)||requiresActual(p,idx)){setMessage("過去與今天使用實績，請選未來日期編輯預測。");return;}
+        if(isLocked(p,idx)||requiresActual(p,idx)){setMessage("此場已開打、已結束或狀態未確認，不能編輯預測。");return;}
         const key=root.querySelector("#editor-profile").value;
         const values={};
         if(key==="manual"&&!clear){

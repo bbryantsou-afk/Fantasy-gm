@@ -51,6 +51,13 @@ def normalize_results(raw,current):
     out=copy.deepcopy(current);out.setdefault('yahoo_matchups',{})[key]=result
     return out
 
+def simulator_status():
+    from zoneinfo import ZoneInfo
+    from daily_evidence import nba_today
+    day=datetime.now(ZoneInfo('America/New_York')).date().isoformat()
+    live=nba_today(day)
+    return {'day':day,'pregameTeams':live.get('scheduled_teams',[])}
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self,fmt,*args):
         # OAuth code, bookmark fragments, tokens and request bodies never enter logs.
@@ -111,6 +118,7 @@ class Handler(BaseHTTPRequestHandler):
         if path=='/api/session':
             s=self.session(True);cfg=configuration()
             return self.reply(200,{'csrf':s['csrf'],'user':s.get('user'),'googleConfigured':bool(cfg['client_id'] and cfg['client_secret']),'callback':self.server.base+'/auth/callback'}, {'Set-Cookie':self.cookie()})
+        if path=='/api/sim-status':return self.reply(200,simulator_status())
         if path=='/api/model':
             from dashboard_model import regular_schedule
             data=json.loads((ROOT/'ninecat_assets/data.json').read_text())

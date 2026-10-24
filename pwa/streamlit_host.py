@@ -9,7 +9,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 import streamlit as st
 import streamlit.components.v1 as components
-from pwa.server import validate_profile,normalize_snapshot,normalize_results
+from pwa.server import validate_profile,normalize_snapshot,normalize_results,simulator_status
 ROOT=Path(__file__).resolve().parents[1]
 frame=components.declare_component('fantasy_pwa',path=str(Path(__file__).parent/'web'))
 
@@ -30,6 +30,7 @@ def dispatch(request):
     url=urlsplit(path);query=parse_qs(url.query);path=url.path
     if path=='/api/session' and method=='GET':
         c=config();return {'csrf':st.session_state.setdefault('_pwa_csrf',secrets.token_urlsafe(32)),'user':signed_user(),'googleConfigured':bool(c),'embedded':True,'league':st.session_state.get('_account_scope') if str(st.session_state.get('_account_scope','')).isdigit() else st.session_state.get('_league',{}).get('sync_league','')}
+    if path=='/api/sim-status' and method=='GET':return simulator_status()
     if path=='/api/model' and method=='GET':return public_model()
     if path=='/api/login' and method=='POST':
         c=config()

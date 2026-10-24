@@ -24,3 +24,5 @@ export function officialWeekScore(league,saved,team,day){
  for(const w of candidates){const a=w.teams?.[team],other=a?.opponent,b=w.teams?.[other];if(!Number.isInteger(a?.score)||!Number.isInteger(b?.score)||a.score<0||b.score<0||a.score+b.score>9||b.opponent!==team)continue;return {wins:a.score,losses:b.score,opponent:other,stamp:w.updated_at||''};}
  return null;
 }
+
+export function canEditPrediction(day,team,status,current=today()){return day>current||(day===current&&status?.day===current&&status.pregameTeams?.includes(team));}

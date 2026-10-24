@@ -1,0 +1,20 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+(async()=>{
+const m=await import('data:text/javascript;base64,'+Buffer.from(fs.readFileSync('pwa/web/model.js')).toString('base64'));
+const day='2026-10-25',status={day,pregameTeams:['ATL']};
+assert.equal(m.canEditPrediction(day,'ATL',status,day),true);
+assert.ok(!m.canEditPrediction(day,'BOS',status,day));
+assert.ok(!m.canEditPrediction(day,'ATL',null,day));
+assert.ok(!m.canEditPrediction('2026-10-24','ATL',status,day));
+assert.equal(m.canEditPrediction('2026-10-26','ATL',null,day),true);
+assert.ok(!m.canEditPrediction(day,'ATL',{...status,day:'2026-10-24'},day));
+const source=fs.readFileSync('matchup_simulator_v15.py','utf8');
+const start=source.indexOf('      const canPredict='),end=source.indexOf('\n',source.indexOf('const requiresActual=',start));
+const ctx={weekDates:['2026-10-24',day,'2026-10-26'],data:{today:day,scheduled_teams:['ATL'],uncertain_days:[day]},actual:()=>({PTS:0})};
+vm.createContext(ctx);vm.runInContext(source.slice(start,end)+`;globalThis.check=(team,i)=>[canPredict({team},i),past({team},i),isLocked({team},i),requiresActual({team},i)];`,ctx);
+assert.deepEqual(Array.from(ctx.check('ATL',1)),[true,false,false,false]);
+assert.deepEqual(Array.from(ctx.check('BOS',1)),[false,true,true,true]);
+assert.equal(ctx.check('ATL',0)[3],true);
+assert.equal(ctx.check('ATL',2)[3],false);
+console.log('PASS pregame editable despite zero snapshot; started/past/unknown locked; future editable in both interfaces');
+})();
