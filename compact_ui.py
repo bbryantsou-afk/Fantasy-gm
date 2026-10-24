@@ -109,6 +109,10 @@ CSS='''
 .st-key-watch_grid [class*="st-key-watch_card_"] p{font-size:11px!important;line-height:1.3!important;overflow-wrap:anywhere}
 .st-key-watch_grid [class*="st-key-watch_detail_"],.st-key-watch_grid > [data-testid="stLayoutWrapper"]:has([class*="st-key-watch_detail_"]){grid-column:1/-1!important}
 .st-key-watch_grid [class*="st-key-watch_detail_"] img{max-height:none}
+.st-key-dashboard_controls [data-testid="stColumn"]{min-width:0!important}
+.st-key-dashboard_controls [data-testid="stDateInput"],.st-key-dashboard_controls [data-baseweb="input"]{min-width:0!important;max-width:100%!important;width:100%!important}
+.st-key-dashboard_controls [role="radiogroup"]{flex-wrap:wrap!important}
+@media(min-width:641px) and (max-width:1100px){.st-key-dashboard_controls [data-testid="stHorizontalBlock"]{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px!important}.st-key-dashboard_controls [data-testid="stColumn"]{width:100%!important}}
 @media(min-width:900px){.st-key-dashboard_controls [data-testid="stHorizontalBlock"],.st-key-watch_controls [data-testid="stHorizontalBlock"]{flex-wrap:nowrap!important;gap:12px!important}}
 @media(max-width:640px){
  .sched-calendar{max-height:none!important;height:auto!important;overflow:visible!important}
