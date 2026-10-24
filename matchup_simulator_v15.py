@@ -416,7 +416,7 @@ def render_matchup_simulator(lite=False):
           <input id="sim-name" type="text" placeholder="模擬名稱，例如：Week 1 防守型排陣" maxlength="80" />
           <button id="sim-save" type="button">💾 儲存模擬</button>
           <select id="sim-list" aria-label="已儲存的模擬"><option value="">選擇已儲存模擬</option></select>
-          <button id="sim-load" type="button">↩ 還原</button>
+          <button id="sim-load" type="button">↩ 還原</button><button id="sim-actual" type="button">載入實績</button><button id="sim-reset-data" type="button">清空模擬資料</button>
           <button id="sim-delete" type="button">🗑 刪除</button>
           <button id="sim-export" type="button">⬇ 匯出 JSON</button>
           <label class="sim-import-label">⬆ 匯入 JSON<input id="sim-import" type="file" accept=".json,application/json" hidden /></label>
@@ -565,15 +565,17 @@ def render_matchup_simulator(lite=False):
       const requiredStats=["PTS","REB","AST","STL","BLK","3PM","FGM","FGA","FTM","FTA","TO"];
       const completeStats=s=>requiredStats.every(k=>Number.isFinite(s?.[k])&&s[k]>=0) && s.FGM<=s.FGA && s.FTM<=s.FTA;
       const dailyChoices={my:{},opp:{}};
+      let includeActual=false;
       // One record per matchup week, not tied to the selected day.
       const storageKey="fantasy-gm-v12-simulations:"+(data.owner??"guest");
       let savedDB=structuredClone(data.saved_simulations??{});
       const workingKey=storageKey+":"+JSON.stringify(data.context)+":"+weekDates[0];
       const snapshot=()=>({controller_date:data.selected_date,format:"fantasy-gm-simulation",version:1,week_dates:[...weekDates],
         players:structuredClone(players),lineups:structuredClone(state),
-        daily_choices:structuredClone(dailyChoices),selected_day:dayIndex,
+        daily_choices:structuredClone(dailyChoices),include_actual:includeActual,selected_day:dayIndex,
         context:data.context,saved_at:new Date().toISOString()});
       function restore(payload){
+        includeActual=payload?.include_actual===true;
         if(!payload||payload.format!=="fantasy-gm-simulation"||payload.version!==1 ||
            JSON.stringify(payload.week_dates)!==JSON.stringify(weekDates) ||
            !Array.isArray(payload.lineups)||payload.lineups.length!==7 ||
@@ -650,11 +652,11 @@ def render_matchup_simulator(lite=False):
 
       const dailyKey=(p,idx)=>`${p.id}::${idx}`;
       const daySetting=(p,side,idx)=>{
-        const setting=dailyChoices[side][dailyKey(p,idx)] ?? {profile:p.profile??"season",custom:null};
+        const setting=dailyChoices[side][dailyKey(p,idx)] ?? {profile:"manual",custom:null};
         return profileLabels[setting.profile]?setting:{profile:'season',custom:null};
       };
       // Server records remain authoritative, including after JSON restore.
-      const actual=(p,idx)=>data.actual_by_player?.[p.evidence_id??p.nba_id]?.[weekDates[idx]]??data.actual_by_player?.[p.nba_id]?.[weekDates[idx]]??null;
+      const actual=(p,idx)=>!includeActual?null:data.actual_by_player?.[p.evidence_id??p.nba_id]?.[weekDates[idx]]??data.actual_by_player?.[p.nba_id]?.[weekDates[idx]]??null;
       const canPredict=(p,idx)=>weekDates[idx]>data.today || (weekDates[idx]===data.today && (data.scheduled_teams??[]).includes(p.team));
       const past=(p,idx)=>weekDates[idx]<data.today || Boolean(data.final_teams?.[weekDates[idx]]?.includes(p.team)) || ((data.uncertain_days??[]).includes(weekDates[idx])&&!canPredict(p,idx));
       const isLocked=(p,idx)=>!canPredict(p,idx)&&actual(p,idx)!==null;
@@ -1109,10 +1111,12 @@ def render_matchup_simulator(lite=False):
         }
         render();setMessage(`已套用 ${changed} 場；${skipped} 場缺少來源而保留。已完賽一律使用實績。`);
       };
-      let working=null;try{working=JSON.parse(localStorage.getItem(workingKey)||'null');}catch{}
+      root.querySelector("#sim-actual").onclick=()=>{includeActual=true;render();};
+      root.querySelector("#sim-reset-data").onclick=()=>{includeActual=false;dailyChoices.my={};dailyChoices.opp={};render();setMessage("已清空數據，保留球員與排陣。");};
+      let working=null;
       const nonce=data.restore_nonce??'';
       let seenNonce='';try{seenNonce=localStorage.getItem(workingKey+':restore')??'';}catch{}
-      const restored=nonce && nonce!==seenNonce ? data.restore : (working??data.restore);
+      const restored=nonce && nonce!==seenNonce ? data.restore : null;
       if(restored && JSON.stringify(restored.week_dates)===JSON.stringify(weekDates)){
         try{
           if(restored===working && working.controller_date!==data.selected_date)restored.selected_day=Math.max(0,weekDates.indexOf(data.selected_date));

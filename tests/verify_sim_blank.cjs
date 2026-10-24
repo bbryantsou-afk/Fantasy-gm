@@ -1,0 +1,17 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const src=fs.readFileSync('pwa/web/app.js','utf8');
+const day='2026-10-23',p={id:'a',status:'active',daily_stats:{PTS:25}};
+const sim={context:{my_team:'A'},week_dates:[day],daily_choices:{my:{}}};
+const ctx={S:{sim},today:()=>day,archives:()=>({[day]:{teams:{A:[p]}}}),editableStats:()=>false,pkey:p=>p.id,stats:x=>x,total:rows=>rows.filter(Boolean).reduce((n,x)=>n+(x.PTS||0),0)};
+vm.createContext(ctx);vm.runInContext(src.slice(src.indexOf('function predictedStats('),src.indexOf('function simPage(')),ctx);
+assert.equal(ctx.predictedStats(p,'my',day),null);
+assert.equal(ctx.simDaily('my',day).stats,0);
+assert.equal(ctx.simDaily('my',day).rows.length,1);
+sim.include_actual=true;assert.equal(ctx.simDaily('my',day).stats,25);
+sim.include_actual=false;assert.equal(ctx.simDaily('my',day).stats,0);
+sim.daily_choices.my['a::0']={custom:{PTS:30}};assert.equal(ctx.predictedStats(p,'my',day).PTS,30);
+const legacy=fs.readFileSync('matchup_simulator_v15.py','utf8');
+assert.ok(legacy.includes('let includeActual=false;'));
+assert.ok(legacy.includes('const restored=nonce && nonce!==seenNonce ? data.restore : null;'));
+assert.ok(legacy.includes('id="sim-reset-data"'));
+console.log('PASS blank default retains roster; explicit actual load; clear data; manual predictions; no automatic historical restore');
