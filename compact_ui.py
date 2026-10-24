@@ -402,6 +402,10 @@ def render_compact_styles():
 
     responsive+='''
 /* Shared two-row app header: override earlier density rules explicitly. */
+.stApp [data-testid="stMainBlockContainer"]{padding-top:0!important}
+.stApp .st-key-current_feature [data-testid="stButton"] button{border:0!important;box-shadow:none!important;background:transparent!important}
+.stApp .st-key-app_status_bar [data-baseweb="select"]{border:0!important;background:transparent!important}
+
 .stApp .st-key-current_feature{padding:6px 8px 6px 58px!important;min-height:56px!important;display:block!important;border-radius:0!important;margin:0!important}
 .stApp .st-key-current_feature [data-testid="stHorizontalBlock"]{display:grid!important;grid-template-columns:minmax(0,1fr) 44px 44px!important;gap:6px!important;align-items:center!important}
 .stApp .st-key-current_feature [data-testid="stColumn"]{width:100%!important;min-width:0!important;max-width:100%!important;flex:none!important}
