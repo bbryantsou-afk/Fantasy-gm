@@ -135,8 +135,8 @@ with st.sidebar:
             else:
                 st.session_state['_sync_force_nonce']=uuid.uuid4().hex
                 st.session_state['_sync_force_notice']=True
-        sync_col.button('Y',help='手機讀取 Drive 最新資料；電腦啟動 Yahoo 同步',on_click=open_mobile_sync,key='mobile_sync_shortcut',use_container_width=True)
-        refresh_col.button('🔃',key='refresh_current_page',help='重新整理實績並檢查 Drive；不會執行 Yahoo 名單同步。',on_click=refresh_current_page,use_container_width=True)
+
+
     import html as sidebar_html
     account_name=st.session_state.get('_account_user_name','') if st.session_state.get('_account_id') else '尚未登入'
     with st.container(key='sidebar_identity'):
@@ -158,7 +158,10 @@ with st.sidebar:
 with st.container(key='current_feature'):
 
     names={'總覽 Dashboard':'📊 總覽','球員觀察室 Player Watch':'⭐ 球員觀察室','每週補強 Weekly Planner':'📅 每週補強','交易分析 Trade Lab':'🤝 交易分析','9-Cat Strategy':'🎯 九項策略','模擬對局 Matchup Simulator':'🏀 模擬對局','聯盟同步 League Sync':'🔄 聯盟同步','比賽戰況':'🏆 比賽戰況','Data Source 資料中心':'🗂️ 資料中心'}
-    st.markdown('**'+names.get(page,page)+'**')
+    title_col,sync_col,refresh_col=st.columns([12,1,1])
+    title_col.markdown('**'+names.get(page,page).split(' ',1)[-1]+'**')
+    sync_col.button('Y',help='同步資料',on_click=open_mobile_sync,key='mobile_sync_shortcut',use_container_width=True)
+    refresh_col.button('↻',key='refresh_current_page',help='重整',on_click=refresh_current_page,use_container_width=True)
 if st.session_state.pop('_mobile_drive_sync_notice',False):
     if st.session_state.get('_account_loaded'):
         st.toast('正在讀取 Google Drive 最新名單與紀錄。',icon='☁️')
@@ -170,14 +173,13 @@ if st.session_state.pop('_sync_force_notice',False):st.toast('已要求 Yahoo �
 if st.session_state.pop('_page_refresh_notice',False):st.toast('已重新整理頁面，正在檢查實績與 Drive。',icon='🔄')
 
 with st.container(key='app_status_bar'):
-    team_view,display,cloud=st.columns([1.1,1.2,.6])
+    team_view,cloud=st.columns([8,1])
     from ninecat_strategy import load_data as status_data
-    from roster_store import active_team,team_label
+    from roster_store import choose_team
     _,status_entries=status_data()
-    team_view.markdown('**'+sidebar_html.escape(team_label(active_team(status_entries)))+'**')
-    with display:
-        view=st.segmented_control('顯示版本',['電腦版','手機版'],selection_mode='single',key='device_view',required=True,label_visibility='collapsed',width='stretch',format_func=lambda value:'電腦' if value=='電腦版' else '手機')
-    st.query_params['view']='mobile' if view=='手機版' else 'desktop'
+    with team_view:
+        choose_team(status_entries,'header_team','球隊')
+    st.query_params['view']='mobile' if st.session_state.get('device_view')=='手機版' else 'desktop'
     drive_label='☁️ '+str(st.session_state.get('_account_revision','—')) if st.session_state.get('_account_loaded') else '☁️ 未連接'
     if st.session_state.get('_account_conflict') or st.session_state.get('_account_save_error'):drive_label+=' ⚠️'
     cloud.caption(drive_label)
@@ -230,6 +232,7 @@ elif page == "Data Source 資料中心":
     render_data_center()
 
 elif page == "⚙️ 設定":
+    st.segmented_control('顯示版本',['電腦版','手機版'],selection_mode='single',key='device_view',required=True,width='stretch')
     if st.button('試用新版 App',key='open_pwa_beta'):
         st.query_params['app']='1'
         st.rerun()
@@ -380,7 +383,7 @@ if st.session_state.get("visual_theme")=="簡約淺色":
 
 from compact_ui import render_compact_ui
 render_compact_ui(apply_styles=False)
-st.caption("版本 2026.10.24-ui46 · 電腦／手機共用版本")
+st.caption("版本 2026.10.24-ui47 · 電腦／手機共用版本")
 
 save_browser_records()
 

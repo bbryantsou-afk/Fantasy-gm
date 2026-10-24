@@ -399,6 +399,25 @@ def render_compact_styles():
     responsive=CSS.replace('@media(max-width:640px)','@media(max-width:100000px)') if st.session_state.get('device_view')=='手機版' else CSS
     # Wide screens retain four controls even when mobile content is selected.
     responsive+='''@media(min-width:1101px){.stApp .st-key-dashboard_controls [data-testid="stHorizontalBlock"]{display:grid!important;grid-template-columns:minmax(110px,.8fr) minmax(180px,1.6fr) minmax(180px,1.1fr) minmax(140px,1fr)!important;gap:16px!important}.stApp .st-key-dashboard_controls [data-testid="stColumn"]{width:100%!important;min-width:0!important}}'''
+
+    responsive+='''
+/* Shared two-row app header: override earlier density rules explicitly. */
+.stApp .st-key-current_feature{padding:6px 8px 6px 58px!important;min-height:56px!important;display:block!important;border-radius:0!important;margin:0!important}
+.stApp .st-key-current_feature [data-testid="stHorizontalBlock"]{display:grid!important;grid-template-columns:minmax(0,1fr) 44px 44px!important;gap:6px!important;align-items:center!important}
+.stApp .st-key-current_feature [data-testid="stColumn"]{width:100%!important;min-width:0!important;max-width:100%!important;flex:none!important}
+.stApp .st-key-current_feature button{width:44px!important;height:44px!important;min-height:44px!important;border:0!important;background:transparent!important;padding:0!important}
+.stApp .st-key-current_feature p,.stApp .st-key-current_feature strong{font-size:24px!important;line-height:44px!important;margin:0!important}
+.stApp .st-key-current_feature .st-key-mobile_sync_shortcut button p{color:#7200c8!important;font-size:28px!important;font-weight:800!important}
+.stApp .st-key-current_feature .st-key-refresh_current_page button p{font-size:30px!important}
+[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"]:has(.st-key-current_feature){top:0!important}
+[data-testid="stSidebarCollapsedControl"],[data-testid="stExpandSidebarButton"]{top:6px!important}
+.stApp .st-key-app_status_bar [data-testid="stHorizontalBlock"]{display:grid!important;grid-template-columns:minmax(0,1fr) 90px!important;gap:10px!important;align-items:center!important}
+.stApp .st-key-app_status_bar [data-testid="stColumn"]{width:100%!important;min-width:0!important;max-width:100%!important}
+.stApp .st-key-app_status_bar [data-testid="stWidgetLabel"]{display:none!important}
+.stApp .st-key-app_status_bar [data-baseweb="select"]>div{border:0!important;background:transparent!important;min-height:40px!important}
+.stApp .st-key-app_status_bar [data-testid="stCaptionContainer"]{text-align:right!important;white-space:nowrap!important}
+.stApp .st-key-sidebar_actions [data-testid="stHorizontalBlock"]{grid-template-columns:44px!important}
+'''
     st.markdown('<style>'+variables+responsive+'</style>',unsafe_allow_html=True)
 
 def render_compact_ui(apply_styles=True):
