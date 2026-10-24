@@ -21,3 +21,13 @@ with patch('dashboard_matchup.fantasy_period',side_effect=AssertionError('final 
  assert weekly_score(league,saved,'A',start,end,today)['status']=='已結算'
 assert weekly_score({}, {},'A',start,end,today)['score'] is None
 print('PASS weekly pairing, nine-category score, reverse TO, FG impact, missing-opponent safety and final settlement')
+
+# Regression: a stale official weekly snapshot must not override newer complete evidence.
+new_a={'FGM':138,'FGA':289,'FTM':76,'FTA':99,'FG3M':26,'PTS':378,'REB':121,'AST':77,'STL':25,'BLK':17,'TOV':46}
+new_b={'FGM':96,'FGA':209,'FTM':40,'FTA':52,'FG3M':27,'PTS':259,'REB':107,'AST':63,'STL':17,'BLK':21,'TOV':30}
+old={'weeks':{str(start):{'source':'Yahoo 官方對局總表','updated_at':'2026-10-23T17:53:00Z','teams':{'A':{'opponent':'B','totals':b},'B':{'opponent':'A','totals':a}}}}}
+with patch('dashboard_matchup.fantasy_period',side_effect=[([new_a],[],'','2026-10-24T17:00:00Z'),([new_b],[],'','2026-10-24T17:00:00Z')]):
+ assert weekly_score(league,old,'A',start,end,today)['score']==(5,4,0)
+with patch('dashboard_matchup.fantasy_period',side_effect=[([new_a],['2026-10-22'],'','2026-10-24T17:00:00Z'),([new_b],[],'','2026-10-24T17:00:00Z')]):
+ assert weekly_score(league,old,'A',start,end,today)['status'].startswith('Yahoo 已保存比分')
+print('PASS fresh complete evidence beats stale official score; incomplete evidence retains timestamped snapshot')
