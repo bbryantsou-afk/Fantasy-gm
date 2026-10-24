@@ -103,7 +103,16 @@ def totals_table(totals):
 def render_data_center():
     _,entries=load_data();league=state(entries);teams=list(league['teams']);data=store()
     page_caption('選秀為原始紀錄；週結果與積分榜使用已保存實績。登入 Google 後保存至個人 Drive；訪客請下載備份。')
-    draft_tab,schedule_tab,weekly_tab=st.tabs(['選秀結果','每週對手排程','原始數據與備份'])
+    roster_tab,draft_tab,schedule_tab,weekly_tab=st.tabs(['目前名單','選秀結果','每週對手排程','原始數據與備份'])
+    with roster_tab:
+        from roster_gallery import roster_gallery
+        st.markdown('<style>.roster-gallery{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.roster-person{min-width:0;text-align:center;padding:6px;border:1px solid #8795a644;border-radius:10px}.roster-person img,.roster-photo{width:100%;height:88px;object-fit:contain}.roster-person b{display:block;font-size:13px;line-height:1.4;min-height:38px;overflow-wrap:anywhere}.roster-person small{display:block;font-size:11px;min-height:30px;line-height:1.4}@media(min-width:760px){.roster-gallery{grid-template-columns:repeat(8,minmax(0,1fr))}}</style>',unsafe_allow_html=True)
+        selected_roster=st.selectbox('球隊',['全部球隊']+teams,format_func=team_formatter(),key='ds_current_team')
+        for t in teams:
+            if selected_roster!='全部球隊' and t!=selected_roster:continue
+            st.subheader(team_label(t))
+            st.markdown(roster_gallery(league['teams'][t]),unsafe_allow_html=True)
+
     with schedule_tab:
         from fantasy_schedule import render_schedule
         render_schedule(league)

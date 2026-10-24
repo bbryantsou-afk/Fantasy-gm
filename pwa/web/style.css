@@ -17,3 +17,5 @@ input[type="date"]::-webkit-date-and-time-value{text-align:left;min-width:0}
 .overview-period{grid-template-columns:minmax(0,1fr) minmax(100px,.65fr);align-items:start;gap:20px}
 .overview-period .tag{display:flex;align-items:center;min-height:42px;padding:8px 10px;font-size:13px}
 @media(max-width:340px){.overview-period{grid-template-columns:minmax(0,1fr)}}
+
+.roster-gallery .player-tile{grid-template-rows:64px 36px minmax(26px,auto)}
