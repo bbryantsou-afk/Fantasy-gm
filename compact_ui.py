@@ -425,7 +425,8 @@ def render_compact_styles():
     responsive+='''
 /* The platform header must not paint over the app's own toolbar. */
 .stApp.stApp.stApp header[data-testid="stHeader"]{background:transparent!important;pointer-events:none!important;box-shadow:none!important}
-.stApp [data-testid="stHeader"] button{pointer-events:auto!important}
+.stApp.stApp.stApp [data-testid="stHeader"] *{pointer-events:none!important}
+.stApp.stApp.stApp [data-testid="stHeader"] button[data-testid="stExpandSidebarButton"],.stApp.stApp.stApp [data-testid="stHeader"] button[data-testid="stExpandSidebarButton"] *{pointer-events:auto!important}
 .stApp .st-key-current_feature{opacity:1!important;visibility:visible!important}
 .stApp .st-key-sidebar_close{position:fixed!important;left:12px!important;top:6px!important;width:44px!important;height:44px!important;z-index:100003!important;margin:0!important}
 .stApp.stApp.stApp .st-key-sidebar_close button,.stApp.stApp.stApp button[data-testid="stExpandSidebarButton"],.stApp.stApp.stApp [data-testid="stExpandSidebarButton"] button,.stApp.stApp.stApp [data-testid="stSidebarCollapsedControl"] button,.stApp.stApp.stApp button[aria-label="Expand sidebar"]{border:0!important;outline:0!important;box-shadow:none!important;background:transparent!important;border-radius:0!important;padding:0!important;width:44px!important;height:44px!important;color:var(--fgm-feature-fg)!important}
