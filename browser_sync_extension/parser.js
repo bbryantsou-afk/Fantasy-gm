@@ -179,7 +179,9 @@ function parseYahooMatchupTotals(doc,league,expectedIds){
       if(!match||Number(match[1])>Number(match[2]))throw Error('Yahoo 對局命中／出手不完整。');
       totals[prefix+'M']=Number(match[1]);totals[prefix+'A']=Number(match[2]);
     }
-    return {id,totals};
+    const scoreText=row.cells[headers.length-1]?.textContent.trim();
+    if(!/^[0-9]$/.test(scoreText??''))throw Error('Yahoo 官方比分欄位未完整，未更新比分。');
+    return {id,totals,score:Number(scoreText)};
   });
   if(rows.length!==2||rows[0].id===rows[1].id||expectedIds.some(id=>!rows.some(r=>r.id===id)))throw Error('Yahoo 對局隊伍不符。');
   return rows.map((r,i)=>({...r,opponent:rows[1-i].id}));

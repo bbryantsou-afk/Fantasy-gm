@@ -1,33 +1,28 @@
-import sys
+import sys,copy
 from pathlib import Path
 from datetime import date
-from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from dashboard_matchup import weekly_score
-from ninecat_model import KEYS
-start,end,today=date(2026,10,19),date(2026,10,25),date(2026,10,22)
+start,end,today=date(2026,10,19),date(2026,10,25),date(2026,10,24)
 league={'matchup_schedule':{'weeks':[{'start':str(start),'end':str(end),'opponents':{'A':'B','B':'A'}}]}}
-a=dict.fromkeys(KEYS,10.);b=dict.fromkeys(KEYS,5.)
-a.update(FGM=5,FGA=10,FTM=9,FTA=10,TOV=2)
-b.update(FGM=8,FGA=10,FTM=7,FTA=10,TOV=4)
-with patch('dashboard_matchup.fantasy_period',side_effect=[([a],[],'',''),([b],[],'','')]) as calls:
- view=weekly_score(league,{},'A',start,end,today)
- assert view['score']==(8,1,0),view
- assert calls.call_args_list[0].args[2]==date(2026,10,20)
-with patch('dashboard_matchup.fantasy_period',side_effect=[([a],[],'',''),([],[str(today)],'','')]):
- assert weekly_score(league,{},'A',start,end,today)['score'] is None
-saved={'weeks':{str(start):{'final':True,'teams':{'A':{'opponent':'B','totals':a},'B':{'opponent':'A','totals':b}}}}}
-with patch('dashboard_matchup.fantasy_period',side_effect=AssertionError('final uses stored settlement')):
- assert weekly_score(league,saved,'A',start,end,today)['status']=='已結算'
-assert weekly_score({}, {},'A',start,end,today)['score'] is None
-print('PASS weekly pairing, nine-category score, reverse TO, FG impact, missing-opponent safety and final settlement')
+# Deliberately conflicting totals must never affect Yahoo's displayed 5:4.
+record={'source':'Yahoo 官方對局總表','updated_at':'2026-10-24T17:00:00Z','teams':{'A':{'opponent':'B','score':5,'totals':{}},'B':{'opponent':'A','score':4,'totals':{}}}}
+league['yahoo_matchups']={str(start):record}
+assert weekly_score(league,{},'A',start,end,today,{'players':{'bad':{}}})['score']==(5,4,0)
+assert weekly_score(league,{},'B',start,end,today)['score']==(4,5,0)
+old=copy.deepcopy(record);old['updated_at']='2026-10-23T00:00:00Z';old['teams']['A']['score']=4;old['teams']['B']['score']=5
+assert weekly_score(league,{'weeks':{str(start):old}},'A',start,end,today)['score']==(5,4,0)
+del league['yahoo_matchups'][str(start)]['teams']['A']['score']
+assert weekly_score(league,{},'A',start,end,today)['score'] is None
+assert weekly_score({}, {'weeks':{str(start):{'final':True,'teams':{}}}},'A',start,end,today)['score'] is None
+print('PASS Yahoo displayed score only, correct orientation, newest official record and no computed fallback')
 
-# Regression: a stale official weekly snapshot must not override newer complete evidence.
-new_a={'FGM':138,'FGA':289,'FTM':76,'FTA':99,'FG3M':26,'PTS':378,'REB':121,'AST':77,'STL':25,'BLK':17,'TOV':46}
-new_b={'FGM':96,'FGA':209,'FTM':40,'FTA':52,'FG3M':27,'PTS':259,'REB':107,'AST':63,'STL':17,'BLK':21,'TOV':30}
-old={'weeks':{str(start):{'source':'Yahoo 官方對局總表','updated_at':'2026-10-23T17:53:00Z','teams':{'A':{'opponent':'B','totals':b},'B':{'opponent':'A','totals':a}}}}}
-with patch('dashboard_matchup.fantasy_period',side_effect=[([new_a],[],'','2026-10-24T17:00:00Z'),([new_b],[],'','2026-10-24T17:00:00Z')]):
- assert weekly_score(league,old,'A',start,end,today)['score']==(5,4,0)
-with patch('dashboard_matchup.fantasy_period',side_effect=[([new_a],['2026-10-22'],'','2026-10-24T17:00:00Z'),([new_b],[],'','2026-10-24T17:00:00Z')]):
- assert weekly_score(league,old,'A',start,end,today)['status'].startswith('Yahoo 已保存比分')
-print('PASS fresh complete evidence beats stale official score; incomplete evidence retains timestamped snapshot')
+from yahoo_matchup_results import import_results,validate_stored_results
+from ninecat_model import KEYS
+zero=dict.fromkeys(KEYS,0)
+raw={'week':1,'start':'2026-10-20','end':'2026-10-25','capturedAt':'2026-10-25T00:00:00Z','teams':[{'id':'1','opponent':'2','totals':zero,'score':5},{'id':'2','opponent':'1','totals':zero,'score':4}]}
+k,r=import_results(raw,'7',{'7:1':'A','7:2':'B'},{'A','B'})
+clean=validate_stored_results({k:r},{'A','B'})
+assert clean[k]['teams']['A']['score']==5
+assert clean[k]['teams']['B']['score']==4
+print('PASS official displayed score survives import and stored-profile validation')

@@ -21,6 +21,6 @@ export function closeWeights(a,b){return Object.fromEntries(CATS.map(c=>{const x
 export function officialWeekScore(league,saved,team,day){
  const key=weekDates(day)[0];
  const candidates=[league.yahoo_matchups?.[key],saved?.weeks?.[key]].filter(w=>w?.source==='Yahoo 官方對局總表'&&w.start<=day&&w.end>=day).sort((a,b)=>String(b.updated_at||'').localeCompare(String(a.updated_at||'')));
- for(const w of candidates){const a=w.teams?.[team],other=a?.opponent,b=w.teams?.[other];if(!a?.totals||!b?.totals||b.opponent!==team)continue;return {a:a.totals,b:b.totals,opponent:other,stamp:w.updated_at||''};}
+ for(const w of candidates){const a=w.teams?.[team],other=a?.opponent,b=w.teams?.[other];if(!Number.isInteger(a?.score)||!Number.isInteger(b?.score)||a.score<0||b.score<0||a.score+b.score>9||b.opponent!==team)continue;return {wins:a.score,losses:b.score,opponent:other,stamp:w.updated_at||''};}
  return null;
 }

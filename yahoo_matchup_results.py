@@ -16,6 +16,9 @@ def import_results(raw,league,mapping,expected):
         team=mapping.get(league+':'+str(r['id']));opp=mapping.get(league+':'+str(r['opponent']))
         if team not in expected or opp not in expected or team==opp or team in teams:raise ValueError('Yahoo 官方比分球隊配對不符。')
         teams[team]={'opponent':opp,'totals':validate_totals(r['totals'])}
+        if 'score' in r:
+            if type(r['score']) is not int or not 0<=r['score']<=9:raise ValueError('Yahoo 官方比分格式不符。')
+            teams[team]['score']=r['score']
     if set(teams)!=set(expected) or any(teams[r['opponent']]['opponent']!=t for t,r in teams.items()):raise ValueError('Yahoo 官方比分對手未互相對應。')
     monday=start-timedelta(days=start.weekday())
     return str(monday),{'week':raw['week'],'start':str(start),'end':str(end),'updated_at':raw['capturedAt'],'teams':teams,'source':'Yahoo 官方對局總表'}
@@ -42,4 +45,9 @@ def validate_stored_results(weeks,teams):
         if stamp.tzinfo is None or type(week['week']) is not int or not 1<=week['week']<=40:raise ValueError('Yahoo 比分備份週次不符。')
         rows=[{'team':t,'opponent':r['opponent'],**r['totals']} for t,r in week['teams'].items()]
         out[key]={'week':week['week'],'start':week['start'],'end':week['end'],'updated_at':week['updated_at'],'teams':checked_week(rows,teams),'source':'Yahoo 官方對局總表'}
+        for team,row in week['teams'].items():
+            if 'score' in row:
+                if type(row['score']) is not int or not 0<=row['score']<=9:raise ValueError('Yahoo 官方比分格式不符。')
+                out[key]['teams'][team]['score']=row['score']
+
     return out

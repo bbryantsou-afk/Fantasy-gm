@@ -5,7 +5,7 @@ assert.equal(m.compare(my,opp).wins,1);assert.equal(m.compare(my,opp).ties,8);as
 assert.equal(m.format(1,'FG'),'100%');assert.deepEqual(m.weekDates('2026-10-23'),['2026-10-19','2026-10-20','2026-10-21','2026-10-22','2026-10-23','2026-10-24','2026-10-25']);
 const players=[{id:'a',team:'ATL',eligible:['PG'],status:'active'},{id:'b',team:'ATL',eligible:['C'],status:'IL'},{id:'c',team:'BOS',eligible:['SG'],status:'active'}];
 const lineup=m.autoLineup(players,'2026-10-23',{ATL:['2026-10-23']});assert.equal(lineup.PG,'a');assert(!Object.values(lineup).includes('b'));assert(!Object.values(lineup).includes('c'));assert.equal(Object.values(lineup).filter(Boolean).length,1);
-const official={source:'Yahoo 官方對局總表',start:'2026-10-20',end:'2026-10-25',updated_at:'2026-10-24T12:00:00Z',teams:{a:{opponent:'b',totals:my},b:{opponent:'a',totals:opp}}};
+const official={source:'Yahoo 官方對局總表',start:'2026-10-20',end:'2026-10-25',updated_at:'2026-10-24T12:00:00Z',teams:{a:{opponent:'b',totals:my,score:5},b:{opponent:'a',totals:opp,score:4}}};
 assert.equal(m.officialWeekScore({yahoo_matchups:{'2026-10-19':official}},null,'a','2026-10-24').opponent,'b');
 assert.equal(m.officialWeekScore({yahoo_matchups:{'2026-10-19':official}},null,'a','2026-10-26'),null);
 const newer={...official,updated_at:'2026-10-24T13:00:00Z'};
