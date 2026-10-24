@@ -57,7 +57,9 @@ function parseYahooDocument(doc, expectedDate, requireDaily=false, sourceURL='')
   }
   if(!slots || !rows.length || new Set(rows.map(r=>r.yahooPlayerId)).size!==rows.length)throw new Error('名單不完整或有重複球員，未套用。');
   const name=table.textContent.match(/([^\n]+)'s Players roster for/)[1].trim();
-  return {date:found,name,rows,slots,...(daily?{statsScope:'day'}:{})};
+  const quota=(doc.body?.textContent||'').match(/You have used\s+(\d+)\s+of your\s+(\d+)\s+player adds for this week/i);
+  const adds=quota&&Number(quota[1])<=Number(quota[2])?{used:Number(quota[1]),limit:Number(quota[2])}:null;
+  return {date:found,name,rows,slots,...(adds?{adds}:{}),...(daily?{statsScope:'day'}:{})};
 }
 if(typeof module!=='undefined')module.exports={parseYahooDocument};
 

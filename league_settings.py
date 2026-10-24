@@ -62,6 +62,9 @@ def validate_backup(data,teams,allow_history=True):
                 for field in ('roster_verified_at','stats_updated_at'):clean[day][field]=str(archive.get(field,''))[:80]
         output['daily_rosters']=clean
         for key in ['sync_league','sync_mapping','sync_updated_at']:output[key]=copy.deepcopy(data.get(key))
+    if data.get('yahoo_adds'):
+        from acquisition_quota import validate_quotas
+        output['yahoo_adds']=validate_quotas(data['yahoo_adds'],teams)
     if data.get('matchup_schedule'):
         from fantasy_schedule import validate_schedule
         output['matchup_schedule']=validate_schedule(data['matchup_schedule'],teams)

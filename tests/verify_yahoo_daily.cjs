@@ -51,3 +51,9 @@ console.log('PASS other-team Stats-only navigation with validated daily response
  await assert.rejects(()=>collectYahooRosterWeek(async()=>{throw Error('bad response');},'7',['1','2'],today,()=>{},{},true),/排陣未更新/);
  console.log('PASS Yahoo day-only mode, genuine zero versus no data, date guards, full week collection and fresh-today cache behavior');
 })().catch(e=>{console.error(e);process.exit(1)});
+
+const quotaDoc=fixture('2026-10-20');quotaDoc.body={textContent:'You have used 3 of your 4 player adds for this week.'};
+assert.deepEqual(parseYahooDocument(quotaDoc,'2026-10-20',true).adds,{used:3,limit:4});
+quotaDoc.body.textContent='You have used 5 of your 4 player adds for this week.';
+assert.equal(parseYahooDocument(quotaDoc,'2026-10-20',true).adds,undefined);
+console.log('PASS Yahoo displayed acquisition usage parsed; invalid quota ignored');
