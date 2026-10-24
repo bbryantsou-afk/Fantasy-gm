@@ -6,5 +6,5 @@ assert.ok(s.includes('benchLite(side,p.id)'));
 assert.ok(s.includes('!location(traySide,p.id)'));
 assert.ok(!s.includes('移回板凳'));
 assert.ok(s.includes('grid-template-columns:repeat(2,minmax(0,1fr))'));
-assert.ok(!s.includes('.lite-tray{position:fixed'));
+assert.ok(s.includes('tray.hidden=!trayOpen'));assert.ok(s.includes('el.draggable=trayOpen'));assert.ok(s.includes('if(!trayOpen||'));assert.ok(!s.includes('(!ids||ids.has(p.id))'));
 console.log('PASS starter/bench dragging, bench-only list and non-overlay wrapping tray');
