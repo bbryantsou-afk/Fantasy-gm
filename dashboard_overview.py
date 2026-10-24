@@ -157,6 +157,8 @@ def render_dashboard():
     granularity = controls[3].radio('查看範圍',['當週','單日'],horizontal=True,key='dash_range')
     editor(entries,players,choice,'dashboard_roster')
     monday,sunday = week_bounds(day)
+    add_key='stream_adds_'+choice+'_'+str(monday)
+    st.number_input('本週剩餘 add（手動）',min_value=0,max_value=4,value=None,placeholder='未設定',key=add_key)
     week = (monday-week_bounds(first)[0]).days//7+1
     start,end = (monday,sunday) if granularity == '當週' else (day,day)
     league=state(entries)

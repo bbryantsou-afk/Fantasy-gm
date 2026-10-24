@@ -54,7 +54,7 @@ def _render_planner(notes):
     ref=baseline(players,cohort_ids(players,entries,'draft'))
     schedule,_=regular_schedule(json.loads((ROOT/'nba_schedule_2026_27.json').read_text()))
     add_key='stream_adds_'+team+'_'+str(monday)
-    if add_key not in st.session_state:st.session_state[add_key]=4
+    if st.session_state.get(add_key) is None:st.session_state[add_key]=4
     with quota:remaining=st.number_input('本週剩餘加人次數',0,4,key=add_key)
     notes.append(f'{day:%m/%d}–{sunday:%m/%d} 剩餘賽程。歷史場均 × 可排入先發場次；不是實績或勝率。已結束日比分尚未納入，傷病與輪休由你排除。每個方案獨立使用 1 次 add，不能直接把五個方案相加。')
     editor(entries,players,team,'stream_roster')
