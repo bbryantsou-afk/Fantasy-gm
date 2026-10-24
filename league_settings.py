@@ -56,6 +56,10 @@ def validate_backup(data,teams,allow_history=True):
             checked=validate_backup({'teams':archive.get('teams'),'capacity':cap,'free':[]},teams,False)
             clean[day]={'teams':checked['teams'],'captured_at':archive['captured_at'],'source':'Yahoo browser snapshot'}
             if archive.get('stats_scope')=='day':clean[day]['stats_scope']='day'
+            if archive.get('roster_version')==3:
+                clean[day]['roster_version']=3
+                clean[day]['roster_state']='final' if archive.get('roster_state')=='final' else 'provisional'
+                for field in ('roster_verified_at','stats_updated_at'):clean[day][field]=str(archive.get(field,''))[:80]
         output['daily_rosters']=clean
         for key in ['sync_league','sync_mapping','sync_updated_at']:output[key]=copy.deepcopy(data.get(key))
     if data.get('matchup_schedule'):

@@ -90,7 +90,8 @@ def apply_snapshot(league,rows,mapping,payload,today):
     captured=payload['capturedAt'];day=payload['date'];source=payload['league']
     archives=copy.deepcopy(league.get('daily_rosters',{}))
     if archives and league.get('sync_league')!=source:raise ValueError('此工作階段已有另一個聯盟快照，請先下載備份並重開工作階段。')
-    archive={'captured_at':captured,'source':'Yahoo browser snapshot','teams':copy.deepcopy(new['teams'])}
+    from daily_roster_archive import store_day
+    archive=store_day(archives.get(day),new['teams'],day,captured,today,payload.get('rosterVersion',0))
     if payload.get('statsScope')=='day':archive['stats_scope']='day'
     archives[day]=archive
     new['daily_rosters']=archives;new['sync_mapping']=dict(mapping);new['sync_league']=source
@@ -124,7 +125,7 @@ def render_sync_connection(full=False):
     snapshot,entries=load_data();league=state(entries)
     if full:
         with st.expander('同步版本與更新說明',expanded=False):
-            st.caption('同步工具 0.3.8：電腦請更新擴充功能，手機請重新複製最新版書籤，以取得官方對局比分。')
+            st.caption('同步工具 0.3.9：電腦請更新擴充功能，手機請重新複製最新版書籤，以取得官方對局比分。')
 
     today=datetime.now(ZoneInfo('America/New_York')).date()
     if full:
@@ -144,7 +145,7 @@ def render_sync_connection(full=False):
         with st.expander('電腦安裝',expanded=False):
             st.download_button('下載同步擴充功能 ZIP',extension_zip(),'fantasy-gm-sync.zip','application/zip')
             st.markdown('1. 解壓縮 ZIP。\n2. 在桌面 Chrome 開啟 `chrome://extensions`，開啟「開發人員模式」。\n3. 按「載入未封裝項目」，選取含 manifest.json 的 fantasy-gm-sync 資料夾。\n4. 在同一個 Chrome 登入 Yahoo，再開啟這個 App，重新整理後按同步。')
-            page_caption('目前版本 0.3.8：每 5 分鐘更新名單、單日實績與官方當週對局總數。下載新版替換原資料夾，在 chrome://extensions 按重新載入，再重新整理 App。開啟自動檢查後約每 5 分鐘更新一次。')
+            page_caption('目前版本 0.3.9：每 5 分鐘更新名單、單日實績與官方當週對局總數。下載新版替換原資料夾，在 chrome://extensions 按重新載入，再重新整理 App。開啟自動檢查後約每 5 分鐘更新一次。')
             page_caption('本機保存最近 14 個日期。網站重開後會自動讀取此瀏覽器已保存的今天名單；若沒有今天快照，請按同步。')
         if re.fullmatch(r'\d{1,10}',source):sync_link.link_button('先登入／查看 Yahoo 聯盟',f'https://basketball.fantasysports.yahoo.com/nba/{source}')
     else:
@@ -258,7 +259,10 @@ def render_sync():
         date_column,team_column=st.columns(2)
         with date_column:selected=st.selectbox('日期',sorted(archives,reverse=True),key='sync_view_date');saved=archives[selected]
         page_caption('日期以美東比賽日為準。要看當天陣容，先在上方選日期並同步，再在這裡選相同日期。PG～Util 為先發，BN 為板凳，IL 為傷兵。')
-        st.caption('讀取時間：'+saved['captured_at']+'。這是當時快照，並非已驗證的最終鎖定紀錄。')
+        if saved.get('roster_state')=='final':
+            st.caption('已封存 Yahoo 當日排陣 · 隔日確認時間：'+saved.get('roster_verified_at',saved['captured_at']))
+        else:
+            st.caption('當日暫存排陣 · 尚待隔日 Yahoo 確認 · 讀取時間：'+saved['captured_at'])
         with team_column:selected_team=st.selectbox('球隊',['全部球隊']+list(saved['teams']),format_func=team_formatter(),key='sync_daily_team')
         table=[]
         for team,rows in saved['teams'].items():

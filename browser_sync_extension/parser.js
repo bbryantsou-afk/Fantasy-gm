@@ -69,14 +69,14 @@ async function collectYahooRosterWeek(read,league,ids,day,report=()=>{},cache={}
   const days=[];for(let i=0;i<7;i++){const d=new Date(start);d.setUTCDate(d.getUTCDate()+i);const key=d.toISOString().slice(0,10);if(key<=today)days.push(key);}
   const snapshots=[];
   for(const date of days){
-    if(!force&&date<today&&cache[date]?.checked===today&&cache[date]?.parserVersion===2){snapshots.push(cache[date].snapshot);continue;}
+    if(!force&&date<today&&cache[date]?.checked===today&&cache[date]?.parserVersion===3){snapshots.push(cache[date].snapshot);continue;}
     report('讀取 '+date+' 的 Fantasy 排陣與單日數據');
     const teams=[];let cursor=0;
     async function worker(){while(cursor<ids.length){const id=ids[cursor++];const doc=await read(`/nba/${league}/${id}/team?date=${date}&stat1=S&stat2=D`);teams.push({id,...parseYahooDocument(doc,date,true,doc.fgmResponseURL||'')});}}
     try{await Promise.all([worker(),worker()]);}catch(e){throw Error(date+' 排陣未更新：'+e.message);}
     const pids=teams.flatMap(t=>t.rows.map(r=>r.yahooPlayerId));if(new Set(pids).size!==pids.length)throw Error('聯盟有重複球員，請重試。');
-    const snapshot={schema:1,league,date,capturedAt:new Date().toISOString(),teams,statsScope:'day'};
-    snapshots.push(snapshot);cache[date]={checked:today,parserVersion:2,snapshot};
+    const snapshot={schema:1,league,date,capturedAt:new Date().toISOString(),teams,statsScope:'day',rosterVersion:3};
+    snapshots.push(snapshot);cache[date]={checked:today,parserVersion:3,snapshot};
   }
   for(const key of Object.keys(cache).sort().slice(0,-14))delete cache[key];
   return {primary:snapshots.find(s=>s.date===day),history:snapshots.filter(s=>s.date!==day),archives:cache};
