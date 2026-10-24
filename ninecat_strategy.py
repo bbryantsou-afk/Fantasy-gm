@@ -1,7 +1,7 @@
 from page_guidance import caption as page_caption
 from app_storage import private_path
 """Native Streamlit version of the approved 9-Cat baseline lab."""
-import json
+import json,re
 from pathlib import Path
 
 import pandas as pd
@@ -178,13 +178,24 @@ def render_ninecat_strategy():
     owned = {roster_key(r) for r in roster}
     owned_names = {norm(r['name']) for r in roster}
     add_options = sorted([k for k, p in pool.items() if k not in owned and norm(p['PLAYER_NAME']) not in owned_names], key=lambda k: norm(pool[k]['PLAYER_NAME']))
+    from roster_store import state as league_state
+    current_league=league_state(entries)
+    position_meta={str(k):v.get('eligible',[]) for k,v in current_league.get('player_meta',{}).items()}
+    for rows in current_league.get('teams',{}).values():
+        for r in rows:
+            if r.get('id') and r.get('eligible'):position_meta[str(r['id'])]=r['eligible']
+    for e in entries:
+        if e.get('playerId') is not None:
+            position_meta.setdefault(str(e['playerId']),re.findall(r'\b(?:PG|SG|SF|PF|C)\b',e.get('position','')))
+    selected_positions=st.multiselect('指定位置',['PG','SG','SF','PF','C'],key='nc_position_filter',placeholder='全部位置')
+    def position_matches(p):return not selected_positions or bool(set(position_meta.get(str(p.get('PLAYER_ID')),[])) & set(selected_positions))
     drop_options = [roster_key(r) for r in roster]
     names = {roster_key(r): r['name'] for r in roster}
     for key, valid in [('nc_adds', set(add_options)), ('nc_drops', set(drop_options))]:
         st.session_state[key] = [k for k in st.session_state.get(key, []) if k in valid]
     left, right = st.columns(2)
     drops = left.multiselect('釋出', drop_options, format_func=lambda k: names[k], key='nc_drops', placeholder='輸入我方球員姓名…')
-    adds = right.multiselect('加入', add_options,
+    adds = right.multiselect('加入', [k for k in add_options if position_matches(pool[k]) or k in st.session_state.get('nc_adds',[])],
                              format_func=lambda k: pool[k]['PLAYER_NAME'] + (' · 無歷史資料' if pool[k].get('PLAYER_ID') is None else ''),
                              key='nc_adds', placeholder='輸入球員姓名…')
     controls = st.columns(3)
@@ -252,7 +263,7 @@ def render_ninecat_strategy():
     records = []
     for p in players:
         key = player_key(p)
-        if p['GP'] < min_gp or (only_ref and key not in ref_ids):
+        if not position_matches(p) or p['GP'] < min_gp or (only_ref and key not in ref_ids):
             continue
         if fit_ranking and (key in owned or key in adds):
             continue
