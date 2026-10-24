@@ -16,3 +16,11 @@ export function nameKey(v){return String(v).normalize('NFD').replace(/[\u0300-\u
 export function baseline(players){return Object.fromEntries(CATS.map(cat=>{const vs=players.filter(p=>p.GP>=10).map(p=>value(p,cat)).filter(v=>v!=null);const mean=vs.reduce((a,b)=>a+b,0)/Math.max(1,vs.length);const std=Math.sqrt(vs.reduce((a,b)=>a+(b-mean)**2,0)/Math.max(1,vs.length));return [cat,{mean,std:std||1}];}));}
 export function zscore(p,base,weights={}){return CATS.reduce((sum,c)=>{const v=value(p,c);return sum+(v==null?0:(v-base[c].mean)/base[c].std)*(c==='TOV'?-1:1)*(weights[c]??1);},0);}
 export function closeWeights(a,b){return Object.fromEntries(CATS.map(c=>{const x=value(a,c),y=value(b,c);return [c,x==null||y==null?0:Math.exp(-Math.abs(x-y)/Math.max(Math.abs(x),Math.abs(y),.1)*7)];}));}
+
+// Prefer the newest validated official weekly snapshot; never mix opponents.
+export function officialWeekScore(league,saved,team,day){
+ const key=weekDates(day)[0];
+ const candidates=[league.yahoo_matchups?.[key],saved?.weeks?.[key]].filter(w=>w?.source==='Yahoo 官方對局總表'&&w.start<=day&&w.end>=day).sort((a,b)=>String(b.updated_at||'').localeCompare(String(a.updated_at||'')));
+ for(const w of candidates){const a=w.teams?.[team],other=a?.opponent,b=w.teams?.[other];if(!a?.totals||!b?.totals||b.opponent!==team)continue;return {a:a.totals,b:b.totals,opponent:other,stamp:w.updated_at||''};}
+ return null;
+}
