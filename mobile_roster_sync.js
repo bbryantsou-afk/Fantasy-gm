@@ -14,7 +14,7 @@
     const picker=document.createElement('input');picker.type='date';picker.value=today;picker.max=today;picker.style.cssText='display:block;margin:12px 0;padding:10px;font:inherit';panel.append(picker);
     const go=document.createElement('button');go.textContent='同步這一週';go.style.cssText='padding:10px;font:inherit';panel.append(go);
     const day=await new Promise(resolve=>go.onclick=()=>resolve(picker.value));
-    async function read(path){const r=await fetch(path,{credentials:'same-origin',cache:'no-store'});if(!r.ok)throw Error('Yahoo 回傳 '+r.status+'，請確認登入。');return new DOMParser().parseFromString(await r.text(),'text/html');}
+    async function read(path){const r=await fetch(path,{credentials:'same-origin',cache:'no-store'});if(!r.ok)throw Error('Yahoo 回傳 '+r.status+'，請確認登入。');const doc=new DOMParser().parseFromString(await r.text(),'text/html');doc.fgmResponseURL=r.url;return doc;}
     status('讀取聯盟隊伍，請保持頁面開啟…');
     const home=await read('/nba/'+league);
     const ids=[...new Set([...home.querySelectorAll('a[href]')].map(a=>new URL(a.getAttribute('href'),location.origin).pathname.match(new RegExp('^/nba/'+league+'/(\\d+)(?:/team)?/?$'))?.[1]).filter(Boolean))];

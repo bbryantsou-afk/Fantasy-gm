@@ -25,7 +25,7 @@ async function collect(league,date,report,force=false){
     report({kind:'progress',message:'正在讀取當週各日 Fantasy 排陣與單日數據…'});
     await chrome.scripting.executeScript({target:{tabId:tab.id},files:['parser.js']});
     const batch=await execute(tab.id,async(lid,ids,day,cache,force)=>{
-      async function read(path){const r=await fetch(path,{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(15000)});if(!r.ok)throw Error('Yahoo '+r.status);return new DOMParser().parseFromString(await r.text(),'text/html');}
+      async function read(path){const r=await fetch(path,{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(15000)});if(!r.ok)throw Error('Yahoo '+r.status);const doc=new DOMParser().parseFromString(await r.text(),'text/html');doc.fgmResponseURL=r.url;return doc;}
       try{return {ok:true,...await collectYahooRosterWeek(read,lid,ids,day,()=>{},cache,force)};}catch(e){return {ok:false,error:e.message};}
     },[league,discovery.links.map(u=>u.split('/').pop()),date,stored.dailyArchives||{},force]);
     if(!batch.ok)throw Error(batch.error);
@@ -34,7 +34,7 @@ async function collect(league,date,report,force=false){
     if(!schedule || stored.scheduleDate!==easternDate()){
       try{
         const result=await execute(tab.id,async lid=>{
-          async function read(path){const r=await fetch(path,{credentials:'same-origin'});if(!r.ok)throw Error('Yahoo '+r.status);return new DOMParser().parseFromString(await r.text(),'text/html');}
+          async function read(path){const r=await fetch(path,{credentials:'same-origin'});if(!r.ok)throw Error('Yahoo '+r.status);const doc=new DOMParser().parseFromString(await r.text(),'text/html');doc.fgmResponseURL=r.url;return doc;}
           try{return {ok:true,...await collectYahooSchedule(read,lid)};}catch(e){return {ok:false,error:e.message};}
         },[league]);
         if(result.ok){schedule=result.weeks;stored.matchupSchedule=schedule;stored.scheduleDate=easternDate();}
@@ -44,7 +44,7 @@ async function collect(league,date,report,force=false){
     let matchupResults;
     try{
       const result=await execute(tab.id,async(lid,day,weeks)=>{
-        async function read(path){const r=await fetch(path,{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(15000)});if(!r.ok)throw Error('Yahoo '+r.status);return new DOMParser().parseFromString(await r.text(),'text/html');}
+        async function read(path){const r=await fetch(path,{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(15000)});if(!r.ok)throw Error('Yahoo '+r.status);const doc=new DOMParser().parseFromString(await r.text(),'text/html');doc.fgmResponseURL=r.url;return doc;}
         try{return {ok:true,results:await collectYahooMatchupResults(read,lid,day,weeks)};}catch(e){return {ok:false,error:e.message};}
       },[league,date,schedule||[]]);
       if(result.ok)matchupResults=result.results;
@@ -67,7 +67,7 @@ async function collectScore(league,day){
  await chrome.scripting.executeScript({target:{tabId:tab.id},files:['parser.js']});
  const key='league_'+league,stored=(await chrome.storage.local.get(key))[key]||{};
  const result=await execute(tab.id,async(lid,day,weeks)=>{
-  async function read(path){const r=await fetch(path,{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(15000)});if(!r.ok)throw Error('Yahoo '+r.status);return new DOMParser().parseFromString(await r.text(),'text/html');}
+  async function read(path){const r=await fetch(path,{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(15000)});if(!r.ok)throw Error('Yahoo '+r.status);const doc=new DOMParser().parseFromString(await r.text(),'text/html');doc.fgmResponseURL=r.url;return doc;}
   try{if(!weeks?.some(w=>w.start<=day&&w.end>=day))weeks=(await collectYahooSchedule(read,lid)).weeks;return {ok:true,results:await collectYahooMatchupResults(read,lid,day,weeks)};}catch(e){return {ok:false,error:e.message};}
  },[league,day,stored.matchupSchedule||[]]);
  if(!result.ok)throw Error(result.error);return result.results;

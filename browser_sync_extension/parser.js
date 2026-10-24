@@ -1,5 +1,5 @@
 // This function is also executed in Yahoo tabs. Keep it self-contained.
-function parseYahooDocument(doc, expectedDate, requireDaily=false) {
+function parseYahooDocument(doc, expectedDate, requireDaily=false, sourceURL='') {
   const tables=Array.from(doc.querySelectorAll('table'));
   const table=tables.find(t=>/Players roster for \d{4}-\d{2}-\d{2}/.test(t.textContent));
   if (!table) throw new Error('沒有讀到 Yahoo 陣容。請先登入 Yahoo；若有驗證畫面，請自行完成。');
@@ -11,7 +11,9 @@ function parseYahooDocument(doc, expectedDate, requireDaily=false) {
   const expand=cells=>Array.from(cells).flatMap(c=>Array(Math.max(1,Number(c.colSpan)||1)).fill(c));
   const columns=headers?expand(headers.cells).map(c=>c.textContent.trim()):[];
   const dailySelected=[...doc.querySelectorAll('li.Selected a[href]')].some(a=>{const u=new URL(a.getAttribute('href'),'https://basketball.fantasysports.yahoo.com');return u.searchParams.get('stat1')==='S'&&u.searchParams.get('stat2')==='D';});
-  const daily=!!(requireDaily&&dailySelected&&['FGM/A*','FTM/A*','PTS','REB','AST','ST','BLK','TO','3PTM'].every(k=>columns.includes(k)));
+  let requestedDay=false;
+  try{const u=new URL(sourceURL,'https://basketball.fantasysports.yahoo.com');requestedDay=u.origin==='https://basketball.fantasysports.yahoo.com'&&u.searchParams.get('date')===expectedDate&&u.searchParams.get('stat1')==='S'&&u.searchParams.get('stat2')==='D'&&columns.includes('MIN*');}catch{}
+  const daily=!!(requireDaily&&(dailySelected||requestedDay)&&['FGM/A*','FTM/A*','PTS','REB','AST','ST','BLK','TO','3PTM'].every(k=>columns.includes(k)));
   if(requireDaily&&!daily)throw Error('Yahoo 未確認為單日統計，避免誤用賽季累積。');
   const rows=[];let slots=0;
   for(const tr of table.querySelectorAll('tr')) {
@@ -70,8 +72,8 @@ async function collectYahooRosterWeek(read,league,ids,day,report=()=>{},cache={}
     if(!force&&date<today&&cache[date]?.checked===today&&cache[date]?.parserVersion===2){snapshots.push(cache[date].snapshot);continue;}
     report('讀取 '+date+' 的 Fantasy 排陣與單日數據');
     const teams=[];let cursor=0;
-    async function worker(){while(cursor<ids.length){const id=ids[cursor++];const doc=await read(`/nba/${league}/${id}/team?date=${date}&stat1=S&stat2=D`);teams.push({id,...parseYahooDocument(doc,date,true)});}}
-    try{await Promise.all([worker(),worker()]);}catch(e){if(date===day)throw e;continue;}
+    async function worker(){while(cursor<ids.length){const id=ids[cursor++];const doc=await read(`/nba/${league}/${id}/team?date=${date}&stat1=S&stat2=D`);teams.push({id,...parseYahooDocument(doc,date,true,doc.fgmResponseURL||'')});}}
+    try{await Promise.all([worker(),worker()]);}catch(e){throw Error(date+' 排陣未更新：'+e.message);}
     const pids=teams.flatMap(t=>t.rows.map(r=>r.yahooPlayerId));if(new Set(pids).size!==pids.length)throw Error('聯盟有重複球員，請重試。');
     const snapshot={schema:1,league,date,capturedAt:new Date().toISOString(),teams,statsScope:'day'};
     snapshots.push(snapshot);cache[date]={checked:today,parserVersion:2,snapshot};
