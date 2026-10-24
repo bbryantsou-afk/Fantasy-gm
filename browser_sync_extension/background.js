@@ -60,6 +60,19 @@ async function collect(league,date,report){
     return {snapshot,mapping:stored.mapping||{},savedDates:Object.keys(stored.snapshots).sort()};
   }finally{busy=false;if(tab)await chrome.tabs.remove(tab.id).catch(()=>{});}
 }
+// Explicit scoreboard refresh is independent of the much slower roster batch.
+async function collectScore(league,day){
+ let tab;try{
+ tab=await chrome.tabs.create({url:`https://basketball.fantasysports.yahoo.com/nba/${league}/matchup`,active:false});await loaded(tab.id);
+ await chrome.scripting.executeScript({target:{tabId:tab.id},files:['parser.js']});
+ const key='league_'+league,stored=(await chrome.storage.local.get(key))[key]||{};
+ const result=await execute(tab.id,async(lid,day,weeks)=>{
+  async function read(path){const r=await fetch(path,{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(15000)});if(!r.ok)throw Error('Yahoo '+r.status);return new DOMParser().parseFromString(await r.text(),'text/html');}
+  try{if(!weeks?.some(w=>w.start<=day&&w.end>=day))weeks=(await collectYahooSchedule(read,lid)).weeks;return {ok:true,results:await collectYahooMatchupResults(read,lid,day,weeks)};}catch(e){return {ok:false,error:e.message};}
+ },[league,day,stored.matchupSchedule||[]]);
+ if(!result.ok)throw Error(result.error);return result.results;
+ }finally{if(tab)await chrome.tabs.remove(tab.id).catch(()=>{});}
+}
 chrome.runtime.onConnect.addListener(port=>{
   const origin=port.sender?.origin;let connected=true;
   if(![APP,'http://localhost:8501','http://127.0.0.1:8501'].includes(origin)){port.disconnect();return;}
@@ -69,7 +82,9 @@ chrome.runtime.onConnect.addListener(port=>{
     try{
       if(!validLeague(m.league))throw new Error('聯盟 ID 不符。');
       const key='league_'+m.league;const stored=(await chrome.storage.local.get(key))[key]||{};
-      if(m.action==='sync'){
+      if(m.action==='score'){
+        send({kind:'score',league:m.league,officialResults:await collectScore(m.league,easternDate())});
+      }else if(m.action==='sync'){
         if(!validDate(m.date))throw new Error('日期不符。');
         send({kind:'result',...(await collect(m.league,m.date,send))});
       }else if(m.action==='cached'){

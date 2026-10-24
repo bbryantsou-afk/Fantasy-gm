@@ -5,7 +5,7 @@ const channel='fantasy-gm-sync-v1';let args={},ready=false,lastMapped='',receive
 const status=document.querySelector('#status');
 function parentMessage(type,more={}){window.parent.postMessage({isStreamlitMessage:true,type,...more},'*');}
 function request(action,extra={}){const requestId=crypto.randomUUID();window.postMessage({channel,requestId,action,league:args.league,date:args.date,...extra},location.origin);return requestId;}
-function forceSync(){if(ready&&!busy&&args.force&&args.force!==lastForce){lastForce=args.force;busy=true;status.textContent='正在強制同步最新資料…';request('sync');}}
+function forceSync(){if(ready&&!busy&&args.force&&args.force!==lastForce){lastForce=args.force;busy=true;status.textContent='正在強制同步最新資料…';request(args.scoreOnly?'score':'sync');}}
 function reportUnavailable(){if(!ready&&args.force&&lastUnavailable!==args.force){lastUnavailable=args.force;parentMessage('streamlit:setComponentValue',{dataType:'json',value:{syncUnavailable:true,force:args.force}});}}
 function currentKey(){return args.league+'|'+args.date;}
 function mapping(){if(args.mapping && JSON.stringify(args.mapping)!==lastMapped){lastMapped=JSON.stringify(args.mapping);request('mapping',{mapping:args.mapping});}}
@@ -20,13 +20,14 @@ window.addEventListener('message',e=>{
  }
  if(e.source!==window || e.origin!==location.origin || e.data?.channel!=='fantasy-gm-sync-extension-v1')return;
  const m=e.data;
- if(m.kind==='ready'){ready=true;document.querySelectorAll('button,input').forEach(x=>x.disabled=false);status.textContent='擴充功能已連線，檢查已保存的今天名單…';mapping();forceSync();request('status');return;}
+ if(m.kind==='ready'){if(args.scoreOnly&&Number((m.version||'0.0.0').split('.').map(x=>x.padStart(3,'0')).join(''))<3004){parentMessage('streamlit:setComponentValue',{value:{syncError:'請先將 Chrome 同步擴充功能更新到 0.3.4，再按 Y 更新最新比分。'},dataType:'json'});return;}ready=true;document.querySelectorAll('button,input').forEach(x=>x.disabled=false);status.textContent='擴充功能已連線，檢查已保存的今天名單…';mapping();forceSync();request('status');return;}
  if(m.kind==='status'){
   document.querySelector('#auto').checked=!!m.auto;
   const captured=m.selectedCapturedAt||m.lastSuccess;
   if(!busy && captured && received[currentKey()]!==captured && m.savedDates.includes(args.date)){pendingKey=currentKey();request('cached');}
   status.textContent=m.lastError?'上次讀取未成功：'+m.lastError:appliedText()|| (captured?'瀏覽器已保存資料，尚未確認網站套用。':'此瀏覽器尚未保存 '+args.date+' 名單，請按同步。');return;
  }
+ if(m.kind==='score'){busy=false;parentMessage('streamlit:setComponentValue',{value:{league:m.league,officialResults:m.officialResults},dataType:'json'});return;}
  if(m.kind==='progress'){status.textContent=m.message;return;}
  if(m.kind==='result'){
   busy=false;document.querySelectorAll('button').forEach(x=>x.disabled=false);

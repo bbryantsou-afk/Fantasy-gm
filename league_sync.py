@@ -124,7 +124,7 @@ def render_sync_connection(full=False):
     snapshot,entries=load_data();league=state(entries)
     if full:
         with st.expander('同步版本與更新說明',expanded=False):
-            st.caption('同步工具 0.3.3：電腦請更新擴充功能，手機請重新複製最新版書籤，以取得官方對局比分。')
+            st.caption('同步工具 0.3.4：電腦請更新擴充功能，手機請重新複製最新版書籤，以取得官方對局比分。')
 
     today=datetime.now(ZoneInfo('America/New_York')).date()
     if full:
@@ -144,7 +144,7 @@ def render_sync_connection(full=False):
         with st.expander('電腦安裝',expanded=False):
             st.download_button('下載同步擴充功能 ZIP',extension_zip(),'fantasy-gm-sync.zip','application/zip')
             st.markdown('1. 解壓縮 ZIP。\n2. 在桌面 Chrome 開啟 `chrome://extensions`，開啟「開發人員模式」。\n3. 按「載入未封裝項目」，選取含 manifest.json 的 fantasy-gm-sync 資料夾。\n4. 在同一個 Chrome 登入 Yahoo，再開啟這個 App，重新整理後按同步。')
-            page_caption('目前版本 0.3.3：每 5 分鐘更新名單、單日實績與官方當週對局總數。下載新版替換原資料夾，在 chrome://extensions 按重新載入，再重新整理 App。開啟自動檢查後約每 5 分鐘更新一次。')
+            page_caption('目前版本 0.3.4：每 5 分鐘更新名單、單日實績與官方當週對局總數。下載新版替換原資料夾，在 chrome://extensions 按重新載入，再重新整理 App。開啟自動檢查後約每 5 分鐘更新一次。')
             page_caption('本機保存最近 14 個日期。網站重開後會自動讀取此瀏覽器已保存的今天名單；若沒有今天快照，請按同步。')
         if re.fullmatch(r'\d{1,10}',source):sync_link.link_button('先登入／查看 Yahoo 聯盟',f'https://basketball.fantasysports.yahoo.com/nba/{source}')
     else:
@@ -158,7 +158,7 @@ def render_sync_connection(full=False):
         if full:st.info('請輸入 Yahoo 網址 /nba/ 後方的數字聯盟 ID。')
         return
     ack=st.session_state.get('_sync_mapping_ack') or (league.get('sync_mapping') if league.get('sync_league')==source else None)
-    args=dict(force=st.session_state.get('_sync_force_nonce'),league=source,date=str(day),mapping=ack,compact=not full,applied=st.session_state.get('_sync_browser_ack'),key='yahoo_browser_bridge',default=None)
+    args=dict(scoreOnly=bool(st.session_state.get('_sync_force_nonce')),force=st.session_state.get('_sync_force_nonce'),league=source,date=str(day),mapping=ack,compact=not full,applied=st.session_state.get('_sync_browser_ack'),key='yahoo_browser_bridge',default=None)
     phone_result=phone_bridge(enabled=bool(st.query_params.get('phone_sync')),showStatus=full and bool(st.query_params.get('phone_sync')),mapping=ack,key='phone_roster_receiver',default=None)
     if full and st.session_state.get('device_view')=='手機版':
         result=None
@@ -170,6 +170,21 @@ def render_sync_connection(full=False):
         with st.expander('名單同步狀態／立即更新',expanded=False):
             page_caption('全站共用同一個同步接收器。已在此瀏覽器完成配對後，重新連線會自動載入已保存的今天名單。')
             result=bridge(**args)
+    if isinstance(result,dict) and result.get('syncError'):
+        st.error(result['syncError']);result=None
+    if isinstance(result,dict) and result.get('officialResults'):
+        try:
+            from yahoo_matchup_results import import_results
+            raw=result['officialResults'];token=hashlib.sha256(json.dumps(raw,sort_keys=True).encode()).hexdigest()
+            if token!=st.session_state.get('_score_applied_token'):
+                if result.get('league')!=source:raise ValueError('比分聯盟不符')
+                key,value=import_results(raw,source,ack or {},set(league['teams']))
+                league.setdefault('yahoo_matchups',{})[key]=value
+                persist(league);st.session_state['_score_applied_token']=token
+                st.session_state.pop('_sync_force_nonce',None)
+                st.toast('Yahoo 當週最新比分已更新');st.rerun()
+        except ValueError as exc:st.error(str(exc))
+        result=None
     if isinstance(result,dict) and result.get('syncUnavailable'):
         if result.get('force')==st.session_state.get('_sync_force_nonce') and st.session_state.get('_sync_unavailable_notice')!=result.get('force'):
             st.session_state['_sync_unavailable_notice']=result.get('force')

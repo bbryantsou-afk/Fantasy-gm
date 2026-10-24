@@ -1,12 +1,13 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const src=fs.readFileSync('pwa/web/app.js','utf8');
 const fn=src.slice(src.indexOf('async function yahooSync()'),src.indexOf("$('#menu').onclick="));
-(async()=>{let listener,frame,imports=0,dialogs=0,sent;const S={league:'71585',team:'a'};
-const ctx={S,embedded:true,location:{href:'https://app.test/component/pwa.streamlit_host.fantasy_pwa/index.html?streamlitUrl=x',origin:'https://app.test'},URL,crypto:{randomUUID:()=> 'force'},setTimeout:()=>1,clearTimeout:()=>{},encodeURIComponent,setDrawer:()=>{},toast:()=>{},dialog:()=>dialogs++,league:()=>({sync_mapping:{'71585:1':'a'}}),today:()=> '2026-10-25',teams:()=>['a'],persist:()=>{},render:()=>{},importValue:async()=>imports++,window:{addEventListener:(n,f)=>listener=f,removeEventListener:()=>{}},document:{createElement:()=>frame={contentWindow:{postMessage:x=>sent=x},remove:()=>{}},body:{appendChild:()=>{}}}};
+(async()=>{let listener,frame,imports=0,dialogs=0,sent;const S={league:'71585',team:'a',payload:{files:{}}};
+const ctx={api:async()=>({league:{teams:{a:[],b:[]}}}),changed:()=>{},S,embedded:true,location:{href:'https://app.test/component/pwa.streamlit_host.fantasy_pwa/index.html?streamlitUrl=x',origin:'https://app.test'},URL,crypto:{randomUUID:()=> 'force'},setTimeout:()=>1,clearTimeout:()=>{},encodeURIComponent,setDrawer:()=>{},toast:()=>{},dialog:()=>dialogs++,league:()=>({sync_mapping:{'71585:1':'a'}}),today:()=> '2026-10-25',teams:()=>['a'],persist:()=>{},render:()=>{},importValue:async()=>imports++,window:{addEventListener:(n,f)=>listener=f,removeEventListener:()=>{}},document:{createElement:()=>frame={contentWindow:{postMessage:x=>sent=x},remove:()=>{}},body:{appendChild:()=>{}}}};
 vm.createContext(ctx);vm.runInContext(fn,ctx);await ctx.yahooSync();
-assert(frame.src.includes('/league_sync.league_sync/'));frame.onload();assert.equal(sent.args.force,'force');assert.equal(sent.args.league,'71585');
+assert(frame.src.includes('/league_sync.league_sync/'));frame.onload();assert.equal(sent.args.force,'force');assert.equal(sent.args.league,'71585');assert.equal(sent.args.scoreOnly,true);
 await listener({source:{},origin:'https://app.test',data:{type:'streamlit:setComponentValue',value:{snapshot:{league:'71585'}}}});assert.equal(imports,0);
 await listener({source:frame.contentWindow,origin:'https://app.test',data:{type:'streamlit:setComponentValue',value:{snapshot:{league:'999'}}}});assert.equal(imports,0);
 await ctx.yahooSync();await listener({source:frame.contentWindow,origin:'https://app.test',data:{type:'streamlit:setComponentValue',value:{snapshot:{league:'71585'}}}});assert.equal(imports,1);
 await ctx.yahooSync();await listener({source:frame.contentWindow,origin:'https://app.test',data:{type:'streamlit:setComponentValue',value:{syncUnavailable:true}}});assert.equal(dialogs,1);assert.equal(S.yahooPending,false);
+await ctx.yahooSync();await listener({source:frame.contentWindow,origin:'https://app.test',data:{type:'streamlit:setComponentValue',value:{league:'71585',officialResults:{week:1}}}});assert(S.payload.files['league_rosters.json']);
 console.log('PASS Yahoo sync request, sender/league validation, import and unavailable flow');})();

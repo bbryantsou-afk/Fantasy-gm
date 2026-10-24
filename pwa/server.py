@@ -43,6 +43,14 @@ def normalize_snapshot(raw,current=None):
     today=datetime.now(ZoneInfo('America/New_York')).date()
     return apply_snapshot(league,matched,mapping,raw,today)
 
+def normalize_results(raw,current):
+    import copy
+    from yahoo_matchup_results import import_results
+    lid=str(current.get('sync_league',''))
+    key,result=import_results(raw,lid,current.get('sync_mapping',{}),set(current.get('teams',{})))
+    out=copy.deepcopy(current);out.setdefault('yahoo_matchups',{})[key]=result
+    return out
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self,fmt,*args):
         # OAuth code, bookmark fragments, tokens and request bodies never enter logs.
@@ -160,6 +168,7 @@ class Handler(BaseHTTPRequestHandler):
             s=self.session();origin=self.headers.get('Origin');token=self.headers.get('X-CSRF-Token','')
             if not s or origin!=self.server.base or not secrets.compare_digest(token,s['csrf']):return self.reply(403,{'error':'請重新開啟 App 再試'})
             body=self.body();path=urlsplit(self.path).path
+            if path=='/api/normalize-results':return self.reply(200,{'league':normalize_results(body['results'],body['current'])})
             if path=='/api/normalize':return self.reply(200,{'league':normalize_snapshot(body['snapshot'],body.get('current'))})
             if path=='/api/validate':return self.reply(200,{'payload':validate_profile(body)})
             if path=='/api/logout':

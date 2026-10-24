@@ -66,12 +66,13 @@ async function yahooSync(){
  const frame=document.createElement('iframe');frame.hidden=true;frame.title='Yahoo 同步接收器';
  const u=new URL(location.href);u.pathname=u.pathname.replace('/pwa.streamlit_host.fantasy_pwa/','/league_sync.league_sync/');u.hash='';frame.src=u.href;
  let timer;const clean=()=>{clearTimeout(timer);window.removeEventListener('message',receive);frame.remove();S.yahooPending=false;};
- const args={force:crypto.randomUUID(),league:S.league,date:today(),mapping:league().sync_mapping||null,compact:true,pwa:true};
+ const args={force:crypto.randomUUID(),league:S.league,date:today(),mapping:league().sync_mapping||null,compact:true,pwa:true,scoreOnly:true};
  const send=()=>frame.contentWindow.postMessage({type:'streamlit:render',args},location.origin);
  const receive=async e=>{if(e.source!==frame.contentWindow||e.origin!==location.origin)return;
  if(e.data?.type==='streamlit:componentReady'){send();return;}
  if(e.data?.type!=='streamlit:setComponentValue')return;const v=e.data.value;
  if(v?.syncUnavailable){clean();unavailable();return;}if(v?.syncError){clean();toast(v.syncError);return;}
+ if(v?.officialResults){clean();try{if(v.league!==S.league)throw Error('聯盟不符');const r=await api('/api/normalize-results',{method:'POST',body:{results:v.officialResults,current:league()}});S.payload.files['league_rosters.json']=r.league;changed();render();toast('Yahoo 當週最新比分已更新');if(S.session?.user&&S.cloudReady)await queueCloudSave();}catch(e){toast(e.message);}return;}
  if(v?.snapshot){clean();try{if(v.snapshot.league!==S.league)throw Error('Yahoo 聯盟不符，未套用');const selected=S.team;await importValue(v.snapshot);if(teams().includes(selected)){S.team=selected;persist();render();}toast(v.snapshot.matchupResults?'Yahoo 名單與官方比分已更新':'名單已更新，但官方比分未取得；比分仍是舊快照');}catch(e){toast(e.message);}}
  };
  window.addEventListener('message',receive);frame.onload=send;document.body.appendChild(frame);timer=setTimeout(()=>{clean();toast('Yahoo 同步逾時，原資料保留');},120000);

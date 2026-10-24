@@ -9,7 +9,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 import streamlit as st
 import streamlit.components.v1 as components
-from pwa.server import validate_profile,normalize_snapshot
+from pwa.server import validate_profile,normalize_snapshot,normalize_results
 ROOT=Path(__file__).resolve().parents[1]
 frame=components.declare_component('fantasy_pwa',path=str(Path(__file__).parent/'web'))
 
@@ -43,6 +43,7 @@ def dispatch(request):
         st.session_state['_drive_logged_out']=True
         return {'logout':True}
     if path=='/api/validate' and method=='POST':return {'payload':validate_profile(body)}
+    if path=='/api/normalize-results' and method=='POST':return {'league':normalize_results(body['results'],body['current'])}
     if path=='/api/normalize' and method=='POST':return {'league':normalize_snapshot(body['snapshot'],body.get('current'))}
     if path=='/api/bookmark':
         c=config();base=c['redirect_uri'].rstrip('/') if c else 'http://localhost:'+str(st.get_option('server.port'))
