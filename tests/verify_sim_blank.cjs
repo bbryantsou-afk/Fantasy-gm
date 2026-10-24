@@ -17,3 +17,14 @@ assert.ok(legacy.includes('id="sim-reset-data"'));
 assert.ok(src.includes('version:1,include_actual:true,week_dates:dates'));
 ctx.editableStats=()=>true;sim.daily_choices.my={};assert.equal(ctx.simDaily('my',day).stats,0);
 console.log('PASS actuals shown by default; pregame blank despite snapshot; clear and manual predictions preserved');
+
+const resetSource=fs.readFileSync('pwa/web/app.js','utf8');
+const reset=resetSource.slice(resetSource.indexOf("case 'sim-reset-data':")+"case 'sim-reset-data':".length,resetSource.indexOf("case 'sim-side':"));
+const resetCtx={S:{sim:{include_actual:false,daily_choices:{my:{a:{custom:{PTS:50}}},opp:{}},lineups:[{my:{PG:'a'}}]}},render:()=>{},toast:()=>{}};
+vm.createContext(resetCtx);vm.runInContext(reset.replace(/break;\s*$/,''),resetCtx);
+assert.equal(resetCtx.S.sim.include_actual,true);
+assert.equal(Object.keys(resetCtx.S.sim.daily_choices.my).length,0);
+assert.equal(resetCtx.S.sim.lineups[0].my.PG,'a');
+const legacyReset=fs.readFileSync('matchup_simulator_v15.py','utf8');
+assert.ok(legacyReset.includes('onclick=()=>{includeActual=true;dailyChoices.my={};dailyChoices.opp={};'));
+console.log('PASS reset clears predictions while retaining actuals and lineup in both interfaces');

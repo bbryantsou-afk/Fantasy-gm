@@ -1112,7 +1112,7 @@ def render_matchup_simulator(lite=False):
         render();setMessage(`已套用 ${changed} 場；${skipped} 場缺少來源而保留。已完賽一律使用實績。`);
       };
       root.querySelector("#sim-actual").onclick=()=>{includeActual=true;render();};
-      root.querySelector("#sim-reset-data").onclick=()=>{includeActual=false;dailyChoices.my={};dailyChoices.opp={};render();setMessage("已清空數據，保留球員與排陣。");};
+      root.querySelector("#sim-reset-data").onclick=()=>{includeActual=true;dailyChoices.my={};dailyChoices.opp={};render();setMessage("已清空預測，保留實績與排陣。");};
       let working=null;
       const nonce=data.restore_nonce??'';
       let seenNonce='';try{seenNonce=localStorage.getItem(workingKey+':restore')??'';}catch{}
