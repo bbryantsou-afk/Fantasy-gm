@@ -191,7 +191,7 @@ CSS='''
 [data-testid="stSidebar"] label[data-testid="stRadioOption"]{box-sizing:border-box!important;min-height:36px!important;padding:6px 9px!important;width:100%!important}
 [data-testid="stSidebar"] label[data-testid="stRadioOption"] p{font-size:14px!important;line-height:1.3!important}
 [data-testid="stMainBlockContainer"]{padding-top:3rem!important}
-[data-testid="stElementContainer"]:has(iframe[title^="google_drive_auth."]),[data-testid="stElementContainer"]:has(iframe[title^="browser_records."]){display:none!important}
+[data-testid="stElementContainer"]:has(iframe[title^="browser_records."]){display:none!important}
 .st-key-current_feature{margin-top:0!important}
 .st-key-app_status_bar [data-testid="stButtonGroup"]{width:100%}
 .st-key-app_status_bar [data-testid="stButtonGroup"] button{padding:4px 6px!important;min-height:32px!important;font-size:12px!important;transition:background .18s ease}
