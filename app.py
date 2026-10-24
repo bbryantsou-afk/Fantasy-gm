@@ -138,12 +138,18 @@ with st.sidebar:
     if (st.query_params.get('phone_sync') and not st.session_state.get('_phone_landing_done')) or st.session_state.get('main_navigation')=='聯盟同步 League Sync':
         st.session_state['main_navigation']='⚙️ 設定'
         st.session_state['_phone_landing_done']=True
+    navigation_pages=["總覽 Dashboard","球員觀察室 Player Watch","每週補強 Weekly Planner","交易分析 Trade Lab","9-Cat Strategy","模擬對局 Matchup Simulator","📆 賽程週曆","比賽戰況","Data Source 資料中心","⚙️ 設定"]
+    if 'main_navigation' not in st.session_state:
+        remembered=st.query_params.get('page','')
+        if remembered in navigation_pages:st.session_state['main_navigation']=remembered
+    def remember_navigation():
+        st.query_params['page']=st.session_state['main_navigation']
     page = st.radio(
         "功能選單",
         ["總覽 Dashboard", "球員觀察室 Player Watch",
          "每週補強 Weekly Planner", "交易分析 Trade Lab",
      "9-Cat Strategy", "模擬對局 Matchup Simulator", "📆 賽程週曆", "比賽戰況", "Data Source 資料中心", "⚙️ 設定"],
-        key="main_navigation",width="stretch",label_visibility="collapsed",format_func=lambda name:dict(zip(
+        key="main_navigation",on_change=remember_navigation,width="stretch",label_visibility="collapsed",format_func=lambda name:dict(zip(
             ["總覽 Dashboard","球員觀察室 Player Watch","每週補強 Weekly Planner","交易分析 Trade Lab","9-Cat Strategy","模擬對局 Matchup Simulator","聯盟同步 League Sync","比賽戰況","Data Source 資料中心","⚙️ 設定"],
             ["📊 總覽","⭐ 球員觀察室","📅 每週補強","🤝 交易分析","🎯 九項策略","🏀 模擬對局","🔄 聯盟同步","🏆 比賽戰況","🗂️ 資料中心","⚙️ 設定"])).get(name,name),
         index=9 if any(st.query_params.get(k) for k in ("code","error","phone_sync")) else 0
