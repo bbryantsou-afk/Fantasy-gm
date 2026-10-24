@@ -59,7 +59,7 @@ function parseYahooDocument(doc, expectedDate, requireDaily=false) {
 }
 if(typeof module!=='undefined')module.exports={parseYahooDocument};
 
-async function collectYahooRosterWeek(read,league,ids,day,report=()=>{},cache={}){
+async function collectYahooRosterWeek(read,league,ids,day,report=()=>{},cache={},force=false){
   const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
   const val=t=>parts.find(p=>p.type===t).value;const today=val('year')+'-'+val('month')+'-'+val('day');
   if(day>today)throw Error('未來日期不當作實績同步。');
@@ -67,7 +67,7 @@ async function collectYahooRosterWeek(read,league,ids,day,report=()=>{},cache={}
   const days=[];for(let i=0;i<7;i++){const d=new Date(start);d.setUTCDate(d.getUTCDate()+i);const key=d.toISOString().slice(0,10);if(key<=today)days.push(key);}
   const snapshots=[];
   for(const date of days){
-    if(date<today&&cache[date]?.checked===today&&cache[date]?.parserVersion===2){snapshots.push(cache[date].snapshot);continue;}
+    if(!force&&date<today&&cache[date]?.checked===today&&cache[date]?.parserVersion===2){snapshots.push(cache[date].snapshot);continue;}
     report('讀取 '+date+' 的 Fantasy 排陣與單日數據');
     const teams=[];let cursor=0;
     async function worker(){while(cursor<ids.length){const id=ids[cursor++];const doc=await read(`/nba/${league}/${id}/team?date=${date}&stat1=S&stat2=D`);teams.push({id,...parseYahooDocument(doc,date,true)});}}

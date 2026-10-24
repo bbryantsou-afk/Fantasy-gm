@@ -41,5 +41,6 @@ console.log('PASS Iron Will real Yahoo row; own/other layouts yield identical co
  const first=await collectYahooRosterWeek(read,'7',['1','2'],today);assert.equal(first.primary.date,today);assert.equal(first.primary.teams.length,2);assert(first.history.length<=6);
  reads=0;await collectYahooRosterWeek(read,'7',['1','2'],today,()=>{},first.archives);assert.equal(reads,2); // reread today, reuse only corrected-parser archives
  const stale=structuredClone(first.archives);for(const a of Object.values(stale))delete a.parserVersion;reads=0;await collectYahooRosterWeek(read,'7',['1','2'],today,()=>{},stale);if(first.history.length)assert(reads>2,'old misaligned history must be refetched');
+ reads=0;await collectYahooRosterWeek(read,'7',['1','2'],today,()=>{},first.archives,true);assert.equal(reads,(first.history.length+1)*2,'manual sync rereads every day including pregame archives');
  console.log('PASS Yahoo day-only mode, genuine zero versus no data, date guards, full week collection and fresh-today cache behavior');
 })().catch(e=>{console.error(e);process.exit(1)});

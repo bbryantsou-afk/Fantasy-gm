@@ -10,7 +10,7 @@ async function loaded(id){
   throw new Error('Yahoo 載入逾時，保留上次成功資料。');
 }
 async function execute(id,func,args=[]){return (await chrome.scripting.executeScript({target:{tabId:id},func,args}))[0].result;}
-async function collect(league,date,report){
+async function collect(league,date,report,force=false){
   if(busy)throw new Error('已有同步進行中，請稍候。');busy=true;let tab;
   try{
     tab=await chrome.tabs.create({url:`https://basketball.fantasysports.yahoo.com/nba/${league}`,active:false});await loaded(tab.id);
@@ -24,10 +24,10 @@ async function collect(league,date,report){
     const key='league_'+league;const stored=(await chrome.storage.local.get(key))[key]||{};
     report({kind:'progress',message:'正在讀取當週各日 Fantasy 排陣與單日數據…'});
     await chrome.scripting.executeScript({target:{tabId:tab.id},files:['parser.js']});
-    const batch=await execute(tab.id,async(lid,ids,day,cache)=>{
+    const batch=await execute(tab.id,async(lid,ids,day,cache,force)=>{
       async function read(path){const r=await fetch(path,{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(15000)});if(!r.ok)throw Error('Yahoo '+r.status);return new DOMParser().parseFromString(await r.text(),'text/html');}
-      try{return {ok:true,...await collectYahooRosterWeek(read,lid,ids,day,()=>{},cache)};}catch(e){return {ok:false,error:e.message};}
-    },[league,discovery.links.map(u=>u.split('/').pop()),date,stored.dailyArchives||{}]);
+      try{return {ok:true,...await collectYahooRosterWeek(read,lid,ids,day,()=>{},cache,force)};}catch(e){return {ok:false,error:e.message};}
+    },[league,discovery.links.map(u=>u.split('/').pop()),date,stored.dailyArchives||{},force]);
     if(!batch.ok)throw Error(batch.error);
     stored.dailyArchives=batch.archives;
     let schedule=stored.matchupSchedule;
@@ -86,7 +86,8 @@ chrome.runtime.onConnect.addListener(port=>{
         send({kind:'score',league:m.league,officialResults:await collectScore(m.league,easternDate())});
       }else if(m.action==='sync'){
         if(!validDate(m.date))throw new Error('日期不符。');
-        send({kind:'result',...(await collect(m.league,m.date,send))});
+        try{send({kind:'score',league:m.league,officialResults:await collectScore(m.league,easternDate())});}catch(e){send({kind:'progress',message:'官方比分未更新：'+e.message});}
+        send({kind:'result',...(await collect(m.league,m.date,send,true))});
       }else if(m.action==='cached'){
         if(!validDate(m.date)||!stored.snapshots?.[m.date])throw new Error('此瀏覽器尚未保存這一天，請按同步。');
         const begin=new Date(m.date+'T12:00:00Z');begin.setUTCDate(begin.getUTCDate()-(begin.getUTCDay()+6)%7);

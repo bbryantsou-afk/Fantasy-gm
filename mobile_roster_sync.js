@@ -14,14 +14,14 @@
     const picker=document.createElement('input');picker.type='date';picker.value=today;picker.max=today;picker.style.cssText='display:block;margin:12px 0;padding:10px;font:inherit';panel.append(picker);
     const go=document.createElement('button');go.textContent='同步這一週';go.style.cssText='padding:10px;font:inherit';panel.append(go);
     const day=await new Promise(resolve=>go.onclick=()=>resolve(picker.value));
-    async function read(path){const r=await fetch(path,{credentials:'same-origin'});if(!r.ok)throw Error('Yahoo 回傳 '+r.status+'，請確認登入。');return new DOMParser().parseFromString(await r.text(),'text/html');}
+    async function read(path){const r=await fetch(path,{credentials:'same-origin',cache:'no-store'});if(!r.ok)throw Error('Yahoo 回傳 '+r.status+'，請確認登入。');return new DOMParser().parseFromString(await r.text(),'text/html');}
     status('讀取聯盟隊伍，請保持頁面開啟…');
     const home=await read('/nba/'+league);
     const ids=[...new Set([...home.querySelectorAll('a[href]')].map(a=>new URL(a.getAttribute('href'),location.origin).pathname.match(new RegExp('^/nba/'+league+'/(\\d+)(?:/team)?/?$'))?.[1]).filter(Boolean))];
     if(ids.length<2 || ids.length>30)throw Error('沒有取得完整聯盟隊伍；請確認登入及聯盟頁面。');
     let archives={};const archiveKey='fantasy-gm-yahoo-daily:'+league;
     try{archives=JSON.parse(localStorage.getItem(archiveKey)||'{}');}catch{}
-    const batch=await collectYahooRosterWeek(read,league,ids,day,status,archives);
+    const batch=await collectYahooRosterWeek(read,league,ids,day,status,archives,true);
     try{localStorage.setItem(archiveKey,JSON.stringify(batch.archives));}catch{}
     let schedule;
     try{
