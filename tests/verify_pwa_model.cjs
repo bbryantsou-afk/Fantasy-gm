@@ -11,4 +11,7 @@ assert.equal(m.officialWeekScore({yahoo_matchups:{'2026-10-19':official}},null,'
 const newer={...official,updated_at:'2026-10-24T13:00:00Z'};
 assert.equal(m.officialWeekScore({yahoo_matchups:{'2026-10-19':official}},{weeks:{'2026-10-19':newer}},'a','2026-10-24').stamp,newer.updated_at);
 assert.equal(m.officialWeekScore({yahoo_matchups:{'2026-10-19':{...official,teams:{a:official.teams.a}}}},null,'a','2026-10-24'),null);
+const tyrese={FGM:138,FGA:289,FTM:76,FTA:99,FG3M:26,PTS:378,REB:121,AST:77,STL:25,BLK:17,TOV:46};
+const gao={FGM:96,FGA:209,FTM:40,FTA:52,FG3M:27,PTS:259,REB:107,AST:63,STL:17,BLK:21,TOV:30};
+assert.equal(m.compare(tyrese,gao).wins,5);assert.equal(m.compare(tyrese,gao).losses,4);
 console.log('PASS PWA nine-category ordering, ratio aggregation, TO direction, seven dates, eligibility and IL exclusion');})();

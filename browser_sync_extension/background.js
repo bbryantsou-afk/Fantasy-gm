@@ -25,7 +25,7 @@ async function collect(league,date,report){
     report({kind:'progress',message:'正在讀取當週各日 Fantasy 排陣與單日數據…'});
     await chrome.scripting.executeScript({target:{tabId:tab.id},files:['parser.js']});
     const batch=await execute(tab.id,async(lid,ids,day,cache)=>{
-      async function read(path){const r=await fetch(path,{credentials:'same-origin',signal:AbortSignal.timeout(15000)});if(!r.ok)throw Error('Yahoo '+r.status);return new DOMParser().parseFromString(await r.text(),'text/html');}
+      async function read(path){const r=await fetch(path,{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(15000)});if(!r.ok)throw Error('Yahoo '+r.status);return new DOMParser().parseFromString(await r.text(),'text/html');}
       try{return {ok:true,...await collectYahooRosterWeek(read,lid,ids,day,()=>{},cache)};}catch(e){return {ok:false,error:e.message};}
     },[league,discovery.links.map(u=>u.split('/').pop()),date,stored.dailyArchives||{}]);
     if(!batch.ok)throw Error(batch.error);
@@ -44,7 +44,7 @@ async function collect(league,date,report){
     let matchupResults;
     try{
       const result=await execute(tab.id,async(lid,day,weeks)=>{
-        async function read(path){const r=await fetch(path,{credentials:'same-origin',signal:AbortSignal.timeout(15000)});if(!r.ok)throw Error('Yahoo '+r.status);return new DOMParser().parseFromString(await r.text(),'text/html');}
+        async function read(path){const r=await fetch(path,{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(15000)});if(!r.ok)throw Error('Yahoo '+r.status);return new DOMParser().parseFromString(await r.text(),'text/html');}
         try{return {ok:true,results:await collectYahooMatchupResults(read,lid,day,weeks)};}catch(e){return {ok:false,error:e.message};}
       },[league,date,schedule||[]]);
       if(result.ok)matchupResults=result.results;
