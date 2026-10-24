@@ -236,7 +236,7 @@ button[data-testid="stExpandSidebarButton"],[data-testid="stExpandSidebarButton"
 .stApp .st-key-app_status_bar [data-testid="stMarkdown"]{display:flex!important;align-items:center!important;min-height:36px!important}
 .stApp .mvp-body{align-items:stretch!important;min-height:170px}
 .stApp .mvp-photo{position:relative!important;flex:0 0 35%!important;max-width:none!important;min-height:170px!important;align-self:stretch!important}
-.stApp .mvp-photo img{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-height:none!important;object-fit:cover!important;object-position:center top!important;border-radius:8px!important}
+.stApp .mvp-photo img{position:static!important;width:100%!important;height:170px!important;max-height:170px!important;object-fit:contain!important;object-position:center bottom!important;border-radius:8px!important}
 
 button:has(>[data-fgm-expand-emoji])>*:not([data-fgm-expand-emoji]){display:none!important}
 button>[data-fgm-expand-emoji]{display:flex!important;align-items:center;justify-content:center;width:100%;font-size:22px;line-height:1;margin:0;padding:0}
@@ -397,6 +397,8 @@ def render_compact_styles():
     bg,fg,border={'簡約淺色':('#f7f8fa','#202936','#d5dce5'),'戰術板草圖':('#142b29','#f0eee3','#54736a')}.get(theme,('#0b1020','#edf2f7','#384152'))
     variables=f'.stApp{{--fgm-feature-bg:{bg};--fgm-feature-fg:{fg};--fgm-feature-border:{border};--fgm-muted:{'#526174' if theme=='簡約淺色' else '#b8c7d2'};}}'
     responsive=CSS.replace('@media(max-width:640px)','@media(max-width:100000px)') if st.session_state.get('device_view')=='手機版' else CSS
+    # Wide screens retain four controls even when mobile content is selected.
+    responsive+='''@media(min-width:1101px){.stApp .st-key-dashboard_controls [data-testid="stHorizontalBlock"]{display:grid!important;grid-template-columns:minmax(110px,.8fr) minmax(180px,1.6fr) minmax(180px,1.1fr) minmax(140px,1fr)!important;gap:16px!important}.stApp .st-key-dashboard_controls [data-testid="stColumn"]{width:100%!important;min-width:0!important}}'''
     st.markdown('<style>'+variables+responsive+'</style>',unsafe_allow_html=True)
 
 def render_compact_ui(apply_styles=True):
