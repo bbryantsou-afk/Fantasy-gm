@@ -173,12 +173,14 @@ if st.session_state.pop('_sync_force_notice',False):st.toast('已要求 Yahoo �
 if st.session_state.pop('_page_refresh_notice',False):st.toast('已重新整理頁面，正在檢查實績與 Drive。',icon='🔄')
 
 with st.container(key='app_status_bar'):
-    team_view,cloud=st.columns([8,1])
+    team_view,display,cloud=st.columns([6,3,1])
     from ninecat_strategy import load_data as status_data
     from roster_store import choose_team
     _,status_entries=status_data()
     with team_view:
         choose_team(status_entries,'header_team','球隊')
+    with display:
+        st.segmented_control('顯示版本',['電腦版','手機版'],selection_mode='single',key='device_view',required=True,label_visibility='collapsed',width='stretch',format_func=lambda value:'🖥️' if value=='電腦版' else '📱')
     st.query_params['view']='mobile' if st.session_state.get('device_view')=='手機版' else 'desktop'
     drive_label='☁️ '+str(st.session_state.get('_account_revision','—')) if st.session_state.get('_account_loaded') else '☁️ 未連接'
     if st.session_state.get('_account_conflict') or st.session_state.get('_account_save_error'):drive_label+=' ⚠️'
@@ -232,7 +234,6 @@ elif page == "Data Source 資料中心":
     render_data_center()
 
 elif page == "⚙️ 設定":
-    st.segmented_control('顯示版本',['電腦版','手機版'],selection_mode='single',key='device_view',required=True,width='stretch')
     if st.button('試用新版 App',key='open_pwa_beta'):
         st.query_params['app']='1'
         st.rerun()
@@ -383,7 +384,7 @@ if st.session_state.get("visual_theme")=="簡約淺色":
 
 from compact_ui import render_compact_ui
 render_compact_ui(apply_styles=False)
-st.caption("版本 2026.10.24-ui47 · 電腦／手機共用版本")
+st.caption("版本 2026.10.24-ui48 · 電腦／手機共用版本")
 
 save_browser_records()
 

@@ -415,12 +415,24 @@ def render_compact_styles():
 .stApp .st-key-current_feature .st-key-refresh_current_page button p{font-size:30px!important}
 [data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"]:has(.st-key-current_feature){top:0!important}
 [data-testid="stSidebarCollapsedControl"],[data-testid="stExpandSidebarButton"]{top:6px!important}
-.stApp .st-key-app_status_bar [data-testid="stHorizontalBlock"]{display:grid!important;grid-template-columns:minmax(0,1fr) 90px!important;gap:10px!important;align-items:center!important}
+.stApp .st-key-app_status_bar [data-testid="stHorizontalBlock"]{display:grid!important;grid-template-columns:minmax(0,1fr) 110px 70px!important;gap:10px!important;align-items:center!important}
 .stApp .st-key-app_status_bar [data-testid="stColumn"]{width:100%!important;min-width:0!important;max-width:100%!important}
 .stApp .st-key-app_status_bar [data-testid="stWidgetLabel"]{display:none!important}
 .stApp .st-key-app_status_bar [data-baseweb="select"]>div{border:0!important;background:transparent!important;min-height:40px!important}
 .stApp .st-key-app_status_bar [data-testid="stCaptionContainer"]{text-align:right!important;white-space:nowrap!important}
 .stApp .st-key-sidebar_actions [data-testid="stHorizontalBlock"]{grid-template-columns:44px!important}
+'''
+    responsive+='''
+/* The platform header must not paint over the app's own toolbar. */
+.stApp [data-testid="stHeader"]{background:transparent!important;pointer-events:none!important;box-shadow:none!important}
+.stApp [data-testid="stHeader"] button{pointer-events:auto!important}
+.stApp .st-key-current_feature{opacity:1!important;visibility:visible!important}
+.stApp .st-key-sidebar_close{position:fixed!important;left:12px!important;top:6px!important;width:44px!important;height:44px!important;z-index:100003!important;margin:0!important}
+.stApp .st-key-sidebar_close button,button[data-testid="stExpandSidebarButton"],[data-testid="stExpandSidebarButton"] button,[data-testid="stSidebarCollapsedControl"] button,button[aria-label="Expand sidebar"]{border:0!important;outline:0!important;box-shadow:none!important;background:transparent!important;border-radius:0!important;padding:0!important;width:44px!important;height:44px!important;color:var(--fgm-feature-fg)!important}
+.stApp .st-key-sidebar_identity{margin-top:50px!important}
+.stApp .st-key-app_status_bar [data-testid="stSegmentedControl"]{margin:0!important;min-height:36px!important}
+.stApp .st-key-app_status_bar button{min-height:34px!important;padding:4px 8px!important}
+@media(max-width:380px){.stApp .st-key-app_status_bar [data-testid="stHorizontalBlock"]{grid-template-columns:minmax(0,1fr) 84px 58px!important;gap:4px!important}}
 '''
     st.markdown('<style>'+variables+responsive+'</style>',unsafe_allow_html=True)
 
