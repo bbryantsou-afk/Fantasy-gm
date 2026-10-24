@@ -551,7 +551,10 @@ def render_matchup_simulator(lite=False):
       function applyOfficialLineups(){
         for(let i=0;i<weekDates.length;i++)for(const side of ['my','opp']){
           const slots=data.official_lineups?.[weekDates[i]]?.[side];
-          if(slots)state[i][side]=Object.fromEntries(positions.map(pos=>[pos,slots[pos]??null]));
+          if(!data.historical && weekDates[i]<=data.today){
+            // Never retain restored or auto-filled slots for a missing Yahoo day.
+            state[i][side]=Object.fromEntries(positions.map(pos=>[pos,slots?.[pos]??null]));
+          }else if(slots)state[i][side]=Object.fromEntries(positions.map(pos=>[pos,slots[pos]??null]));
         }
       }
       const searches={my:"",opp:""};
@@ -1051,7 +1054,12 @@ def render_matchup_simulator(lite=False):
           const trash=root.querySelector("#"+side+"-trash");trashTarget(trash,side);
           const bench=root.querySelector("#"+side+"-bench");
           bench.replaceChildren();dropTarget(bench,side);
-          for(const p of players[side])if(!location(side,p.id))bench.appendChild(card(p,side));
+          const dated=!data.historical && weekDates[dayIndex]<=data.today;
+          const rosterIds=dated?new Set(data.official_roster_ids?.[weekDates[dayIndex]]?.[side]??[]):null;
+          if(dated && !data.official_lineups?.[weekDates[dayIndex]]?.[side]){
+            const warning=document.createElement('small');warning.textContent='此隊當日 Yahoo 排陣尚未同步';bench.appendChild(warning);
+          }
+          for(const p of players[side])if((!dated||rosterIds.has(p.id))&&!location(side,p.id))bench.appendChild(card(p,side));
         }
         const rows=root.querySelector("#lineup-rows");rows.replaceChildren();
         for(const pos of positions) {
@@ -1176,6 +1184,12 @@ def render_matchup_simulator(lite=False):
             "uncertain_days":[d.isoformat() for d in week_dates if d<=today and d.isoformat() not in final_games and any(d in days for days in schedule.values())],
             "actual_by_player":actual_by_player,
             "official_lineups":official_lineups,
+            "official_roster_ids":{
+                str(d):{side:[f"{side}-{r.get('id') or r['name']}" for r in rows if r.get('status')!='IL' and r.get('slot') not in ('IL','IL+','IR','IR+')]
+                        for side,team in [('my',my_team),('opp',opp_team)]
+                        if (rows:=league_state.get('daily_rosters',{}).get(str(d),{}).get('teams',{}).get(team)) is not None}
+                for d in week_dates if d<=today
+            },
             "final_teams":final_teams,
             "week_dates":[d.isoformat() for d in week_dates],
             "players":PLAYERS,

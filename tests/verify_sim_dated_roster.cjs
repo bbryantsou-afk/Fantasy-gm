@@ -1,0 +1,12 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const source=fs.readFileSync('matchup_simulator_v15.py','utf8');
+const start=source.indexOf('      function applyOfficialLineups(){'),end=source.indexOf('      const searches=',start);
+const positions=['PG','C1'],weekDates=['2026-10-23','2026-10-24','2026-10-25'];
+const state=weekDates.map(()=>({my:{PG:'old-my'},opp:{PG:'wrong-old-opponent'}}));
+const data={today:'2026-10-24',historical:false,official_lineups:{'2026-10-23':{my:{PG:'my-A'},opp:{C1:'opp-B'}},'2026-10-24':{my:{PG:'my-A'}}}};
+const ctx={positions,weekDates,state,data};vm.createContext(ctx);vm.runInContext(source.slice(start,end)+'applyOfficialLineups();',ctx);
+assert.equal(state[0].opp.C1,'opp-B');assert.equal(state[0].opp.PG,null);
+assert.equal(state[1].opp.PG,null);assert.equal(state[1].opp.C1,null);
+assert.equal(state[2].opp.PG,'wrong-old-opponent');
+assert.equal(state[0].my.PG,'my-A');
+console.log('PASS each team/day uses Yahoo lineup; missing opponent clears restored slots; future simulation preserved');

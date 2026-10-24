@@ -130,7 +130,7 @@ def simulator_defaults(league,my,opp,days,players):
             known=True;slots[side]={};counts={'C':0,'UTIL':0}
             for r in rows:
                 pid=f"{side}-{r.get('id') or r['name']}"
-                if r.get('slot') in ACTIVE and not any(p['id']==pid for p in pool[side]):
+                if r.get('status')!='IL' and r.get('slot') not in ('IL','IL+','IR','IR+') and not any(p['id']==pid for p in pool[side]):
                     pool[side].append({'id':pid,'nba_id':int(r['id']) if str(r.get('id','')).isdigit() else None,'evidence_id':player_key(r),'name':r['name'],'team':r.get('team',''),'eligible':r.get('eligible',[]),'rank':len(pool[side])+1,'stats':{}})
                 pos=r.get('slot');pos='UTIL' if pos in ['Util','UTIL'] else pos
                 if pos not in ACTIVE and pos!='UTIL':continue

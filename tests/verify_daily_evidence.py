@@ -18,7 +18,7 @@ assert next(r for r in records if r['PLAYER_NAME']=='A')['GP']==1
 pool,lineups=simulator_defaults(league,'A','B',[date(2026,10,20),date(2026,10,21)],{'my':[],'opp':[]})
 assert lineups['2026-10-20']['my']=={'C1':'my-1','C2':'my-4'}
 assert lineups['2026-10-21']['my']=={'UTIL1':'my-Rookie'}
-assert {p['name'] for p in pool['my']}=={'A','Dropped','Rookie'}
+assert {p['name'] for p in pool['my']}=={'A','Bench','Dropped','Rookie'}
 clean=validate_backup(league,['A','B']);assert clean['daily_rosters']['2026-10-20']['stats_scope']=='day'
 assert clean['daily_rosters']['2026-10-21']['teams']['A'][1]['daily_stats']['PTS']==7
 _,missing,_,_=fantasy_period(league,'A',date(2026,10,22),date(2026,10,22),date(2026,10,22));assert missing==['2026-10-22']

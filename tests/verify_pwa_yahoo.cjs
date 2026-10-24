@@ -1,6 +1,6 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const src=fs.readFileSync('pwa/web/app.js','utf8');
-const fn=src.slice(src.indexOf('async function yahooSync()'),src.indexOf("$('#menu').onclick="));
+const fn=src.slice(src.indexOf('async function yahooSync('),src.indexOf("$('#menu').onclick="));
 (async()=>{let listener,frame,imports=0,dialogs=0,sent;const S={league:'71585',team:'a',payload:{files:{}}};
 const ctx={api:async()=>({league:{teams:{a:[],b:[]}}}),changed:()=>{},S,embedded:true,location:{href:'https://app.test/component/pwa.streamlit_host.fantasy_pwa/index.html?streamlitUrl=x',origin:'https://app.test'},URL,crypto:{randomUUID:()=> 'force'},setTimeout:()=>1,clearTimeout:()=>{},encodeURIComponent,setDrawer:()=>{},toast:()=>{},dialog:()=>dialogs++,league:()=>({sync_mapping:{'71585:1':'a'}}),today:()=> '2026-10-25',teams:()=>['a'],persist:()=>{},render:()=>{},importValue:async()=>imports++,window:{addEventListener:(n,f)=>listener=f,removeEventListener:()=>{}},document:{createElement:()=>frame={contentWindow:{postMessage:x=>sent=x},remove:()=>{}},body:{appendChild:()=>{}}}};
 vm.createContext(ctx);vm.runInContext(fn,ctx);await ctx.yahooSync();
