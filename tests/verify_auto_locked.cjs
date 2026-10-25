@@ -1,0 +1,10 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const src=fs.readFileSync('matchup_simulator_v15.py','utf8'),start=src.indexOf('      function autoFill('),end=src.indexOf('      function render()',start);
+const ps=[{id:'done',rank:9},{id:'future',rank:1},{id:'bench-started',rank:0}];
+const state=[{my:{PG:'done',UTIL1:null}},{my:{PG:'done',UTIL1:null}},{my:{PG:null,UTIL1:null}}];
+const ctx={positions:['PG','UTIL1'],players:{my:ps},state,weekDates:['2026-10-24','2026-10-25','2026-10-26'],data:{today:'2026-10-25'},getPlayer:(side,id)=>ps.find(p=>p.id===id),canPredict:(p,i)=>i===2||p.id==='future',plays:()=>true,eligible:()=>true};
+vm.createContext(ctx);vm.runInContext(src.slice(start,end),ctx);
+const before=JSON.stringify(state[0]);ctx.autoFill('my',0);assert.equal(JSON.stringify(state[0]),before);
+ctx.autoFill('my',1);assert.equal(state[1].my.PG,'done');assert.equal(state[1].my.UTIL1,'future');assert.ok(!Object.values(state[1].my).includes('bench-started'));
+ctx.autoFill('my',2);assert.ok(Object.values(state[2].my).filter(Boolean).length===2);
+console.log('PASS past rosters unchanged; started starter locked; started bench excluded; pregame and future schedulable');

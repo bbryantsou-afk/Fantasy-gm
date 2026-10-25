@@ -1023,10 +1023,14 @@ def render_matchup_simulator(lite=False):
       // 優先保留較高排名，依位置限制尋找最多可安排的先發球員。
       // 用增廣路徑避免 C、G、F 等稀缺位置被一般 UTIL 佔掉。
       function autoFill(side,idx=dayIndex) {
-        const ranked=[...players[side]].filter(p=>plays(p,idx)).sort((a,b)=>(a.rank??999)-(b.rank??999));
-        const match=Object.fromEntries(positions.map(pos=>[pos,null]));
+        if(weekDates[idx]<data.today)return 0;
+        const frozen=new Set(positions.filter(pos=>{
+          const p=getPlayer(side,state[idx][side][pos]);return p&&!canPredict(p,idx);
+        }));
+        const ranked=[...players[side]].filter(p=>plays(p,idx)&&canPredict(p,idx)).sort((a,b)=>(a.rank??999)-(b.rank??999));
+        const match=Object.fromEntries(positions.map(pos=>[pos,frozen.has(pos)?getPlayer(side,state[idx][side][pos]):null]));
         function assign(p,seen) {
-          const options=positions.filter(pos=>eligible(p,pos));
+          const options=positions.filter(pos=>!frozen.has(pos)&&eligible(p,pos));
           // 對該球員優先使用專屬位置，最後才使用 UTIL。
           options.sort((a,b)=>Number(a.startsWith("UTIL"))-Number(b.startsWith("UTIL")));
           for(const pos of options){
@@ -1094,7 +1098,7 @@ def render_matchup_simulator(lite=False):
           my+=autoFill("my",i);
           opp+=autoFill("opp",i);
         }
-        render();setMessage(`整週已排完：我方 ${my}、對手 ${opp} 球員場次；策略：名單排名。`);
+        render();setMessage(`已排尚未開賽場次：我方 ${my}、對手 ${opp}；過去與已開賽排陣保持不變。`);
       };
 
       const bulk=root.querySelector('#bulk-profile');bulk.replaceChildren();
