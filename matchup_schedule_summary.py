@@ -37,18 +37,19 @@ def schedule_summary(schedule, week_dates, team_ids, all_games=False):
 
 CSS="""<style>
 .sched-game-count{font-size:12px;color:#b9c7d9;margin:0 0 6px}.sched-game-count strong{color:#74dfc4}
-.sched-cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;max-width:240px}
-.sched-card{height:44px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(23,35,56,.65);border-radius:6px;color:#edf3fb;gap:0;min-width:0}
-.sched-card img{height:27px;width:30px;object-fit:contain}
+.sched-cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;max-width:380px}
+.sched-card{height:64px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(23,35,56,.65);border-radius:6px;color:#edf3fb;gap:0;min-width:0}
+.sched-card img{height:48px;width:52px;object-fit:contain}
 .sched-card strong{font-size:9px;line-height:12px}
-.sched-more{max-width:240px;margin-top:5px}.sched-more summary{cursor:pointer;color:#a9c5df;font-size:12px;padding:3px 0;list-style:none}.sched-more summary::-webkit-details-marker{display:none}.sched-more .sched-cards{margin-top:4px}.sched-collapse{display:none}.sched-more[open] .sched-expand{display:none}.sched-more[open] .sched-collapse{display:inline}
+.sched-more{max-width:380px;margin-top:5px}.sched-more summary{cursor:pointer;color:#a9c5df;font-size:12px;padding:3px 0;list-style:none}.sched-more summary::-webkit-details-marker{display:none}.sched-more .sched-cards{margin-top:4px}.sched-collapse{display:none}.sched-more[open] .sched-expand{display:none}.sched-more[open] .sched-collapse{display:inline}
 .sched-calendar{max-height:260px;overflow:auto;border:1px solid #31445b;border-radius:10px}
 .sched-calendar table{border-collapse:separate;border-spacing:0;width:100%;font-size:12px;color:#edf3fb;text-align:center}
 .sched-calendar thead{position:sticky;top:0;z-index:1;background:#172338}
 .sched-calendar th,.sched-calendar td{padding:5px 6px;border-bottom:1px solid #243247;white-space:nowrap}
 .sched-calendar th small{display:block;color:#a8bacf;font-size:10px}
 .sched-calendar tbody th{text-align:left;background:#111c2d}
-.sched-calendar th img{width:22px;height:22px;vertical-align:middle;margin-right:4px}
+.sched-calendar th img{width:42px;height:42px;vertical-align:middle;margin-right:4px}
 .sched-calendar td{color:#53647a}
 .sched-calendar td.sched-b2b{background:#163e3b;color:#74f3c9;font-weight:700}
+@media(min-width:760px){.sched-calendar th img{width:56px;height:56px}.sched-card{height:76px}.sched-card img{width:64px;height:60px}}
 </style>"""
