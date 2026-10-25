@@ -47,9 +47,10 @@ LITE_JS = r"""
       tray.setAttribute('aria-label','固定球員名單');root.appendChild(tray);
       const trayToggle=document.createElement('button');trayToggle.type='button';trayToggle.className='lite-tray-toggle';
       trayToggle.onclick=()=>{trayOpen=!trayOpen;picked=null;render();};root.querySelector('.board').before(trayToggle);
-      function benchLite(side,id){const pos=location(side,id);if(pos)state[dayIndex][side][pos]=null;picked=null;render();}
+      function benchLite(side,id){const p=getPlayer(side,id);if(!p||weekDates[dayIndex]<data.today||!canPredict(p,dayIndex)){setMessage("過去與已開賽排陣不可修改。");return;}const pos=location(side,id);if(pos)state[dayIndex][side][pos]=null;picked=null;render();}
       function moveLite(side,id,pos){
         const p=getPlayer(side,id);
+        if(!p||!onRoster(p,side)||!canPredict(p,dayIndex)||weekDates[dayIndex]<data.today){setMessage("此球員不在當日名單，或排陣已鎖定。");return;}
         if(!p||!plays(p)){setMessage('這位球員當天沒有出賽，不能排入。');return;}
         if(!eligible(p,pos)){setMessage(`${p.name} 不符合 ${pos} 位置。`);return;}
         const old=location(side,id),occupant=state[dayIndex][side][pos];
@@ -117,7 +118,7 @@ LITE_JS = r"""
         list.dataset.liteBench=traySide;
         list.ondragover=e=>{e.preventDefault();};
         list.ondrop=e=>{e.preventDefault();if(dragging?.side===traySide)benchLite(traySide,dragging.id);dragging=null;};
-        const bench=players[traySide].filter(p=>!location(traySide,p.id));
+        const bench=players[traySide].filter(p=>onRoster(p,traySide)&&!location(traySide,p.id));
         for(const p of bench)list.appendChild(liteCard(p,traySide,false));
         if(!bench.length){const empty=document.createElement('small');empty.textContent='板凳區 · 拖曳球員到這裡';list.appendChild(empty);}
         const heading=document.createElement('small');heading.textContent='板凳 · 拖曳上下場';tabs.appendChild(heading);

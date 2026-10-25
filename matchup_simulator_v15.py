@@ -851,6 +851,7 @@ def render_matchup_simulator(lite=False):
           if(!dragging||dragging.side!==side)return;
           const p=getPlayer(side,dragging.id);
           if(!p)return;
+          if(weekDates[dayIndex]<data.today||!onRoster(p,side)||!canPredict(p,dayIndex)){setMessage("過去／已開賽排陣不可修改，球員必須在當日名單。");return;}
           if(pos&&!plays(p)){setMessage(`${p.name} 當天 ${status(p)}，不能排入先發。`);return;}
           if(pos&&!eligible(p,pos)){setMessage(`${p.name} 不符合 ${pos} 位置資格。`);return;}
           const old=location(side,p.id);
@@ -1022,12 +1023,16 @@ def render_matchup_simulator(lite=False):
 
       // 優先保留較高排名，依位置限制尋找最多可安排的先發球員。
       // 用增廣路徑避免 C、G、F 等稀缺位置被一般 UTIL 佔掉。
+      function onRoster(p,side,idx=dayIndex){
+        if(weekDates[idx]<=data.today)return (data.official_roster_ids?.[weekDates[idx]]?.[side]??[]).includes(p.id);
+        return p.added===true||(data.current_roster_ids?.[side]??[]).includes(p.id);
+      }
       function autoFill(side,idx=dayIndex) {
         if(weekDates[idx]<data.today)return 0;
         const frozen=new Set(positions.filter(pos=>{
           const p=getPlayer(side,state[idx][side][pos]);return p&&!canPredict(p,idx);
         }));
-        const ranked=[...players[side]].filter(p=>plays(p,idx)&&canPredict(p,idx)).sort((a,b)=>(a.rank??999)-(b.rank??999));
+        const ranked=[...players[side]].filter(p=>onRoster(p,side,idx)&&plays(p,idx)&&canPredict(p,idx)).sort((a,b)=>(a.rank??999)-(b.rank??999));
         const match=Object.fromEntries(positions.map(pos=>[pos,frozen.has(pos)?getPlayer(side,state[idx][side][pos]):null]));
         function assign(p,seen) {
           const options=positions.filter(pos=>!frozen.has(pos)&&eligible(p,pos));
@@ -1200,6 +1205,7 @@ def render_matchup_simulator(lite=False):
                         if (rows:=league_state.get('daily_rosters',{}).get(str(d),{}).get('teams',{}).get(team)) is not None}
                 for d in week_dates if d<=today
             },
+            "current_roster_ids":{side:[f"{side}-{r.get('id') or r['name']}" for r in league_state['teams'].get(team,[]) if r.get('status')!='IL'] for side,team in [('my',my_team),('opp',opp_team)]},
             "final_teams":final_teams,
             "week_dates":[d.isoformat() for d in week_dates],
             "players":PLAYERS,
