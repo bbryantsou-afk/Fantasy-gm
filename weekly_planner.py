@@ -1,4 +1,4 @@
-"""Three explainable, lineup-aware alternatives; ownership is never inferred as free."""
+"""Daily roster and rotation slots, team schedule priority, then category/player simulation."""
 from datetime import date,timedelta,datetime
 from zoneinfo import ZoneInfo
 import json
@@ -61,24 +61,6 @@ def _render_planner(notes):
     with quota_col:remaining=st.number_input('本週剩餘加人次數',0,4,key=add_key)
     notes.append(f'{day:%m/%d}–{sunday:%m/%d} 剩餘賽程。歷史場均 × 可排入先發場次；不是實績或勝率。已結束日比分尚未納入，傷病與輪休由你排除。每個方案獨立使用 1 次 add，不能直接把五個方案相加。')
     editor(entries,players,team,'stream_roster')
-    before=lineup_week(roster,pool,schedule,days,weights,ref);enemy=lineup_week(opp,pool,schedule,days,weights,ref)
-    scale={c:abs(team_value(enemy,c) or 0) or (ref[c]['mean'] if c in ('FG','FT') else max(ref[c]['mean']*max(enemy['g'],1),1)) for c in CATS}
-    priority_weights,margins=close_category_weights(before,enemy,weights)
-    original,parts=matchup_score(before,enemy,priority_weights,scale)
-    a,b,c=st.columns(3);a.metric('我方可排場次',before['g']);b.metric('對手可排場次',enemy['g']);c.metric('剩餘 add',remaining)
-    comparison=[]
-    for cat in CATS:
-        x,y=team_value(before,cat),team_value(enemy,cat)
-        gap=((y-x) if cat in ('TO','TOV') else (x-y)) if x is not None and y is not None else None
-        comparison.append({'項目':LABELS[cat],'我方':f'{x:.1%}' if cat in ('FG','FT') and x is not None else f'{x:.1f}' if x is not None else '—',
-            '對手':f'{y:.1%}' if cat in ('FG','FT') and y is not None else f'{y:.1f}' if y is not None else '—',
-            '狀態':'未估算' if gap is None else '持平' if abs(gap)<1e-8 else '🟢 領先' if gap>0 else '🟠 落後'})
-    st.table(comparison)
-    focus=sorted((c for c in margins if weights[c]>0 and margins[c][1]>=.6),key=lambda c:margins[c][1],reverse=True)[:3]
-    if focus:
-        st.markdown('**優先補強：'+'、'.join(LABELS[c]+('（小幅領先）' if margins[c][0]>0 else '（接近落後）' if margins[c][0]<0 else '（持平）') for c in focus)+'**')
-    else:st.caption('目前沒有明顯接近的項目，依九項整體改善推薦。')
-    notes.append('優先守住小幅領先、追回接近落後；大幅領先或落後的項目降低優先度。仍會扣除釋出造成的其他項目損失，並保留你的九項權重。')
     owners=ownership(entries,team)
     unowned=[k for k in pool if k not in owners]
     with st.expander('確認自由市場／調整候選名單'):
@@ -97,35 +79,44 @@ def _render_planner(notes):
     allowed=[k for k in unowned if research or k in league['free']]
     notes.append('自由球員的 NBA 隊伍與 Yahoo 位置可在上方確認；未確認位置者只會安排 UTIL。')
     notes.append('自動候選至少有上季 20 場樣本，避免少量出賽的極端場均；仍可手動指定其他球員。')
-    suggested=sorted([k for k in allowed if float(pool[k].get('GP',0))>=20],key=lambda k:weighted_z(pool[k],ref,weights),reverse=True)[:36]
+    suggested=sorted([k for k in allowed if float(pool[k].get('GP',0))>=20],key=lambda k:weighted_z(pool[k],ref,weights),reverse=True)
     with st.container(key='planner_candidates'):
         candidates,droppable=st.columns(2)
-    with candidates:available=st.multiselect('候選球員（留空自動比較最多 36 位，可輸入指定）',allowed,format_func=lambda k:pool[k]['PLAYER_NAME'],key='stream_available') or suggested
+    with candidates:available=st.multiselect('候選球員（留空依位置與賽程比較）',allowed,format_func=lambda k:pool[k]['PLAYER_NAME'],key='stream_available') or suggested
     active=[r for r in roster if r.get('status')!='IL']
     vacancy=len(active)<league['capacity']
     drop_options=[str(r['id']) for r in active if r.get('id') and str(r['id']) in pool]
     weakest=sorted(drop_options,key=lambda k:weighted_z(pool[k],ref,weights))[:3]
-    with droppable:drops=st.multiselect('允許列入釋出方案的球員',drop_options,default=weakest if not vacancy else [],format_func=lambda k:pool[k]['PLAYER_NAME'],key='stream_drops_'+team+'_'+str(league['revision']))
-    if not vacancy and not drops:st.info('名單已滿，請先選擇願意考慮釋出的人。');return
-    if not remaining:st.info('本週沒有剩餘 add 次數，仍可查看上方比較。');return
-    if not available:st.info('先確認自由球員，或開啟「歸屬未確認」研究候選。');return
-    results=[]
-    for key in available:
-        p=pool[key]
-        for drop in ([None]+drops if vacancy else drops):
-            new=[r for r in roster if str(r.get('id'))!=drop]+[{'id':key,'name':p['PLAYER_NAME'],'team':p['team'],'eligible':sorted(p['eligible']),'status':'active','games':1}]
-            after=lineup_week(new,pool,schedule,days,weights,ref)
-            if after['counts'].get(key,0)==0:continue
-            score,contributions=matchup_score(after,enemy,priority_weights,scale)
-            long_gain=weighted_z(p,ref,weights)-(weighted_z(pool[drop],ref,weights) if drop else 0)
-            gains={c:contributions[c]-parts[c] for c in CATS}
-            results.append({'key':key,'drop':drop,'rows':new,'after':after,'gain':score-original,'long':long_gain,'best':max(gains,key=gains.get),'targets':[c for c in focus if gains[c]>0]})
+    with droppable:drops=st.multiselect('允許列入釋出方案的球員',drop_options,default=[],format_func=lambda k:pool[k]['PLAYER_NAME'],key='stream_drops_'+team+'_'+str(league['revision']))
+    from rotation_planner import rotation_workflow
+    workflow=rotation_workflow(league,pool,schedule,team,opponent,day,drops,remaining,ref,weights,available,mode)
+    before,enemy=workflow['before'],workflow['enemy']
+    st.markdown('### 1 · 每日名單與輪轉位置')
+    st.caption(f"可輪轉 {workflow['rotation_slots']} 席＝空位 {workflow['vacancies']} 席＋你選擇可釋出 {len(drops)} 人。未選球員不會列入釋出。")
+    for item in workflow['days']:
+        label=item['date']+(' · 已保存排陣' if item['historical'] else ' · 可補 '+('／'.join(item['open']) or '無空缺'))
+        with st.expander(label,expanded=False):
+            if not item['known']:st.caption('此日尚無已保存排陣，不用目前名單回填。')
+            else:st.dataframe([{'位置':r.get('slot','—'),'球員':r['name'],'NBA':r.get('team',''),'輪轉':'可釋出' if r.get('rotation') else ''} for r in item['rows']],hide_index=True,width='stretch',height='auto')
+    st.markdown('### 2 · 優先補哪些 NBA 球隊')
+    if workflow['teams']:
+        st.dataframe([{'NBA 球隊':r['team'],'最多可排場次':r['games'],'最多淨增':r['net'],'可補日期／位置':'、'.join(d[5:]+' '+pos for d,pos in r['windows'])} for r in workflow['teams'][:10]],hide_index=True,width='stretch')
+    else:st.info('先選可釋出的輪轉球員，或保留空位，才會推薦可補的球隊。')
+    st.markdown('### 3 · 模擬後的數據補強方向')
+    if workflow['missing_history']:st.warning('缺少這些日期的排陣實績：'+'、'.join(workflow['missing_history'])+'；以下依已保存實績與剩餘賽程模擬。')
+    focus=workflow['focus']
+    st.markdown('**優先補強：'+('、'.join(LABELS[c] for c in focus) if focus else '依九項整體改善')+'**')
+    st.table([{'項目':LABELS[c],'我方':(f"{team_value(before,c):.1%}" if c in ('FG','FT') else f"{team_value(before,c):.1f}") if team_value(before,c) is not None else '—','對手':(f"{team_value(enemy,c):.1%}" if c in ('FG','FT') else f"{team_value(enemy,c):.1f}") if team_value(enemy,c) is not None else '—'} for c in CATS])
+    notes.append('過去日期保留每日實際排陣；剩餘日期依目前持有名單與 Yahoo 位置試排。球隊表為不同候選的可行日期聯集，不代表任意球員都可占用所有位置。每個推薦獨立使用一次 add。')
+    if not vacancy and not drops:st.info('請指定願意釋出的輪轉球員。');return
+    if not remaining:st.info('本週沒有剩餘 add。');return
+    results=workflow['results']
     results.sort(key=lambda r:r['gain'] if mode=='本週對局' else r['long'],reverse=True)
     chosen=[];seen=set()
     for r in results:
         if r['key'] not in seen:chosen.append(r);seen.add(r['key'])
         if len(chosen)==5:break
-    st.markdown('### 推薦方案')
+    st.markdown('### 4 · 球員推薦')
     if not chosen:st.info('候選在剩餘賽程沒有可排入的場次，暫不建議消耗 add。');return
     def apply_plan(rows,key,count):
         save_team(entries,team,rows)
@@ -135,6 +126,7 @@ def _render_planner(notes):
         with st.container(border=True,key='planner_plan_'+str(i)):
             import html
             drop_label='釋出 '+pool[r['drop']]['PLAYER_NAME'] if r['drop'] else '使用空位'
+            st.caption('可排：'+'、'.join(w['date'][5:]+' '+w['position'] for w in r['windows']))
             ownership_label='✅ 自由球員' if confirmed else '⚠️ 歸屬待確認'
             metrics=[('可排場次',str(after['counts'].get(key,0))),('淨增場次',f"{after['g']-before['g']:+d}"),('適配提升',f"{r['gain']:+.2f}")]
             metric_html=''.join('<div class="plan-number"><span>'+label+'</span><b>'+value+'</b></div>' for label,value in metrics)

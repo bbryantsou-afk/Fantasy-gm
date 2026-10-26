@@ -181,6 +181,9 @@ class Handler(BaseHTTPRequestHandler):
             body=self.body();path=urlsplit(self.path).path
             if path=='/api/normalize-results':return self.reply(200,{'league':normalize_results(body['results'],body['current'])})
             if path=='/api/normalize':return self.reply(200,{'league':normalize_snapshot(body['snapshot'],body.get('current'))})
+            if path=='/api/planner-workflow':
+                from rotation_planner import workflow_request
+                return self.reply(200,workflow_request(body))
             if path=='/api/league-analysis':
                 from league_week_analysis import league_comparison
                 profile=validate_profile(body['profile'])
