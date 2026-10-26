@@ -17,3 +17,7 @@ assert.throws(()=>parseYahooMatchupTotals(fixture(['-/-','.000','0/0','.000','0'
  assert.equal(data.teams.length,2);assert.equal(data.week,1);
  console.log('PASS Yahoo official totals, exact team matching, shot volume, incomplete-data rejection and collection');
 })().catch(e=>{console.error(e);process.exitCode=1});
+
+const gpFixture=fixture(),gpTable=gpFixture.querySelector();gpFixture.querySelector=q=>q==='#remaining-games'?{textContent:'0 Remaining 40/40 Games Played 38/38 Remaining 0'}:gpTable;
+const gpRows=parseYahooMatchupTotals(gpFixture,'7',['1','2']);assert.equal(gpRows[0].gamesPlayed,40);assert.equal(gpRows[1].gamesPlayed,38);
+console.log('PASS official Yahoo Games Played mapped to left/right team correctly');

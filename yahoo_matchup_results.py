@@ -16,6 +16,9 @@ def import_results(raw,league,mapping,expected):
         team=mapping.get(league+':'+str(r['id']));opp=mapping.get(league+':'+str(r['opponent']))
         if team not in expected or opp not in expected or team==opp or team in teams:raise ValueError('Yahoo 官方比分球隊配對不符。')
         teams[team]={'opponent':opp,'totals':validate_totals(r['totals'])}
+        if 'gamesPlayed' in r:
+            if type(r['gamesPlayed']) is not int or not 0<=r['gamesPlayed']<=1000:raise ValueError('Yahoo 出賽場次不符。')
+            teams[team]['games_played']=r['gamesPlayed']
         if 'score' in r:
             if type(r['score']) is not int or not 0<=r['score']<=9:raise ValueError('Yahoo 官方比分格式不符。')
             teams[team]['score']=r['score']
@@ -46,6 +49,9 @@ def validate_stored_results(weeks,teams):
         rows=[{'team':t,'opponent':r['opponent'],**r['totals']} for t,r in week['teams'].items()]
         out[key]={'week':week['week'],'start':week['start'],'end':week['end'],'updated_at':week['updated_at'],'teams':checked_week(rows,teams),'source':'Yahoo 官方對局總表'}
         for team,row in week['teams'].items():
+            if 'games_played' in row:
+                if type(row['games_played']) is not int or not 0<=row['games_played']<=1000:raise ValueError('Yahoo 出賽場次不符。')
+                out[key]['teams'][team]['games_played']=row['games_played']
             if 'score' in row:
                 if type(row['score']) is not int or not 0<=row['score']<=9:raise ValueError('Yahoo 官方比分格式不符。')
                 out[key]['teams'][team]['score']=row['score']

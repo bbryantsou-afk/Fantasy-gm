@@ -18,3 +18,20 @@ assert r['per_game'][1]['games'] is None and r['per_game'][1]['values']['PTS'] i
 assert r['game_summary']['PTS']['n']==1
 assert not league_comparison({}, {},'2026-10-19',played)['totals']
 print('PASS totals, equal-team means, population SD, starter-only actual appearances, missing data and absent week')
+
+record=l['yahoo_matchups']['2026-10-19']
+record['teams']['A']['games_played']=40;record['teams']['B']['games_played']=38
+r=league_comparison(l,{},'2026-10-19',set())
+assert r['per_game'][0]['games']==40 and r['per_game'][1]['games']==38
+assert r['per_game'][0]['values']['PTS']==.5
+print('PASS Yahoo GP takes precedence even without daily archives or NBA logs')
+
+from yahoo_matchup_results import import_results,validate_stored_results
+raw={'week':1,'start':'2026-10-20','end':'2026-10-25','capturedAt':'2026-10-26T10:00:00Z','teams':[{'id':'1','opponent':'2','totals':a,'gamesPlayed':40},{'id':'2','opponent':'1','totals':b,'gamesPlayed':38}]}
+k,w=import_results(raw,'7',{'7:1':'A','7:2':'B'},{'A','B'})
+clean=validate_stored_results({k:w},{'A','B'})
+assert clean[k]['teams']['A']['games_played']==40 and clean[k]['teams']['B']['games_played']==38
+fallback={'teams':{'A':[]},'daily_rosters':{'2026-10-20':{'captured_at':'2026-10-26T10:00:00Z','teams':{'A':[{'id':'1','status':'active','slot':'PG','daily_stats':a}]}}}}
+r=league_comparison(fallback,{},'2026-10-19',{('1','2026-10-20')})
+assert r['totals'][0]['values']['PTS']==20 and r['per_game'][0]['values']['PTS']==20
+print('PASS official GP survives import/backup; daily evidence can build absent weekly totals')

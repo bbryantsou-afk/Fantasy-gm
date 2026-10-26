@@ -264,7 +264,9 @@ def render_matchup_results():
     weeks=[str(first+timedelta(days=7*i)) for i in range((last-first).days//7+1)]
     weeks=sorted(set(weeks)|set(data['weeks']))
     current=str(today-timedelta(days=today.weekday()))
-    with right:key=st.selectbox('對戰週',weeks,index=weeks.index(current) if current in weeks else 0,format_func=lambda k:f"{k} ～ {date.fromisoformat(k)+timedelta(days=6)}",key='results_week')
+    available=sorted(set(data['weeks'])|{str(date.fromisoformat(d)-timedelta(days=date.fromisoformat(d).weekday())) for d in league.get('daily_rosters',{})})
+    default_week=current if current in available else (available[-1] if available else current)
+    with right:key=st.selectbox('對戰週',weeks,index=weeks.index(default_week) if default_week in weeks else 0,format_func=lambda k:f"{k} ～ {date.fromisoformat(k)+timedelta(days=6)}",key='results_week')
     from league_week_analysis import render_league_comparison
     with st.expander('全聯盟九項總數／場均／標準差',expanded=True):render_league_comparison(league,data,key)
     view=week_view(data,team,key,today)

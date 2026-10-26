@@ -191,7 +191,8 @@ function parseYahooMatchupTotals(doc,league,expectedIds){
     return {id,totals,score:Number(scoreText)};
   });
   if(rows.length!==2||rows[0].id===rows[1].id||expectedIds.some(id=>!rows.some(r=>r.id===id)))throw Error('Yahoo 對局隊伍不符。');
-  return rows.map((r,i)=>({...r,opponent:rows[1-i].id}));
+  const played=(doc.querySelector('#remaining-games')?.textContent??'').replace(/\s+/g,' ').match(/(\d+)\s*\/\s*(\d+)\s+Games Played\s+(\d+)\s*\/\s*(\d+)/i);
+  return rows.map((r,i)=>({...r,opponent:rows[1-i].id,...(played?{gamesPlayed:Number(played[i===0?1:3])}:{})}));
 }
 async function collectYahooMatchupResults(read,league,day,schedule,report=()=>{}){
   const week=(schedule??[]).find(w=>w.start<=day&&day<=w.end);
