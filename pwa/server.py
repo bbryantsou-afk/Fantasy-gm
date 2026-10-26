@@ -181,6 +181,10 @@ class Handler(BaseHTTPRequestHandler):
             body=self.body();path=urlsplit(self.path).path
             if path=='/api/normalize-results':return self.reply(200,{'league':normalize_results(body['results'],body['current'])})
             if path=='/api/normalize':return self.reply(200,{'league':normalize_snapshot(body['snapshot'],body.get('current'))})
+            if path=='/api/league-analysis':
+                from league_week_analysis import league_comparison
+                profile=validate_profile(body['profile'])
+                return self.reply(200,league_comparison(profile['files'].get('league_rosters.json',{}),profile['files'].get('league_results.json',{}),body['week']))
             if path=='/api/validate':return self.reply(200,{'payload':validate_profile(body)})
             if path=='/api/logout':
                 with GUARD:SESSIONS.pop(self.sid,None)

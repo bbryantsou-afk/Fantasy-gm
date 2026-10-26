@@ -265,6 +265,8 @@ def render_matchup_results():
     weeks=sorted(set(weeks)|set(data['weeks']))
     current=str(today-timedelta(days=today.weekday()))
     with right:key=st.selectbox('對戰週',weeks,index=weeks.index(current) if current in weeks else 0,format_func=lambda k:f"{k} ～ {date.fromisoformat(k)+timedelta(days=6)}",key='results_week')
+    from league_week_analysis import render_league_comparison
+    with st.expander('全聯盟九項總數／場均／標準差',expanded=True):render_league_comparison(league,data,key)
     view=week_view(data,team,key,today)
     from daily_evidence import refresh_live_page
     refresh_live_page()
