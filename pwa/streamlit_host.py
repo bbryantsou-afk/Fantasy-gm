@@ -16,7 +16,8 @@ frame=components.declare_component('fantasy_pwa',path=str(Path(__file__).parent/
 @st.cache_data(show_spinner=False)
 def public_model():
     from dashboard_model import regular_schedule
-    data=json.loads((ROOT/'ninecat_assets/data.json').read_text())
+    from pwa.server import public_players
+    data={'season':'2025-26','players':public_players()}
     schedule,_=regular_schedule(json.loads((ROOT/'nba_schedule_2026_27.json').read_text()))
     return {'season':data['season'],'players':data['players'],'schedule':{t:sorted(map(str,days)) for t,days in schedule.items()}}
 

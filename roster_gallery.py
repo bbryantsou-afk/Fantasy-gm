@@ -1,10 +1,11 @@
+from player_portraits import portrait_id
 """Read-only current league roster portraits."""
 from html import escape
 
 def roster_gallery(rows):
     cards=[]
     for p in rows:
-        pid=str(p.get('id') or '')
+        pid=portrait_id(p)
         image=f'<img loading="lazy" src="https://cdn.nba.com/headshots/nba/latest/260x190/{pid}.png" alt="">' if pid.isdigit() else '<div class="roster-photo">👤</div>'
         positions=p.get('eligible') or []
         detail=' · '.join(filter(None,[p.get('team',''),'/'.join(positions)]))

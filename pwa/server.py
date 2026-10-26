@@ -11,6 +11,16 @@ sys.path.insert(0,str(ROOT))
 WEB=Path(__file__).parent/'web'
 SESSIONS={};GUARD=threading.RLock();MAX_BODY=4_100_000
 
+def public_players():
+    players=json.loads((ROOT/'ninecat_assets/data.json').read_text())['players']
+    known={str(p['PLAYER_ID']) for p in players}
+    players += [p for p in json.loads((ROOT/'ninecat_assets/data_2026_27.json').read_text()).get('players',[]) if str(p['PLAYER_ID']) not in known]
+    positions={}
+    for row in json.loads((ROOT/'ninecat_assets/draft.json').read_text()).get('entries',[]):
+        match=re.search(r'\((\w+)\s*-\s*([^)]*)',row.get('position',''))
+        if row.get('playerId') and match:positions[str(row['playerId'])]=[p for p in match.group(2).split(',') if p in ('PG','SG','SF','PF','C')]
+    return [{**p,'eligible':positions.get(str(p['PLAYER_ID']),[])} for p in players]
+
 def configuration():
     try:cfg=tomllib.loads((ROOT/'.streamlit/secrets.toml').read_text()).get('google_drive',{})
     except (OSError,ValueError):cfg={}
@@ -124,7 +134,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(200,strategy_snapshot(parse_qs(urlsplit(self.path).query).get('season',['2026-27'])[0]))
         if path=='/api/model':
             from dashboard_model import regular_schedule
-            data=json.loads((ROOT/'ninecat_assets/data.json').read_text())
+            data={'season':'2025-26','players':public_players()}
             raw_schedule,_=regular_schedule(json.loads((ROOT/'nba_schedule_2026_27.json').read_text()))
             schedule={team:sorted(str(day) for day in days) for team,days in raw_schedule.items()}
             return self.reply(200,{'season':data['season'],'players':data['players'],'schedule':schedule})

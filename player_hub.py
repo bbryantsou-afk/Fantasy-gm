@@ -135,7 +135,9 @@ def render_watchroom():
         for i,k in enumerate(ids):
             p=pool.get(k);name=names.get(k,'未知球員')
             with st.container(border=True,key='watch_card_'+str(i)):
-                portrait=(f'<img src="https://cdn.nba.com/headshots/nba/latest/260x190/{k}.png" alt="">' if k.isdigit() else '🏀')
+                from player_portraits import portrait_id
+                photo_id=portrait_id({'name':name,'id':k})
+                portrait=(f'<img src="https://cdn.nba.com/headshots/nba/latest/260x190/{photo_id}.png" alt="">' if photo_id.isdigit() else '🏀')
                 meta=(p['team']+' · '+('/'.join(sorted(p['eligible'])) or '位置待確認')) if p else '新秀／資料待補'
                 extra='' if mobile else '<div class="watch-availability">'+html.escape(availability(entries,team,k))+'</div>'
                 st.markdown('<div class="watch-card-content"><div class="watch-portrait">'+portrait+'</div><div class="watch-name">'+html.escape(name+(' ⭐' if k in stars else ''))+'</div><div class="watch-meta">'+html.escape(meta)+'</div>'+extra+'</div>',unsafe_allow_html=True)
@@ -155,10 +157,12 @@ def show_player_detail(selected,pool,names):
     p=pool.get(selected)
     name=p['PLAYER_NAME'] if p else names.get(selected,'')
     st.markdown('### '+name)
-    if selected.isdigit():
+    from player_portraits import portrait_id
+    photo_id=portrait_id({'name':name,'id':selected})
+    if photo_id.isdigit():
         cols=st.columns([1,1])
-        cols[0].markdown(f'<div class="watch-detail-portrait"><img src="https://cdn.nba.com/headshots/nba/latest/260x190/{selected}.png" alt="球員頭像"></div>',unsafe_allow_html=True)
-        cols[1].link_button('NBA 官方球員頁',f'https://www.nba.com/player/{selected}')
+        cols[0].markdown(f'<div class="watch-detail-portrait"><img src="https://cdn.nba.com/headshots/nba/latest/260x190/{photo_id}.png" alt="球員頭像"></div>',unsafe_allow_html=True)
+        cols[1].link_button('NBA 官方球員頁',f'https://www.nba.com/player/{photo_id}')
         if p:
             st.markdown('<div class="watch-detail-stats">2025–26｜'+' · '.join([f"FG% {p['FGM']/p['FGA']:.1%}" if p['FGA'] else 'FG% —',f"FT% {p['FTM']/p['FTA']:.1%}" if p['FTA'] else 'FT% —',f"3PT {p['FG3M']}",f"PTS {p['PTS']}",f"REB {p['REB']}",f"AST {p['AST']}",f"ST {p['STL']}",f"BLK {p['BLK']}",f"TO {p['TOV']}"])+'</div>',unsafe_allow_html=True)
         if st.button('基本資料'):

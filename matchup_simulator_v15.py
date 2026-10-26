@@ -26,7 +26,7 @@ def process_simulation_save(change):
     st.session_state['_sim_processed_event']=marker
 
 
-def render_matchup_simulator(lite=False):
+def render_matchup_simulator(lite=False,planner_context=None):
     if lite:
         st.markdown('<style>[data-testid="stMainBlockContainer"]{padding-top:2rem}</style>',unsafe_allow_html=True)
     page_caption("過去與今天載入該日 Fantasy 先發及實績；未來可套用上季場均或自訂預測。日期採美東比賽日。")
@@ -41,23 +41,24 @@ def render_matchup_simulator(lite=False):
     from roster_store import choose_team,roster as shared_roster,state,team_label,team_formatter
     from matchup_records import load as load_simulations,save as save_simulations
     saved_simulations=load_simulations()
-    with st.expander('開啟已保存模擬（電腦／手機共用）'):
-        saved_name=st.selectbox('保存的模擬',['']+sorted(saved_simulations),key='sim_open_name')
-        if st.button('載入此模擬',disabled=not saved_name,key='sim_open_saved'):
-            payload=saved_simulations[saved_name];context=payload.get('context',{})
-            if context.get('my_team') in state(draft)['teams']:st.session_state['_my_team']=context['my_team']
-            if context.get('opp_team') in state(draft)['teams']:st.session_state['sim_opp_team']=context['opp_team']
-            season=context.get('season','2026-27')
-            st.session_state['sim_season']=season
-            begin,end=(date(2025,10,21),date(2026,4,12)) if season=='2025-26' else (date(2026,10,20),date(2027,4,11))
-            st.session_state['sim_date_'+season]=max(begin,min(end,date.fromisoformat(payload['week_dates'][payload['selected_day']])))
-            st.session_state['_sim_restore']=payload
-            st.session_state['_sim_restore_name']=saved_name
-            st.session_state['_sim_active_name']=saved_name
-            st.session_state['_sim_restore_nonce']=__import__('uuid').uuid4().hex
-            st.session_state['_sim_manual_restore']=True
+    if not planner_context:
+        with st.expander('開啟已保存模擬（電腦／手機共用）'):
+            saved_name=st.selectbox('保存的模擬',['']+sorted(saved_simulations),key='sim_open_name')
+            if st.button('載入此模擬',disabled=not saved_name,key='sim_open_saved'):
+                payload=saved_simulations[saved_name];context=payload.get('context',{})
+                if context.get('my_team') in state(draft)['teams']:st.session_state['_my_team']=context['my_team']
+                if context.get('opp_team') in state(draft)['teams']:st.session_state['sim_opp_team']=context['opp_team']
+                season=context.get('season','2026-27')
+                st.session_state['sim_season']=season
+                begin,end=(date(2025,10,21),date(2026,4,12)) if season=='2025-26' else (date(2026,10,20),date(2027,4,11))
+                st.session_state['sim_date_'+season]=max(begin,min(end,date.fromisoformat(payload['week_dates'][payload['selected_day']])))
+                st.session_state['_sim_restore']=payload
+                st.session_state['_sim_restore_name']=saved_name
+                st.session_state['_sim_active_name']=saved_name
+                st.session_state['_sim_restore_nonce']=__import__('uuid').uuid4().hex
+                st.session_state['_sim_manual_restore']=True
     teams=list(state(draft)['teams'])
-    recent_sources = st.checkbox("載入本季最近 7／14／30 天場均（需連線）", value=False)
+    recent_sources = False if planner_context else st.checkbox("載入本季最近 7／14／30 天場均（需連線）", value=False)
 
 
     TEAM_IDS = {
@@ -71,7 +72,7 @@ def render_matchup_simulator(lite=False):
         "UTA":1610612762,"WAS":1610612764,
     }
 
-    selected_season = st.selectbox('模擬賽季', ['2026-27', '2025-26'], key='sim_season')
+    selected_season = '2026-27' if planner_context else st.selectbox('模擬賽季', ['2026-27', '2025-26'], key='sim_season')
     season_begin, season_end = (date(2025,10,21),date(2026,4,12)) if selected_season=='2025-26' else (date(2026,10,20),date(2027,4,11))
     @st.cache_data(show_spinner=False)
     def historical_logs():
@@ -85,12 +86,14 @@ def render_matchup_simulator(lite=False):
         mode=st.session_state['sim_date_mode']
         target=today+timedelta(days={'過去':-1,'今天':0,'未來':1}[mode])
         st.session_state[date_key]=max(season_begin,min(season_end,target))
-    st.radio('日期類型',['過去','今天','未來'] if selected_season=='2026-27' else ['過去'],horizontal=True,key='sim_date_mode',on_change=choose_date_mode)
-    selected_date = st.date_input(
-        "📅 Yahoo 比賽日期（美東日期）",
-        value=None if date_key in st.session_state else default_date,
-        min_value=season_begin, max_value=season_end, key="sim_date_"+selected_season,
-    )
+    if planner_context:selected_date=planner_context['start']
+    else:
+        st.radio('日期類型',['過去','今天','未來'] if selected_season=='2026-27' else ['過去'],horizontal=True,key='sim_date_mode',on_change=choose_date_mode)
+        selected_date = st.date_input(
+            "📅 Yahoo 比賽日期（美東日期）",
+            value=None if date_key in st.session_state else default_date,
+            min_value=season_begin, max_value=season_end, key="sim_date_"+selected_season,
+        )
     if selected_date is None:
         st.info('請先選擇比賽日期。')
         return
@@ -99,7 +102,9 @@ def render_matchup_simulator(lite=False):
     st.caption(f"🏀 Matchup Week：{week_dates[0]:%Y-%m-%d} ～ {week_dates[6]:%Y-%m-%d}")
 
     left, right = st.columns(2)
-    with left:my_team=choose_team(draft,'sim_my_team')
+    if planner_context:my_team=planner_context['my_team']
+    else:
+        with left:my_team=choose_team(draft,'sim_my_team')
     from fantasy_schedule import week_for
     known_week=week_for(state(draft),selected_date) if selected_season=='2026-27' else None
     pairing=known_week.get('opponents',{}).get(my_team) if known_week else None
@@ -107,7 +112,7 @@ def render_matchup_simulator(lite=False):
     if st.session_state.get('_sim_pairing_context')!=context:
         if pairing and not st.session_state.pop('_sim_manual_restore',False):st.session_state['sim_opp_team']=pairing
         st.session_state['_sim_pairing_context']=context
-    opp_team=right.selectbox('對手球隊',teams,index=1,key='sim_opp_team',format_func=team_formatter())
+    opp_team=planner_context['opp_team'] if planner_context else right.selectbox('對手球隊',teams,index=1,key='sim_opp_team',format_func=team_formatter())
     from types import SimpleNamespace
     sim_notes=SimpleNamespace(caption=page_caption) if lite else st.expander('資料來源／操作說明',expanded=False)
     if pairing:sim_notes.caption(f"Yahoo Week {known_week['week']} · 預設對手：{team_label(pairing)}（可自行切換研究）")
@@ -115,11 +120,11 @@ def render_matchup_simulator(lite=False):
     for side,team in [('my',my_team),('opp',opp_team)]:
         PLAYERS[side]=[]
         for r in shared_roster(draft,team):
-            if r.get('status')=='IL':continue
+            if r.get('status')=='IL' and not planner_context:continue
             PLAYERS[side].append(dict(id=f"{side}-{r.get('id') or r['name']}",
                 evidence_id=str(r.get('id') or ('fantasy:'+str(r.get('yahoo_id') or r['name']))),
                 nba_id=int(r['id']) if r.get('id') and str(r['id']).isdigit() else None,
-                name=r['name'],team=r.get('team',''),eligible=r.get('eligible',[]),rank=len(PLAYERS[side])+1,stats={}))
+                status=r.get('status','active'),name=r['name'],team=r.get('team',''),eligible=r.get('eligible',[]),rank=len(PLAYERS[side])+1,stats={}))
     from daily_evidence import simulator_defaults,observed_day,nba_today
     league_state=state(draft)
     PLAYERS,official_lineups=simulator_defaults(league_state,my_team,opp_team,[d for d in week_dates if d<=today],PLAYERS) if selected_season=='2026-27' else (PLAYERS,{})
@@ -171,24 +176,27 @@ def render_matchup_simulator(lite=False):
     max_games = max((games for _, games in weekly_counts), default=0)
     top_teams = sorted((team, games) for team, games in weekly_counts if games == max_games)
 
-    from contextlib import nullcontext
-    with st.expander('📅 本週賽程摘要', expanded=False) if lite else nullcontext():
-        from matchup_schedule_summary import schedule_summary, CSS as summary_css
-        cards, calendar, leaders = schedule_summary(schedule,week_dates,TEAM_IDS)
-        st.markdown(summary_css,unsafe_allow_html=True)
-        summary_left, summary_right = st.columns([1,2])
-        with summary_left:
-            st.markdown("**🏆 本週出賽最多 · 含並列**")
-            if leaders:
-                st.markdown(cards,unsafe_allow_html=True)
-            else:
-                st.info("本週沒有排定比賽。")
-        with summary_right:
-            calendar_mode=st.radio('週曆顯示',['B2B','全部球隊出賽'],horizontal=True,key='sim_calendar_mode',label_visibility='collapsed')
-            if calendar_mode=='全部球隊出賽':_,calendar,_=schedule_summary(schedule,week_dates,TEAM_IDS,all_games=True)
-            st.markdown(calendar,unsafe_allow_html=True)
-            page_caption("✓ 連兩天出賽的日期 · * 跨週 B2B · 滑鼠移上可看相鄰日期。表內可捲動。")
-        sim_notes.caption("日期採美東。B2B 依球隊賽程判定，不代表球員確定出場；下方球員綠／紅格分別代表有／無賽程。")
+    if planner_context:
+        pass  # Compact calendar is rendered next to the embedded board below.
+    else:
+        from contextlib import nullcontext
+        with st.expander('📅 本週賽程摘要', expanded=False) if lite else nullcontext():
+            from matchup_schedule_summary import schedule_summary, CSS as summary_css
+            cards, calendar, leaders = schedule_summary(schedule,week_dates,TEAM_IDS)
+            st.markdown(summary_css,unsafe_allow_html=True)
+            summary_left, summary_right = st.columns([1,2])
+            with summary_left:
+                st.markdown("**🏆 本週出賽最多 · 含並列**")
+                if leaders:
+                    st.markdown(cards,unsafe_allow_html=True)
+                else:
+                    st.info("本週沒有排定比賽。")
+            with summary_right:
+                calendar_mode=st.radio('週曆顯示',['B2B','全部球隊出賽'],horizontal=True,key='sim_calendar_mode',label_visibility='collapsed')
+                if calendar_mode=='全部球隊出賽':_,calendar,_=schedule_summary(schedule,week_dates,TEAM_IDS,all_games=True)
+                st.markdown(calendar,unsafe_allow_html=True)
+                page_caption("✓ 連兩天出賽的日期 · * 跨週 B2B · 滑鼠移上可看相鄰日期。表內可捲動。")
+            sim_notes.caption("日期採美東。B2B 依球隊賽程判定，不代表球員確定出場；下方球員綠／紅格分別代表有／無賽程。")
 
     # NBA 球員資料庫：包含不在目前兩隊名單中的球員（例如 Seth Curry）。
     # NBA Stats 有時會限制連線；失敗時顯示狀態，絕不填入虛構統計。
@@ -268,7 +276,18 @@ def render_matchup_simulator(lite=False):
         if selected_season == '2026-27' and e.get('playerId') and match:
             nba_team_by_id[int(e['playerId'])] = match.group(1)
 
+    current_players=json.loads((root_path/'ninecat_assets/data_2026_27.json').read_text()).get('players',[])
+    known_ids={int(p['id']) for p in directory}
+    directory=list(directory)+[{'id':int(p['PLAYER_ID']),'full_name':p['PLAYER_NAME'],'is_active':True} for p in current_players if int(p['PLAYER_ID']) not in known_ids]
+    for p in current_players:
+        nba_team_by_id.setdefault(int(p['PLAYER_ID']),p['TEAM_ABBREVIATION'])
+        profiles_by_id.setdefault('season',{}).setdefault(int(p['PLAYER_ID']),row_stats(p))
     name_to_entry = {normalize_name(p["full_name"]): p for p in directory}
+    from player_portraits import portrait_id
+    for side in PLAYERS:
+        for player in PLAYERS[side]:
+            photo_id=portrait_id(player)
+            if photo_id.isdigit():player['nba_id']=int(photo_id)
     # 官方 NBA 球員名單涵蓋 Stephen Curry 與 Seth Curry，搜尋依部分姓名比對。
     CANDIDATES = []
     for item in directory:
@@ -402,7 +421,7 @@ def render_matchup_simulator(lite=False):
           <h3>⚔️ 每日對位 <span id="current-day"></span></h3>
           <div class="head"><span>我的先發</span><span>位置</span><span>對手先發</span></div>
           <div id="lineup-rows"></div>
-          <div id="message" role="status"></div>
+          <div id="message" role="status"></div><div id="sim-add-budget" role="status"></div>
         </section>
         <section class="roster"><h3>🟣 對手球隊</h3><div id="opp-search" class="search-area"></div><div id="opp-bench" class="bench"></div><div id="opp-trash" class="trash">🗑️ 垃圾桶 · 拖入移除新增球員</div></section>
       </div>
@@ -571,7 +590,7 @@ def render_matchup_simulator(lite=False):
       // One record per matchup week, not tied to the selected day.
       const storageKey="fantasy-gm-v12-simulations:"+(data.owner??"guest");
       let savedDB=structuredClone(data.saved_simulations??{});
-      const workingKey=storageKey+":"+JSON.stringify(data.context)+":"+weekDates[0];
+      const workingKey=storageKey+":"+JSON.stringify(data.context)+":"+weekDates[0]+(data.planner_mode?":planner":"");
       const snapshot=()=>({controller_date:data.selected_date,format:"fantasy-gm-simulation",version:1,week_dates:[...weekDates],
         players:structuredClone(players),lineups:structuredClone(state),
         daily_choices:structuredClone(dailyChoices),include_actual:includeActual,selected_day:dayIndex,
@@ -970,6 +989,8 @@ def render_matchup_simulator(lite=False):
             const btn=document.createElement("button");btn.type="button";
             btn.textContent=`＋ ${p.name} (${p.team})`;
             btn.addEventListener("click",()=>{
+              if(weekDates[dayIndex]<data.today){setMessage('過去日期不能新增球員。');return;}
+              if((data.league_owned_ids??[]).includes(String(p.nba_id))){setMessage('此球員已屬於聯盟其他隊伍，不能視為自由球員 add。');return;}
               const rank=players[side].length+1;
               const code=(p.team||"").toUpperCase();
               if(!teamWeeks[code]){
@@ -982,7 +1003,7 @@ def render_matchup_simulator(lite=False):
               if(!eligible.length){alert("至少要有一個有效位置。");return;}
               const profiles=p.profiles??{};
               const profile=profiles.two_weeks?"two_weeks":"season";
-              players[side].push({...p,id:side+"-add-"+Date.now()+"-"+Math.random(),rank,added:true,
+              players[side].push({...p,id:side+"-add-"+Date.now()+"-"+Math.random(),rank,added:true,acquired_date:weekDates[dayIndex],
                 team:code,eligible,week:teamWeeks[code],profiles,profile,stats:profiles[profile]??{}});
               searches[side]="";render();setMessage(`${p.name} 已加入${side==="my"?"我的":"對手"}名單，排名 ${rank}。`);
             });results.appendChild(btn);
@@ -1004,6 +1025,7 @@ def render_matchup_simulator(lite=False):
         const add=document.createElement("button");add.type="button";
         add.textContent="＋ 加入輸入的球員";
         add.addEventListener("click",()=>{
+          if(weekDates[dayIndex]<data.today){setMessage('過去日期不能新增球員。');return;}
           const name=input.value.trim();
           const eligible=pos.value.toUpperCase().split(/[,，\s]+/).filter(Boolean);
           const validPositions=["PG","SG","G","SF","PF","F","C"];
@@ -1014,7 +1036,7 @@ def render_matchup_simulator(lite=False):
             setMessage("這位球員已經在名單內。");return;
           }
           const rank=players[side].length+1;
-          players[side].push({id:side+"-custom-"+Date.now()+"-"+Math.random(),name,team:team.value,eligible,added:true,
+          players[side].push({id:side+"-custom-"+Date.now()+"-"+Math.random(),name,team:team.value,eligible,added:true,acquired_date:weekDates[dayIndex],
             rank,stats:{},week:teamWeeks[team.value]??Array(7).fill("OFF")});
           searches[side]="";render();setMessage(`${name} 已加入名單，排名 ${rank}；9-Cat 待匯入。`);
         });
@@ -1032,7 +1054,7 @@ def render_matchup_simulator(lite=False):
         const frozen=new Set(positions.filter(pos=>{
           const p=getPlayer(side,state[idx][side][pos]);return p&&!canPredict(p,idx);
         }));
-        const ranked=[...players[side]].filter(p=>onRoster(p,side,idx)&&plays(p,idx)&&canPredict(p,idx)).sort((a,b)=>(a.rank??999)-(b.rank??999));
+        const ranked=[...players[side]].filter(p=>p.status!=='IL'&&onRoster(p,side,idx)&&plays(p,idx)&&canPredict(p,idx)).sort((a,b)=>(a.rank??999)-(b.rank??999));
         const match=Object.fromEntries(positions.map(pos=>[pos,frozen.has(pos)?getPlayer(side,state[idx][side][pos]):null]));
         function assign(p,seen) {
           const options=positions.filter(pos=>!frozen.has(pos)&&eligible(p,pos));
@@ -1052,6 +1074,10 @@ def render_matchup_simulator(lite=False):
 
       function render() {
         applyOfficialLineups();
+        const planned=players.my.filter(p=>p.added===true);
+        const budget=root.querySelector('#sim-add-budget');
+        budget.textContent='已計畫 add '+planned.length+(data.remaining_adds==null?'':' / '+data.remaining_adds);
+        budget.style.color=planned.length>(data.remaining_adds??Infinity)?'#ce5849':'';
         try{localStorage.setItem(workingKey,JSON.stringify(snapshot()));}catch{}
         const days=root.querySelector("#days");days.replaceChildren();
         weekDates.forEach((d,i)=>{
@@ -1125,9 +1151,10 @@ def render_matchup_simulator(lite=False):
       root.querySelector("#sim-actual").onclick=()=>{includeActual=true;render();};
       root.querySelector("#sim-reset-data").onclick=()=>{includeActual=true;dailyChoices.my={};dailyChoices.opp={};render();setMessage("已清空預測，保留實績與排陣。");};
       let working=null;
+      if(data.planner_mode)try{working=JSON.parse(localStorage.getItem(workingKey)??"null");}catch{}
       const nonce=data.restore_nonce??'';
       let seenNonce='';try{seenNonce=localStorage.getItem(workingKey+':restore')??'';}catch{}
-      const restored=nonce && nonce!==seenNonce ? data.restore : null;
+      const restored=data.planner_mode ? (working??data.restore) : (nonce && nonce!==seenNonce ? data.restore : null);
       if(restored && JSON.stringify(restored.week_dates)===JSON.stringify(weekDates)){
         try{
           if(restored===working && working.controller_date!==data.selected_date)restored.selected_day=Math.max(0,weekDates.indexOf(data.selected_date));
@@ -1139,6 +1166,9 @@ def render_matchup_simulator(lite=False):
     }
     """
 
+    if planner_context:
+        HTML=HTML.replace('<button id="auto-week"', '<button id="planner-use" type="button">用此排陣更新補強推薦</button><button id="auto-week"')
+        JS=JS.replace('      let working=null;', '      root.querySelector("#planner-use").onclick=()=>component.setTriggerValue("planner_layout",snapshot());\n      let working=null;')
     if lite:
         # Optional prose belongs below the mobile workflow, outside the live board.
         import re as guidance_re
@@ -1163,7 +1193,7 @@ def render_matchup_simulator(lite=False):
 
     theme_id = {"簡約淺色": "light", "戰術板草圖": "tactics"}.get(st.session_state.get("visual_theme"), "mirror")
     lineup = st.components.v2.component(
-        ("fantasy_gm_matchup_lite" if lite else "fantasy_gm_integrated_9cat_v13") + "_" + theme_id,
+        ("fantasy_gm_matchup_lite" if lite else "fantasy_gm_integrated_9cat_v13") + "_" + theme_id + ("_planner" if planner_context else ""),
         html=HTML, css=CSS, js=JS,
     )
     context={'season':selected_season,'my_team':my_team,'opp_team':opp_team}
@@ -1175,16 +1205,39 @@ def render_matchup_simulator(lite=False):
         candidate=saved_simulations[active_name]
         if candidate.get('context')==context and candidate.get('week_dates')==[d.isoformat() for d in week_dates]:
             restore_payload=candidate
-    board_key='matchup_board_'+('lite' if lite else 'desktop')
+    if planner_context:
+        candidate=st.session_state.get('_planner_layout')
+        restore_payload=candidate if candidate and candidate.get('context')==context and candidate.get('week_dates')==[str(d) for d in week_dates] else None
+    board_key='matchup_board_'+('lite' if lite else 'desktop')+('_planner' if planner_context else '')
     def save_immediately():
         change=st.session_state.get(board_key,{}).get('simulation_change')
         if change:
             process_simulation_save(change)
             st.session_state['_sim_skip_poll_once']=True
-    result=lineup(
+    def update_planner_layout():
+        payload=st.session_state.get(board_key,{}).get('planner_layout')
+        if payload:
+            from matchup_records import validate_simulations
+            st.session_state['_planner_layout']=validate_simulations({'planner':payload})['planner']
+    board_container=st.container()
+    if planner_context:
+        from matchup_schedule_summary import schedule_summary,CSS as schedule_css
+        if not lite:board_container,calendar_container=st.columns([3,1])
+        else:calendar_container=st.expander('📅 賽程 · B2B',expanded=False)
+        with calendar_container:
+            st.markdown(schedule_css,unsafe_allow_html=True)
+            calendar_mode=st.radio('賽程',['B2B','全部'],horizontal=True,key='planner_calendar_mode',label_visibility='collapsed')
+            _,calendar,_=schedule_summary(schedule,week_dates,TEAM_IDS,all_games=calendar_mode=='全部')
+            st.markdown(calendar,unsafe_allow_html=True)
+    with board_container:
+        result=lineup(
+        on_planner_layout_change=update_planner_layout,
         on_simulation_change_change=save_immediately,
         key=board_key,
         data={
+            "planner_mode":bool(planner_context),
+            "remaining_adds":planner_context.get('remaining') if planner_context else league_state.get('yahoo_adds',{}).get(my_team,{}).get('remaining'),
+            "league_owned_ids":[str(r.get('id')) for rows in league_state['teams'].values() for r in rows if r.get('id')],
             "owner":st.session_state.get('_account_id','guest'),
             "saved_simulations":saved_simulations,
             "save_status":st.session_state.get("_sim_save_status",""),
@@ -1205,7 +1258,7 @@ def render_matchup_simulator(lite=False):
                         if (rows:=league_state.get('daily_rosters',{}).get(str(d),{}).get('teams',{}).get(team)) is not None}
                 for d in week_dates if d<=today
             },
-            "current_roster_ids":{side:[f"{side}-{r.get('id') or r['name']}" for r in league_state['teams'].get(team,[]) if r.get('status')!='IL'] for side,team in [('my',my_team),('opp',opp_team)]},
+            "current_roster_ids":{side:[f"{side}-{r.get('id') or r['name']}" for r in league_state['teams'].get(team,[]) if r.get('status')!='IL' or planner_context] for side,team in [('my',my_team),('opp',opp_team)]},
             "final_teams":final_teams,
             "week_dates":[d.isoformat() for d in week_dates],
             "players":PLAYERS,
@@ -1214,6 +1267,7 @@ def render_matchup_simulator(lite=False):
         },
         height="content",
     )
+    if planner_context:return restore_payload
     change=result.get('simulation_change')
     if change:
         process_simulation_save(change)

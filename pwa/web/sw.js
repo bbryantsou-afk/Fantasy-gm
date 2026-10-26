@@ -1,4 +1,4 @@
-const CACHE='fgm-pwa-shell-1';const ASSETS=['/','/index.html','/style.css','/app.js','/model.js','/transport.js','/icon.svg'];
+const CACHE='fgm-pwa-shell-weekly-2';const ASSETS=['/','/index.html','/style.css','/app.js','/model.js','/transport.js','/portraits.js','/icon.svg'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{const u=new URL(event.request.url);if(event.request.method!=='GET'||u.origin!==self.location.origin||u.pathname.startsWith('/api/')||u.pathname.startsWith('/auth/'))return;event.respondWith(fetch(event.request).catch(()=>caches.match(event.request).then(r=>r||(event.request.mode==='navigate'?caches.match('/'):Response.error()))));});

@@ -21,19 +21,102 @@ def assign_day(roster,pool,schedule,day,weights,ref):
     for i in range(len(candidates)):place(i,set())
     return {slot:candidates[i] for slot,i in assigned.items()}
 
-def rotation_workflow(league,pool,schedule,team,opponent,start,drops,remaining,ref,weights,allowed=None,mode='本週對局'):
+def rotation_workflow(league,pool,schedule,team,opponent,start,drops,remaining,ref,weights,allowed=None,mode='本週對局',layout=None,pregame_teams=None):
     from weekly_planner import close_category_weights
     monday=start-timedelta(days=start.weekday());days=[monday+timedelta(days=i) for i in range(7)]
     future=[d for d in days if d>=start]
-    roster=league['teams'][team];opp=league['teams'].get(opponent,[])
+    from player_portraits import portrait_id,name_key
+    def canonical(r):return str(r.get('id') or (portrait_id(r) if portrait_id(r) in pool else 'name:'+name_key(r.get('name',''))))
+    roster=[{**r,'id':canonical(r)} for r in league['teams'][team]]
+    opp=[{**r,'id':canonical(r)} for r in league['teams'].get(opponent,[])]
+    drop_alias={str(r.get('id') or r.get('name')):canonical(r) for r in league['teams'][team]}
+    drop_alias.update({'missing:'+name_key(r.get('name','')):canonical(r) for r in league['teams'][team]})
+    drops=[drop_alias.get(str(k),str(k)) for k in drops]
     active=[r for r in roster if r.get('status')!='IL'];drop_ids={str(x) for x in drops}
-    drop_ids&={str(r.get('id')) for r in active}
+    drop_ids&={str(r.get('id')) for r in roster}
     vacancy=max(0,league.get('capacity',14)-len(active))
     core=[r for r in roster if str(r.get('id')) not in drop_ids]
+    # Accept only the selected teams/week. A stale simulator never changes this week.
+    layout=layout if isinstance(layout,dict) and layout.get('context',{}).get('my_team')==team and layout.get('context',{}).get('opp_team')==opponent and layout.get('week_dates')==[str(d) for d in days] else None
+    names=['PG','SG','G','PF','SF','F','C1','C2','UTIL1','UTIL2']
+    aliases={side:{str(p['id']):str(p.get('nba_id') or (portrait_id(p) if portrait_id(p) in pool else str(p['id']).removeprefix(side+'-'))) for p in layout.get('players',{}).get(side,[])} for side in ('my','opp')} if layout else {}
+    returns={};planned=[];issues=[]
+    all_owned={canonical(r) for rows in league['teams'].values() for r in rows}
+    if layout:
+        for player in layout['players'].get('my',[]):
+            if not player.get('added'):continue
+            key=aliases['my'][str(player['id'])]
+            if key in {str(r['id']) for r in roster}:continue
+            if key in all_owned:issues.append(player['name']+' 已屬於其他球隊，不能當成自由球員 add');continue
+            if key not in pool:issues.append(player['name']+' 缺少場均資料，暫不能計算補強');continue
+            placed=[d for d,line in zip(days,layout['lineups']) if str(player['id']) in line.get('my',{}).values()]
+            requested=player.get('acquired_date') or (str(min(placed)) if placed else str(start))
+            try:acquired=max(start,date.fromisoformat(requested))
+            except (ValueError,TypeError):acquired=start
+            if acquired>days[-1]:continue
+            if any(x['key']==key for x in planned):continue
+            planned.append({'key':key,'date':str(acquired),'name':pool[key]['PLAYER_NAME']})
+            if player.get('eligible'):pool={**pool,key:{**pool[key],'eligible':set(player['eligible'])}}
+    if len(planned)>remaining:issues.append('已計畫 add 超過本週剩餘次數')
+    if layout:
+        for player in layout['players'].get('my',[]):
+            key=aliases['my'].get(str(player['id']))
+            if player.get('status')=='IL' and player.get('return_date'):
+                try:
+                    returned=date.fromisoformat(player['return_date'])
+                    if start<=returned<=days[-1]:returns[key]=returned
+                except (ValueError,TypeError):pass
+        injured={str(r.get('id')) for r in roster if r.get('status')=='IL'}
+        for d,line in zip(days,layout['lineups']):
+            if d<start:continue
+            for raw in line.get('my',{}).values():
+                key=aliases['my'].get(str(raw),str(raw))
+                if key in injured:returns.setdefault(key,d)
+    def selected_slots(rows,day,side='my'):
+        available={str(r.get('id')) for r in rows if r.get('status')!='IL' or side=='my' and str(r.get('id')) in returns and day>=returns[str(r.get('id'))]};out={};used=set()
+        if not layout:out=assign_day(rows,pool,schedule,day,weights,ref);used={str(p['PLAYER_ID']) for p in out.values()}
+        for i,name in enumerate(names) if layout else []:
+            raw=layout['lineups'][days.index(day)].get(side,{}).get(name)
+            key=aliases[side].get(str(raw),str(raw));p=pool.get(key)
+            if key in available and key not in used and p and eligible(p,SLOTS[i]) and day in schedule.get(p['team'],set()):out[i]=p;used.add(key)
+        if day==start and pregame_teams is not None:
+            for i,p in list(out.items()):
+                if p['team'] not in pregame_teams:del out[i]
+        # A started player's exact dated slot/stat line is immutable.
+        counters={'C':0,'UTIL':0}
+        for r in league.get('daily_rosters',{}).get(str(day),{}).get('teams',{}).get(team if side=='my' else opponent,[]):
+            raw=str(r.get('slot','')).upper()
+            if r.get('status')!='active' or raw not in ('PG','SG','G','PF','SF','F','C','UTIL'):continue
+            if raw in counters:counters[raw]+=1;raw+=str(counters[raw])
+            if r.get('daily_stats') is None or raw not in names:continue
+            key=canonical(r);p=pool.get(key)
+            if not p:continue
+            for i,other in list(out.items()):
+                if str(other['PLAYER_ID'])==key:del out[i]
+            out[names.index(raw)]={**p,**{c:float(r['daily_stats'].get(c,0)) for c in KEYS}}
+        original_ids={str(r.get('id')) for r in (roster if side=='my' else opp)}
+        # New streamers fill vacant eligible slots; protected players keep their chosen slots.
+        used={str(p['PLAYER_ID']) for p in out.values()}
+        for key in sorted(available-original_ids-used):
+            p=pool.get(key)
+            if not p or day not in schedule.get(p['team'],set()) or (day==start and pregame_teams is not None and p['team'] not in pregame_teams):continue
+            for i,pos in enumerate(SLOTS):
+                if i not in out and eligible(p,pos):out[i]=p;break
+        # Actual locked games take precedence over custom predictions.
+        for i,p in list(out.items()):
+            key=str(p['PLAYER_ID']);actual=None
+            for r in league.get('daily_rosters',{}).get(str(day),{}).get('teams',{}).get(team if side=='my' else opponent,[]):
+                if canonical(r)==key and r.get('daily_stats') is not None:actual=r['daily_stats'];break
+            raw=next((raw for raw,k in aliases.get(side,{}).items() if k==key),key)
+            choice=(layout or {}).get('daily_choices',{}).get(side,{}).get(raw+'::'+str(days.index(day)),{})
+            custom=choice.get('custom')
+            values=actual if actual is not None else custom
+            if values is not None:out[i]={**p,**{c:float(values.get(c,values.get({'FG3M':'3PM','TOV':'TO'}.get(c,c),0))) for c in KEYS}}
+        return out
     def projection(rows):
         total=dict.fromkeys(KEYS,0.);counts={};lineups={}
         for day in future:
-            slots=assign_day(rows,pool,schedule,day,weights,ref);lineups[str(day)]=slots
+            slots=selected_slots(rows,day,'opp' if rows is opp else 'my');lineups[str(day)]=slots
             for p in slots.values():
                 key=str(p['PLAYER_ID']);counts[key]=counts.get(key,0)+1
                 for c in KEYS:total[c]+=p[c]
@@ -54,11 +137,11 @@ def rotation_workflow(league,pool,schedule,team,opponent,start,drops,remaining,r
         if day<start:
             rows=league.get('daily_rosters',{}).get(str(day),{}).get('teams',{}).get(team)
             report.append({'date':str(day),'historical':True,'known':rows is not None,'rows':rows or [],'open':[]});continue
-        assigned=before['lineups'][str(day)];retained=assign_day(core,pool,schedule,day,weights,ref)
+        assigned=before['lineups'][str(day)];retained=selected_slots(core,day)
         slot_ids={str(p['PLAYER_ID']):SLOTS[i] for i,p in assigned.items()}
         rows=[{**r,'slot':slot_ids.get(str(r.get('id')),'IL' if r.get('status')=='IL' else 'BN'),'rotation':str(r.get('id')) in drop_ids} for r in roster]
         report.append({'date':str(day),'historical':False,'known':True,'rows':rows,'open':[pos for i,pos in enumerate(SLOTS) if i not in retained]})
-    owners={str(r.get('id')) for rs in league['teams'].values() for r in rs}
+    owners=all_owned
     keys=[str(k) for k in (allowed if allowed is not None else pool) if str(k) in pool and str(k) not in owners]
     results=[];team_plans={}
     if remaining and (vacancy or drop_ids):
@@ -70,7 +153,7 @@ def rotation_workflow(league,pool,schedule,team,opponent,start,drops,remaining,r
                 # Adding a streamer may not push a protected core player off the court.
                 displaces_core=False
                 for d in future:
-                    retained=assign_day([r for r in roster if str(r.get('id')) not in drop_ids],pool,schedule,d,weights,ref)
+                    retained=selected_slots([r for r in roster if str(r.get('id')) not in drop_ids],d)
                     required={str(x['PLAYER_ID']) for x in retained.values()}
                     actual={str(x['PLAYER_ID']) for x in after['lineups'][str(d)].values()}
                     if not required.issubset(actual):displaces_core=True;break
@@ -85,7 +168,131 @@ def rotation_workflow(league,pool,schedule,team,opponent,start,drops,remaining,r
     for r in team_recs:r['windows']=sorted(r['windows']);r['candidates']=len(r['candidates'])
     results.sort(key=lambda r:r['gain'] if mode=='本週對局' else r['long'],reverse=True)
     missing_history=[r['date'] for r in report if r['historical'] and not r['known'] and any(date.fromisoformat(r['date']) in ds for ds in schedule.values())]
-    return {'missing_history':missing_history,'days':report,'rotation_slots':vacancy+len(drop_ids),'vacancies':vacancy,'drops':sorted(drop_ids),'teams':team_recs,'results':results,'before':before,'enemy':enemy,'focus':focus,'margins':margins}
+    sequences=weekly_sequences(roster,pool,schedule,future,drop_ids,vacancy,remaining,ref,weights,keys,enemy,priority,scale,before,selected_slots,league,team,returns,planned)
+    if issues:sequences=[]
+    return {'issues':issues,'planned_adds':planned,'returns':{k:str(v) for k,v in returns.items()},'sequences':sequences,'missing_history':missing_history,'days':report,'rotation_slots':vacancy+len(drop_ids),'vacancies':vacancy,'drops':sorted(drop_ids),'teams':team_recs,'results':results,'before':before,'enemy':enemy,'focus':focus,'margins':margins}
+
+def weekly_sequences(roster,pool,schedule,days,drops,vacancy,budget,ref,weights,allowed,enemy,priority,scale,before,select_slots,league,team,returns=None,planned=None):
+    """Bounded beam search across dated transactions; each state owns its own roster.
+
+    Finalized dates are carried as actual totals. Transactions take effect only on
+    their date, consume an add, and never mutate the real roster. Dropped players
+    cannot be reacquired (waiver availability is not known).
+    """
+    if not days or (not budget and not returns) or not (drops or vacancy or planned):return []
+    budget=min(int(budget),4);returns=returns or {};planned=planned or []
+    if len(planned)>budget:return []
+    planned_keys={x['key'] for x in planned}
+    historical={c:before['tot'][c]-sum(p[c] for slots in before['lineups'].values() for p in slots.values()) for c in KEYS}
+    initial_ids={str(r.get('id')) for r in roster}
+    locked={str(d):{str(r.get('id')) for r in league.get('daily_rosters',{}).get(str(d),{}).get('teams',{}).get(team,[]) if r.get('daily_stats') is not None} for d in days}
+    # Reserve core players' chosen positions for each date.
+    required={str(d):{str(p['PLAYER_ID']) for p in select_slots([r for r in roster if str(r.get('id')) not in drops],d).values()} for d in days}
+    def active_count(rows,d):return sum(r.get('status')!='IL' or str(r.get('id')) in returns and d>=returns[str(r.get('id'))] for r in rows)
+    def day_value(rows,d):
+        if active_count(rows,d)>league.get('capacity',14):return None
+        slots=select_slots(rows,d)
+        if not required[str(d)].issubset({str(p['PLAYER_ID']) for p in slots.values()}):return None
+        return slots
+    def add_stats(total,slots):return {c:total[c]+sum(p[c] for p in slots.values()) for c in KEYS}
+    def score(total):return matchup_score({'tot':total,'g':1},enemy,priority,scale)[0]
+    def estimate(state,index):
+        total=state['tot']
+        for d in days[index:]:
+            slots=day_value(state['rows'],d)
+            if slots is None:
+                projected=[r for r in state['rows'] if str(r['id']) not in drops and (str(r['id']) in initial_ids or r.get('status')=='IL')]
+                slots=select_slots(projected,d)
+            total=add_stats(total,slots)
+        return score(total)
+    states=[{'rows':roster,'tot':historical,'steps':[],'removed':set(),'games':0,'calendar':[]}]
+    for index,d in enumerate(days):
+        # Candidates are ranked for this remaining schedule, not just today's points.
+        holes={future:[pos for i,pos in enumerate(SLOTS) if i not in select_slots([r for r in roster if str(r['id']) not in drops],future)] for future in days[index:]}
+        ranked=sorted((k for k in allowed if k not in planned_keys and any(future in schedule.get(pool[k]['team'],set()) and any(eligible(pool[k],pos) for pos in positions) for future,positions in holes.items())),key=lambda k:sum(x in schedule.get(pool[k]['team'],set()) for x in days[index:])*(1+max(-.9,weighted_z(pool[k],ref,priority))),reverse=True)
+        # Preserve schedule diversity, including a lower-ranked team with useful B2B dates.
+        representatives={}
+        for key in ranked:representatives.setdefault(pool[key]['team'],key)
+        candidates=list(representatives.values())
+        candidates+=(key for key in ranked if key not in candidates)
+        candidates=candidates[:40]
+        # A returning IL player may need a release, which consumes no add.
+        ready=[]
+        for state in states:
+            variants=[state]
+            for _ in range(len(returns)):
+                expanded=[]
+                for v in variants:
+                    if active_count(v['rows'],d)<=league.get('capacity',14):expanded.append(v);continue
+                    for r in v['rows']:
+                        key=str(r.get('id'))
+                        if (key not in drops and key in initial_ids) or (r.get('status')=='IL' and (key not in returns or d<returns[key])) or key in locked[str(d)]:continue
+                        step={'date':str(d),'add':None,'add_name':'IL 回歸','nba_team':'','drop':key,'drop_name':r['name'],'confirmed':True,'release_only':True}
+                        expanded.append({**v,'rows':[x for x in v['rows'] if x is not r],'steps':v['steps']+[step],'removed':v['removed']|{key}})
+                variants=expanded[:12]
+            ready.extend(v for v in variants if active_count(v['rows'],d)<=league.get('capacity',14))
+        # Fixed user plans are transactions on their own date, never backfilled.
+        for fixed in (x for x in planned if x['date']==str(d)):
+            acquired=[];key=fixed['key'];p=pool[key]
+            for state in ready:
+                if sum(x['add'] is not None for x in state['steps'])+sum(x['date']>str(d) for x in planned)>=budget:continue
+                held={str(r['id']) for r in state['rows']}
+                if key in held or key in state['removed']:continue
+                choices=sorted(((held&drops)|(held-initial_ids))-locked[str(d)])
+                if active_count(state['rows'],d)<league.get('capacity',14):choices=[None]+choices
+                for drop in choices:
+                    rows=[r for r in state['rows'] if str(r['id'])!=drop]+[{'id':key,'name':p['PLAYER_NAME'],'team':p['team'],'eligible':sorted(p['eligible']),'status':'active'}]
+                    if day_value(rows,d) is None:continue
+                    step={'date':str(d),'add':key,'add_name':p['PLAYER_NAME'],'nba_team':p['team'],'drop':drop,'drop_name':pool[drop]['PLAYER_NAME'] if drop in pool else None,'confirmed':key in league.get('free',[]),'planned':True}
+                    acquired.append({**state,'rows':rows,'steps':state['steps']+[step],'removed':state['removed']|({drop} if drop else set())})
+            ready=sorted(acquired,key=lambda state:estimate(state,index),reverse=True)[:12]
+        frontier=ready;options=list(ready)
+        for depth in range(budget):
+            expanded=[]
+            for state in frontier:
+                if sum(x['add'] is not None for x in state['steps'])+sum(x['date']>str(d) for x in planned)>=budget:continue
+                held={str(r.get('id')) for r in state['rows']}
+                droppable=sorted(((held&drops)|(held-initial_ids))-locked[str(d)])
+                if sum(r.get('status')!='IL' or str(r.get('id')) in returns and d>=returns[str(r.get('id'))] for r in state['rows'])<league.get('capacity',14):droppable=[None]+droppable
+                for key in candidates:
+                    if key in held or key in state['removed']:continue
+                    p=pool[key]
+                    for drop in droppable:
+                        rows=[r for r in state['rows'] if str(r.get('id'))!=drop]+[{'id':key,'name':p['PLAYER_NAME'],'team':p['team'],'eligible':sorted(p['eligible']),'status':'active'}]
+                        if sum(r.get('status')!='IL' or str(r.get('id')) in returns and d>=returns[str(r.get('id'))] for r in rows)>league.get('capacity',14):continue
+                        slots=day_value(rows,d)
+                        # No speculative add today solely to replace it again today.
+                        if slots is None or not any(str(v['PLAYER_ID'])==key for v in slots.values()):continue
+                        if state['steps'] and state['steps'][-1]['date']==str(d) and drop==state['steps'][-1]['add']:continue
+                        step={'date':str(d),'add':key,'add_name':p['PLAYER_NAME'],'nba_team':p['team'],'drop':drop,'drop_name':pool[drop]['PLAYER_NAME'] if drop in pool else None,'confirmed':key in league.get('free',[])}
+                        expanded.append({**state,'rows':rows,'steps':state['steps']+[step],'removed':state['removed']|({drop} if drop else set())})
+            # Keep distinct holdings and budgets; otherwise redundant operations crowd out good paths.
+            unique={}
+            for state in expanded:
+                identity=(tuple(sorted(str(r.get('id')) for r in state['rows'])),sum(x['add'] is not None for x in state['steps']),tuple(sorted(state['removed'])))
+                value=estimate(state,index)
+                if identity not in unique or value>unique[identity][0]:unique[identity]=(value,state)
+            frontier=[s for _,s in sorted(unique.values(),key=lambda x:x[0],reverse=True)[:12]]
+            options+=frontier
+            if not frontier:break
+        unique={}
+        for state in options:
+            slots=day_value(state['rows'],d)
+            if slots is None:continue
+            state={**state,'tot':add_stats(state['tot'],slots),'games':state['games']+len(slots),'calendar':state['calendar']+[{'date':str(d),'lineup':[{'slot':SLOTS[i],'id':str(p['PLAYER_ID']),'name':p['PLAYER_NAME']} for i,p in slots.items()]}]}
+            identity=(tuple(sorted(str(r.get('id')) for r in state['rows'])),sum(x['add'] is not None for x in state['steps']),tuple(sorted(state['removed'])))
+            value=estimate(state,index+1)
+            if identity not in unique or value>unique[identity][0]:unique[identity]=(value,state)
+        states=[s for _,s in sorted(unique.values(),key=lambda x:(x[0],-len(x[1]['steps'])),reverse=True)[:12]]
+    baseline=score(before['tot']);plans=[];seen=set()
+    for state in sorted(states,key=lambda s:(score(s['tot']),-len(s['steps'])),reverse=True):
+        if not state['steps']:continue
+        identity=tuple((s['date'],s['add'],s['drop']) for s in state['steps'])
+        if identity in seen:continue
+        seen.add(identity)
+        plans.append({'steps':state['steps'],'adds':sum(x['add'] is not None for x in state['steps']),'remaining':budget-sum(x['add'] is not None for x in state['steps']),'gain':score(state['tot'])-baseline,'net_games':state['games']-before['g'],'tot':state['tot'],'calendar':state['calendar']})
+        if len(plans)==5:break
+    return plans
 
 def workflow_request(body):
     """Validated PWA adapter, with no writes to shared rosters or simulations."""
@@ -101,6 +308,7 @@ def workflow_request(body):
     team=body['team'];opponent=body['opponent']
     if team not in league['teams'] or opponent not in league['teams'] or team==opponent:raise ValueError('球隊不符')
     day=date.fromisoformat(body['start']);today=datetime.now(ZoneInfo('America/New_York')).date()
+    if day<today and day-timedelta(days=day.weekday())==today-timedelta(days=today.weekday()):day=today
     if day<today or not date(2026,10,19)<=day<=date(2027,4,18):raise ValueError('開始日期須為今天或未來')
     remaining=body.get('remaining',0)
     if type(remaining) is not int or not 0<=remaining<=4:raise ValueError('剩餘 add 不符')
@@ -109,6 +317,11 @@ def workflow_request(body):
     for p in players:
         pid=str(p['PLAYER_ID']);match=re.search(r'\((\w+)\s*-\s*([^)]*)',draft.get(pid,{}).get('position',''))
         pool[pid]={**p,'team':match.group(1) if match else p['TEAM_ABBREVIATION'],'eligible':set(match.group(2).split(',')) if match else set()}
+    for p in json.loads((Path(__file__).parent/'ninecat_assets/data_2026_27.json').read_text()).get('players',[]):
+        pid=str(p['PLAYER_ID'])
+        if pid not in pool:
+            match=re.search(r'\((\w+)\s*-\s*([^)]*)',draft.get(pid,{}).get('position',''))
+            pool[pid]={**p,'team':match.group(1) if match else p['TEAM_ABBREVIATION'],'eligible':set(match.group(2).split(',')) if match else set()}
     for pid,meta in league.get('player_meta',{}).items():
         if pid in pool:pool[pid].update(team=meta.get('team') or pool[pid]['team'],eligible=set(meta.get('eligible',pool[pid]['eligible'])))
     for rows in league['teams'].values():
@@ -121,7 +334,13 @@ def workflow_request(body):
     ref=baseline(players,cohort_ids(players,entries,'draft'))
     schedule,_=regular_schedule(json.loads((Path(__file__).parent/'nba_schedule_2026_27.json').read_text()))
     allowed=[k for k,p in pool.items() if p.get('GP',0)>=20 and (body.get('research') is True or k in league.get('free',[]))]
-    result=rotation_workflow(league,pool,schedule,team,opponent,day,drops,remaining,ref,weights,allowed)
+    layout=body.get('layout')
+    if layout is not None:
+        from matchup_records import validate_simulations
+        layout=validate_simulations({'planner':layout})['planner']
+    from daily_evidence import nba_today
+    pregame=set(nba_today(str(day)).get('scheduled_teams',[])) if day==today else None
+    result=rotation_workflow(league,pool,schedule,team,opponent,day,drops,remaining,ref,weights,allowed,layout=layout,pregame_teams=pregame)
     def public(a):return {k:v for k,v in a.items() if k!='lineups'}
     result['before']=public(result['before']);result['enemy']=public(result['enemy'])
     selected=[];seen=set()

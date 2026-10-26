@@ -30,7 +30,7 @@ from rotation_planner import workflow_request
 import json
 entries=[{'playerId':pid,'name':p['PLAYER_NAME'],'position':'('+p['team']+' - '+','.join(p['eligible'])+')','fantasyTeam':'A','round':1} for pid,p in pool.items()]
 profile={'files':{'league_rosters.json':{**league,'free':['freeC'],'player_meta':{}}},'prefs':{}}
-with patch('pwa.server.validate_profile',return_value=profile),patch('ninecat_strategy.load_data',return_value=({'players':list(pool.values())},entries)),patch('dashboard_model.regular_schedule',return_value=(schedule,{})):
+with patch('daily_evidence.nba_today',return_value={'scheduled_teams':['BASE','CENTER','GUARD']}),patch('pwa.server.validate_profile',return_value=profile),patch('ninecat_strategy.load_data',return_value=({'players':list(pool.values())},entries)),patch('dashboard_model.regular_schedule',return_value=(schedule,{})):
     out=workflow_request({'profile':{},'team':'A','opponent':'B','start':'2026-10-27','remaining':1,'drops':['4'],'research':False})
     json.dumps(out)
     assert len(out['results'])==1 and out['results'][0]['name']=='freeC'

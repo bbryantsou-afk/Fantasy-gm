@@ -1,3 +1,4 @@
+from player_portraits import portrait_id
 """Wrapped nine-category player rows without horizontal scrolling."""
 import html
 import json
@@ -19,7 +20,7 @@ def player_rows(rows):
         raw_name=str(row.get('球員',''));name=html.escape(raw_name)
         position=html.escape(str(row.get('位置') or ''))
         position_html=f'<small class="mobile-stat-position">{position}</small>' if position else ''
-        pid=str(row.get('_nba_id') or portraits().get(raw_name,''))
+        pid=portrait_id({'name':raw_name,'nba_id':row.get('_nba_id')})
         photo=f'<img loading="lazy" src="https://cdn.nba.com/headshots/nba/latest/260x190/{pid}.png" alt="{name}">' if pid.isdigit() else '<span class="mobile-stat-avatar">🏀</span>'
         games=row.get('場次',row.get('GP'));games='—' if games is None else str(games)
         icon=trend_icon(row.get('週場均趨勢',''))
