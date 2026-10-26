@@ -73,6 +73,11 @@ def render_ninecat_strategy():
     season=st.selectbox('數據賽季',['2026-27','blended-25','2025-26'],format_func=lambda v:'上季最後25場＋本季全部' if v=='blended-25' else v,key='nc_data_season')
     from strategy_season import strategy_snapshot
     with st.spinner('載入場均…'):snapshot=strategy_snapshot(season)
+    if st.session_state.get('_nc_filter_season')!=season:
+        st.session_state['nc_min_gp']=0
+        st.session_state['nc_search']=''
+        st.session_state['nc_only_ref']=False
+        st.session_state['_nc_filter_season']=season
     players = snapshot['players']
     lookup = {str(p['PLAYER_ID']): p for p in players}
     pool = {player_key(p): p for p in players}
@@ -191,7 +196,10 @@ def render_ninecat_strategy():
             if r.get('id') and r.get('eligible'):position_meta[str(r['id'])]=r['eligible']
     for e in entries:
         if e.get('playerId') is not None:
-            position_meta.setdefault(str(e['playerId']),re.findall(r'\b(?:PG|SG|SF|PF|C)\b',e.get('position','')))
+            position_meta[str(e['playerId'])]=position_meta.get(str(e['playerId'])) or re.findall(r'\b(?:PG|SG|SF|PF|C)\b',e.get('position',''))
+    def reset_strategy_filters():
+        st.session_state.update(nc_position_filter=[],nc_min_gp=0,nc_search='',nc_only_ref=False)
+    st.button('重設篩選',on_click=reset_strategy_filters,key='nc_reset_filters')
     selected_positions=st.multiselect('指定位置',['PG','SG','SF','PF','C'],key='nc_position_filter',placeholder='全部位置')
     def position_matches(p):return not selected_positions or bool(set(position_meta.get(str(p.get('PLAYER_ID')),[])) & set(selected_positions))
     drop_options = [roster_key(r) for r in roster]
@@ -283,6 +291,7 @@ def render_ninecat_strategy():
         records.append((score, int(p['PLAYER_ID']), rec))
     records.sort(key=lambda r: (-r[0], r[1]))
     ranked = [{'排名': i+1, **rec} for i, (_, _, rec) in enumerate(records) if norm(query) in norm(rec['球員']+' '+rec['NBA球隊'])]
+    if not ranked:st.info('沒有符合篩選的球員。請按「重設篩選」恢復名單。')
     if fit_ranking:
         page_caption('每列比較加入該球員對現有球隊的幫助；若選了加入／釋出包裹，則一併試算。排名可直接瀏覽，套用名單才檢查人數。缺資料者不排名。')
     if st.session_state.get('device_view')=='手機版':
