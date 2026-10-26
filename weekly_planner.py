@@ -45,7 +45,7 @@ def _render_planner(notes):
     opp=shared_roster(entries,opponent)
     today=datetime.now(ZoneInfo('America/New_York')).date()
     with st.container(key='planner_period'):
-        goal,start,quota=st.columns([1.2,1.3,1])
+        goal,start,quota_col=st.columns([1.2,1.3,1])
         with goal:mode=st.radio('補強目標',['本週對局','長期適配'],horizontal=True,key='stream_mode')
         with start:day=st.date_input('開始日期（美東）',max(date(2026,10,20),min(today,date(2027,4,11))),min_value=date(2026,10,20),max_value=date(2027,4,11),key='stream_day')
     monday,sunday=week_bounds(day);days=[day+timedelta(days=i) for i in range((sunday-day).days+1)]
@@ -55,10 +55,10 @@ def _render_planner(notes):
     schedule,_=regular_schedule(json.loads((ROOT/'nba_schedule_2026_27.json').read_text()))
     add_key='stream_adds_'+team+'_'+str(monday)
     from roster_store import state as roster_state
-    quota=roster_state(entries).get('yahoo_adds',{}).get(team,{})
-    if quota.get('week')==str(monday):st.session_state[add_key]=min(4,quota['remaining'])
+    yahoo_quota=roster_state(entries).get('yahoo_adds',{}).get(team,{})
+    if yahoo_quota.get('week')==str(monday):st.session_state[add_key]=min(4,yahoo_quota['remaining'])
     if st.session_state.get(add_key) is None:st.session_state[add_key]=4
-    with quota:remaining=st.number_input('本週剩餘加人次數',0,4,key=add_key)
+    with quota_col:remaining=st.number_input('本週剩餘加人次數',0,4,key=add_key)
     notes.append(f'{day:%m/%d}–{sunday:%m/%d} 剩餘賽程。歷史場均 × 可排入先發場次；不是實績或勝率。已結束日比分尚未納入，傷病與輪休由你排除。每個方案獨立使用 1 次 add，不能直接把五個方案相加。')
     editor(entries,players,team,'stream_roster')
     before=lineup_week(roster,pool,schedule,days,weights,ref);enemy=lineup_week(opp,pool,schedule,days,weights,ref)
