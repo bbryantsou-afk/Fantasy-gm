@@ -41,3 +41,5 @@ input[type="date"]::-webkit-date-and-time-value{text-align:left;min-width:0}
 .account-actions{padding:8px 0;border-bottom:1px solid var(--line)}#cloud-state{white-space:nowrap;min-height:36px;font-size:13px;padding:4px 8px}
 
 .calendar-team-logo{width:42px;height:42px;object-fit:contain;display:block;margin:auto}.calendar th:first-child,.calendar td:first-child{width:52px}@media(min-width:760px){.calendar-team-logo{width:56px;height:56px}.calendar th:first-child,.calendar td:first-child{width:68px}}
+
+.strategy-owner{display:none}@media(min-width:760px){.strategy-owner{display:block;max-width:220px;overflow-wrap:anywhere;font-size:14px;color:var(--muted)}}

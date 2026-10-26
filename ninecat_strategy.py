@@ -267,7 +267,10 @@ def render_ninecat_strategy():
     query = filters[0].text_input('搜尋排名球員或球隊', key='nc_search')
     min_gp = filters[1].number_input('最低出賽場次', 0, 82, 0, key='nc_min_gp')
     only_ref = filters[2].checkbox('只看參考母體', key='nc_only_ref')
+    include_owned=st.toggle('包含我的球員',key='nc_include_owned')
     show_z = st.checkbox('顯示各項 Z-score', key='nc_show_z')
+    from roster_store import team_label
+    fantasy_owners={roster_key(r):team_label(t) for t,rows in current_league['teams'].items() for r in rows}
     fit_ranking = mode == '我的球隊適配' and bool(agg['g'])
     if mode == '我的球隊適配' and not agg['g']:
         st.info('目前沒有可計算的球隊數據，先顯示原始加權 Z-score 大名單；載入我的球隊後會自動切換適配排名。')
@@ -278,13 +281,15 @@ def render_ninecat_strategy():
         key = player_key(p)
         if not position_matches(p) or p['GP'] < min_gp or (only_ref and key not in ref_ids):
             continue
-        if fit_ranking and (key in owned or key in adds):
+        if fit_ranking and ((key in owned and not include_owned) or key in adds):
             continue
-        fitted = bundle(roster, lookup, additions+[p], drops, ref, weights, games, scale) if fit_ranking else None
+        candidate_roster=[r for r in roster if roster_key(r)!=key] if key in owned else roster
+        fitted = bundle(candidate_roster, lookup, additions+[p], drops, ref, weights, games, scale) if fit_ranking else None
         score = fitted['total'] if fitted else weighted_z(p, ref, weights)
         rec = {'球員': p['PLAYER_NAME'], 'NBA球隊': p['TEAM_ABBREVIATION'], 'GP': p['GP'],
                ('包裹＋此人適配分' if additions or drops else '加入適配分') if fit_ranking else 'Weighted Z': score,
                '原始Weighted Z': weighted_z(p, ref, weights)}
+        if st.session_state.get('device_view')!='手機版':rec['Fantasy 球隊']=fantasy_owners.get(key,'歸屬待確認')
         rec.update({LABELS[c]: number(p[c+'M']/p[c+'A'] if p[c+'A'] else None, c) if c in ('FG', 'FT') else p[c] for c in CATS})
         if show_z:
             rec.update({LABELS[c]+' Z': round(zscore(p, c, ref), 3) for c in CATS})
