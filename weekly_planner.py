@@ -41,6 +41,8 @@ def _render_planner(notes):
     with st.container(key='planner_teams'):
         mine,period=st.columns(2)
         with mine:roster=choose_roster(entries,'stream_team')
+        from player_portraits import unique_roster
+        roster=unique_roster(roster)
         team=active_team(entries);league=state(entries)
         weeks=[date(2026,10,19)+timedelta(weeks=i) for i in range(26)]
         current=today-timedelta(days=today.weekday())
@@ -113,15 +115,6 @@ def _render_planner(notes):
     for issue in workflow['issues']:st.warning(issue)
     if workflow['issues']:return
     st.caption(f"已計畫 add {len(workflow['planned_adds'])} / {remaining}")
-    st.markdown('**優先補強球隊**')
-    if workflow['teams']:
-        st.dataframe([{'NBA 球隊':r['team'],'最多可排場次':r['games'],'最多淨增':r['net'],'可補日期／位置':'、'.join(d[5:]+(' 不限位置' if any(dd==d and pp=='UTIL' for dd,pp in r['windows']) else ' '+pos) for d,pos in r['windows'] if pos=='UTIL' or not any(dd==d and pp=='UTIL' for dd,pp in r['windows']))} for r in workflow['teams'][:10]],hide_index=True,width='stretch')
-    else:st.info('先選可釋出的輪轉球員，或保留空位，才會推薦可補的球隊。')
-    st.markdown('**補強方向**')
-    if workflow['missing_history']:st.warning('缺少這些日期的排陣實績：'+'、'.join(workflow['missing_history'])+'；以下依已保存實績與剩餘賽程模擬。')
-    focus=workflow['focus']
-    st.markdown('**優先補強：'+('、'.join(LABELS[c] for c in focus) if focus else '依九項整體改善')+'**')
-    st.table([{'項目':LABELS[c],'我方':(f"{team_value(before,c):.1%}" if c in ('FG','FT') else f"{team_value(before,c):.1f}") if team_value(before,c) is not None else '—','對手':(f"{team_value(enemy,c):.1%}" if c in ('FG','FT') else f"{team_value(enemy,c):.1f}") if team_value(enemy,c) is not None else '—'} for c in CATS])
     plans=workflow['sequences']
     if not plans:st.info('先選可釋出的球員並確認剩餘 add；目前沒有可排入的補強流程。');return
     notes.append('每個流程是一整週連續操作，五個流程互為替代，不能相加。搜尋會保留多個候選路徑，並非保證全域最佳。同日操作以開賽前可生效為前提，仍須符合 Yahoo waiver 規則。')
@@ -143,3 +136,13 @@ def _render_planner(notes):
                         if line:
                             for player in line['lineup']:st.caption(player['name'])
                         else:st.caption('保留已保存排陣')
+    with st.expander('賽程與數據依據',expanded=False):
+        st.markdown('**優先補強球隊**')
+        if workflow['teams']:
+            st.dataframe([{'NBA 球隊':r['team'],'最多可排場次':r['games'],'最多淨增':r['net'],'可補日期／位置':'、'.join(d[5:]+(' 不限位置' if any(dd==d and pp=='UTIL' for dd,pp in r['windows']) else ' '+pos) for d,pos in r['windows'] if pos=='UTIL' or not any(dd==d and pp=='UTIL' for dd,pp in r['windows']))} for r in workflow['teams'][:10]],hide_index=True,width='stretch')
+        else:st.info('先選可釋出的輪轉球員，或保留空位，才會推薦可補的球隊。')
+        st.markdown('**補強方向**')
+        if workflow['missing_history']:st.warning('缺少這些日期的排陣實績：'+'、'.join(workflow['missing_history'])+'；以下依已保存實績與剩餘賽程模擬。')
+        focus=workflow['focus']
+        st.markdown('**優先補強：'+('、'.join(LABELS[c] for c in focus) if focus else '依九項整體改善')+'**')
+        st.table([{'項目':LABELS[c],'我方':(f"{team_value(before,c):.1%}" if c in ('FG','FT') else f"{team_value(before,c):.1f}") if team_value(before,c) is not None else '—','對手':(f"{team_value(enemy,c):.1%}" if c in ('FG','FT') else f"{team_value(enemy,c):.1f}") if team_value(enemy,c) is not None else '—'} for c in CATS])

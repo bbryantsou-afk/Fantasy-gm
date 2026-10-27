@@ -25,10 +25,10 @@ def rotation_workflow(league,pool,schedule,team,opponent,start,drops,remaining,r
     from weekly_planner import close_category_weights
     monday=start-timedelta(days=start.weekday());days=[monday+timedelta(days=i) for i in range(7)]
     future=[d for d in days if d>=start]
-    from player_portraits import portrait_id,name_key
+    from player_portraits import portrait_id,name_key,unique_roster
     def canonical(r):return str(r.get('id') or (portrait_id(r) if portrait_id(r) in pool else 'name:'+name_key(r.get('name',''))))
-    roster=[{**r,'id':canonical(r)} for r in league['teams'][team]]
-    opp=[{**r,'id':canonical(r)} for r in league['teams'].get(opponent,[])]
+    roster=[{**r,'id':canonical(r)} for r in unique_roster(league['teams'][team])]
+    opp=[{**r,'id':canonical(r)} for r in unique_roster(league['teams'].get(opponent,[]))]
     drop_alias={str(r.get('id') or r.get('name')):canonical(r) for r in league['teams'][team]}
     drop_alias.update({'missing:'+name_key(r.get('name','')):canonical(r) for r in league['teams'][team]})
     drops=[drop_alias.get(str(k),str(k)) for k in drops]

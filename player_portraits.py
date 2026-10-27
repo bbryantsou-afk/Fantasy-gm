@@ -15,3 +15,15 @@ def portrait_ids():
 
 def portrait_id(player):
     return portrait_ids().get(name_key(player.get('name') or player.get('PLAYER_NAME',''))) or str(player.get('nba_id') or player.get('id') or player.get('PLAYER_ID') or '')
+
+def unique_roster(rows):
+    """Read-only deduplication across missing IDs/name matches and duplicate NBA IDs."""
+    out=[];seen={}
+    for row in rows:
+        photo=portrait_id(row)
+        key=photo if photo.isdigit() else str(row.get('id') or 'name:'+name_key(row.get('name','')))
+        if key not in seen:seen[key]=len(out);out.append(dict(row));continue
+        saved=out[seen[key]]
+        for field in ('id','nba_id','team','eligible'):
+            if not saved.get(field) and row.get(field):saved[field]=row[field]
+    return out

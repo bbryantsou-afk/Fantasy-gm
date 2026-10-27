@@ -5,9 +5,9 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
  const rows=[{id:'a',name:'A',team:'ATL',eligible:['PG'],status:'active'},{id:'i',name:'Injured',team:'ATL',eligible:['C'],status:'IL'}];
  const league={teams:{mine:rows,other:[{id:'e',name:'Enemy',team:'BOS',eligible:['SG'],status:'active'}]},daily_rosters:{'2026-10-26':{teams:{mine:[{id:'history',name:'Historical',team:'ATL',eligible:['PG'],status:'active',slot:'PG'}],other:[]}}}};
  const S={team:'mine',date:'2026-10-28',sim:null,simDay:0,simSide:'my',page:'planner',model:{schedule:{ATL:['2026-10-28','2026-10-29'],BOS:['2026-10-28']}},payload:{files:{'league_rosters.json':league},prefs:{}}};
- const c={...m,S,structuredClone,Set,Date,JSON,Math,Number,String,Error,console,today:()=> '2026-10-27',opponent:()=> 'other',league:()=>league,roster:(t='mine')=>league.teams[t],archives:()=>league.daily_rosters,pkey:p=>String(p.id),render:()=>{},editableStats:()=>true,plannerResult:'old',plannerTrayOpen:false,plannerRemaining:4,plannerStart:'2026-10-28',esc:s=>String(s??''),photo:()=>'<img>',teamName:t=>t};
+ const c={...m,S,structuredClone,Set,Date,JSON,Math,Number,String,Error,console,PORTRAITS:{},today:()=> '2026-10-27',opponent:()=> 'other',league:()=>league,roster:(t='mine')=>league.teams[t],archives:()=>league.daily_rosters,pkey:p=>String(p.id),render:()=>{},editableStats:()=>true,plannerResult:'old',plannerTrayOpen:false,plannerRemaining:4,plannerStart:'2026-10-28',esc:s=>String(s??''),photo:()=>'<img>',teamName:t=>t};
  vm.createContext(c);
- for(const name of ['simPlayers','archiveSlots','ensureSim','simPlannedAdds','simAddBudget','plannerMove'])vm.runInContext(one(name),c);
+ for(const name of ['uniqueRoster','simPlayers','archiveSlots','ensureSim','simPlannedAdds','simAddBudget','plannerMove'])vm.runInContext(one(name),c);
  c.ensureSim();assert(S.sim.players.my.some(p=>p.id==='history'&&p.historical_only));assert.equal(S.sim.lineups[0].my.PG,'history');assert(!Object.values(S.sim.lineups[2].my).includes('history'));
  const sim=S.sim;c.ensureSim();assert.equal(sim,S.sim);
  assert.throws(()=>c.plannerMove('history','my','PG'),/歷史/);

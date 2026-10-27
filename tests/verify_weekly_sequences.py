@@ -98,3 +98,12 @@ assert r['sequences']
 for p in r['sequences']:
  assert p['calendar'][0]['lineup'][0]['id']=='old'
 print('PASS started positions stay reserved before filling new streamer slots')
+
+from player_portraits import unique_roster
+duplicated=copy.deepcopy(league);duplicated['teams']['mine']*=2
+a=run(league=duplicated);b=run()
+assert a['before']==b['before'] and a['vacancies']==b['vacancies']
+assert a['sequences']==b['sequences']
+rookie=[{'id':None,'name':'Darryn Peterson','status':'IL'},{'id':'1643408','name':'Darryn Peterson','status':'IL'}]
+assert len(unique_roster(rookie))==1 and rookie[0]['id'] is None
+print('PASS duplicate roster rows/ID aliases do not inflate games, capacity or recommendation steps')
