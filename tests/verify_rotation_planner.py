@@ -36,3 +36,9 @@ with patch('daily_evidence.nba_today',return_value={'scheduled_teams':['BASE','C
     assert len(out['results'])==1 and out['results'][0]['name']=='freeC'
     assert out['results'][0]['confirmed'] is True
 print('PASS shared App adapter, confirmed-free selection, five-plan limit and JSON-safe result')
+
+# Selecting a droppable starter does not make its occupied court slot empty.
+day=next(x for x in r['days'] if x['date']==str(start))
+assert not day['open'], day
+assert day['rotation_open']==['C'], day
+print('PASS actual empty court slots are separate from positions freed only after a drop')

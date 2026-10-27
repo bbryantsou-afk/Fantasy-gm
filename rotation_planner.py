@@ -140,7 +140,7 @@ def rotation_workflow(league,pool,schedule,team,opponent,start,drops,remaining,r
         assigned=before['lineups'][str(day)];retained=selected_slots(core,day)
         slot_ids={str(p['PLAYER_ID']):SLOTS[i] for i,p in assigned.items()}
         rows=[{**r,'slot':slot_ids.get(str(r.get('id')),'IL' if r.get('status')=='IL' else 'BN'),'rotation':str(r.get('id')) in drop_ids} for r in roster]
-        report.append({'date':str(day),'historical':False,'known':True,'rows':rows,'open':[pos for i,pos in enumerate(SLOTS) if i not in retained]})
+        report.append({'date':str(day),'historical':False,'known':True,'rows':rows,'open':[pos for i,pos in enumerate(SLOTS) if i not in assigned],'rotation_open':[pos for i,pos in enumerate(SLOTS) if i not in retained]})
     owners=all_owned
     keys=[str(k) for k in (allowed if allowed is not None else pool) if str(k) in pool and str(k) not in owners]
     results=[];team_plans={}
