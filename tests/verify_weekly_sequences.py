@@ -114,7 +114,7 @@ capleague['teams']['mine']=[{**row('old'),'id':'core'+str(i),'name':'Core '+str(
 capleague['teams']['mine'] += [{**row('enemy','IL'),'injury_status':'O'}, {**row('c','IL'),'injury_status':'Q'}]
 check=run(league=capleague,drops=[])
 assert check['capacity']==13 and check['active_count']==13 and check['vacancies']==0
-assert check['returns']['c']==str(START) and check['il_blocked']==['c']
+assert 'c' not in check['returns'] and check['il_blocked']==['c']
 assert not check['sequences']
 check=run(league=capleague,drops=['core0'])
 assert check['sequences'] and all(p['steps'][0].get('release_only') and p['steps'][0]['drop']=='core0' for p in check['sequences'])
@@ -124,3 +124,20 @@ check=run(league=capleague,drops=[]);assert check['vacancies']==0 and not check[
 del capleague['teams']['mine'][-1]['injury_status']
 assert run(league=capleague)['issues']
 print('PASS 13 normal + 3 IL separate from ten starters; non-O IL activated before adds; full roster needs release; unknown injury never assumed O')
+
+# Today Thybulle plays; Chet does not. Keep today's game and activate tomorrow.
+timing=copy.deepcopy(league);timing['capacity']=2
+timing['teams']['mine']=[row('old'),row('a'),{**row('c','IL'),'injury_status':'Q'}]
+timed_schedule={'OLD':{START},'A':set(),'C':set(DAYS[1:]),'B':set(DAYS),'ENEMY':set(DAYS)}
+pool['old']['PTS']=100
+check=run(league=timing,schedule=timed_schedule,drops=['old','a'],remaining=1)
+assert check['sequences']
+best=check['sequences'][0]
+assert not any(x['date']==str(START) for x in best['steps']),best
+assert any(x['id']=='old' for x in best['calendar'][0]['lineup']),best
+assert all(x['gain']>0 and x['net_games']>=0 for x in check['sequences'])
+# Worse replacements must produce a keep-roster result, not five forced plans.
+pool['old']['PTS']=1000
+bad_schedule={t:set(DAYS) for t in ['OLD','A','B','C','ENEMY']}
+assert not run(schedule=bad_schedule,drops=['old'],remaining=1)['sequences']
+print('PASS retain today game before IL activation, compare delayed moves, block adds until activation, and recommend no move for worse replacements')

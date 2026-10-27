@@ -123,7 +123,7 @@ def _render_planner(notes):
     if workflow['issues']:return
     st.caption(f"已計畫 add {len(workflow['planned_adds'])} / {remaining}")
     plans=workflow['sequences']
-    if not plans:st.info('先選可釋出的球員並確認剩餘 add；目前沒有可排入的補強流程。');return
+    if not plans:st.info('維持原名單：目前沒有能改善數據且保留場次的補強流程。');return
     notes.append('每個流程是一整週連續操作，五個流程互為替代，不能相加。搜尋會保留多個候選路徑，並非保證全域最佳。同日操作以開賽前可生效為前提，仍須符合 Yahoo waiver 規則。')
     for i,plan in enumerate(plans):
         with st.container(border=True):

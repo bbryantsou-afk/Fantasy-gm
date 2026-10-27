@@ -82,7 +82,7 @@ def rotation_workflow(league,pool,schedule,team,opponent,start,drops,remaining,r
         if flag is None:
             if key not in returns:issues.append(r['name']+'：請確認 IL 傷病標示（O／非 O），再規劃加人')
         elif flag!='O':
-            returns[key]=start;il_blocked.append(key)
+            il_blocked.append(key)
     vacancy=max(0,league['capacity']-sum(r.get('status')!='IL' or str(r['id']) in returns and returns[str(r['id'])]<=start for r in roster))
     def selected_slots(rows,day,side='my'):
         available={str(r.get('id')) for r in rows if r.get('status')!='IL' or side=='my' and str(r.get('id')) in returns and day>=returns[str(r.get('id'))]};out={};used=set()
@@ -139,7 +139,11 @@ def rotation_workflow(league,pool,schedule,team,opponent,start,drops,remaining,r
                 if r.get('status')!='active' or r.get('slot') not in ('PG','SG','G','SF','PF','F','C','Util','UTIL') or r.get('daily_stats') is None:continue
                 for c in KEYS:total[c]+=r['daily_stats'].get(c,0)
         return {'g':sum(counts.values()),'tot':total,'counts':counts,'missing':[],'lineups':lineups}
+    # Compare transactions with keeping current IL ownership unchanged, rather
+    # than crediting an activation before its required release has happened.
+    planned_returns=dict(returns);returns.clear()
     before=projection(roster);enemy=projection(opp)
+    returns.update(planned_returns)
     scale={c:abs(team_value(enemy,c) or 0) or (ref[c]['mean'] if c in ('FG','FT') else max(ref[c]['mean']*max(enemy['g'],1),1)) for c in CATS}
     priority,margins=close_category_weights(before,enemy,weights)
     original,parts=matchup_score(before,enemy,priority,scale)
@@ -181,11 +185,25 @@ def rotation_workflow(league,pool,schedule,team,opponent,start,drops,remaining,r
     for r in team_recs:r['windows']=sorted(r['windows']);r['candidates']=len(r['candidates'])
     results.sort(key=lambda r:r['gain'] if mode=='本週對局' else r['long'],reverse=True)
     missing_history=[r['date'] for r in report if r['historical'] and not r['known'] and any(date.fromisoformat(r['date']) in ds for ds in schedule.values())]
-    sequences=weekly_sequences(roster,pool,schedule,future,drop_ids,vacancy,remaining,ref,weights,keys,enemy,priority,scale,before,selected_slots,league,team,returns,planned)
+    # Non-O IL blocks adds, not waiting. Compare activating on each remaining day
+    # against leaving the roster alone, so today's useful streamer is not lost early.
+    fixed_returns=dict(returns);automatic=[k for k in il_blocked if k not in fixed_returns]
+    variants=[None] if not automatic else [*future,days[-1]+timedelta(days=1)]
+    sequences=[]
+    for activation in variants:
+        returns.clear();returns.update(fixed_returns)
+        if activation is not None:returns.update({k:activation for k in automatic})
+        sequences.extend(weekly_sequences(roster,pool,schedule,future,drop_ids,vacancy,remaining,ref,weights,keys,enemy,priority,scale,before,selected_slots,league,team,returns,planned,blocked_il=set(il_blocked)))
+    returns.clear();returns.update(fixed_returns)
+    distinct={}
+    for plan in sorted(sequences,key=lambda p:(p['gain'],p['net_games'],-p['adds'],tuple(x['date'] for x in p['steps'])),reverse=True):
+        identity=tuple((x['date'],x['add'],x['drop']) for x in plan['steps'])
+        distinct.setdefault(identity,plan)
+    sequences=list(distinct.values())[:5]
     if issues:sequences=[]
     return {'issues':issues,'planned_adds':planned,'returns':{k:str(v) for k,v in returns.items()},'sequences':sequences,'missing_history':missing_history,'days':report,'rotation_slots':vacancy+len(drop_ids),'vacancies':vacancy,'capacity':league['capacity'],'active_count':sum(r.get('status')!='IL' for r in roster),'il_blocked':il_blocked,'drops':sorted(drop_ids),'teams':team_recs,'results':results,'before':before,'enemy':enemy,'focus':focus,'margins':margins}
 
-def weekly_sequences(roster,pool,schedule,days,drops,vacancy,budget,ref,weights,allowed,enemy,priority,scale,before,select_slots,league,team,returns=None,planned=None):
+def weekly_sequences(roster,pool,schedule,days,drops,vacancy,budget,ref,weights,allowed,enemy,priority,scale,before,select_slots,league,team,returns=None,planned=None,blocked_il=None):
     """Bounded beam search across dated transactions; each state owns its own roster.
 
     Finalized dates are carried as actual totals. Transactions take effect only on
@@ -195,6 +213,8 @@ def weekly_sequences(roster,pool,schedule,days,drops,vacancy,budget,ref,weights,
     if not days or (not budget and not returns) or not (drops or vacancy or planned):return []
     budget=min(int(budget),4);returns=returns or {};planned=planned or []
     if len(planned)>budget:return []
+    blocked_il=blocked_il or set()
+    def adds_blocked(rows,d):return any(str(r['id']) in blocked_il and (str(r['id']) not in returns or d<returns[str(r['id'])]) for r in rows)
     planned_keys={x['key'] for x in planned}
     historical={c:before['tot'][c]-sum(p[c] for slots in before['lineups'].values() for p in slots.values()) for c in KEYS}
     initial_ids={str(r.get('id')) for r in roster}
@@ -248,6 +268,7 @@ def weekly_sequences(roster,pool,schedule,days,drops,vacancy,budget,ref,weights,
         for fixed in (x for x in planned if x['date']==str(d)):
             acquired=[];key=fixed['key'];p=pool[key]
             for state in ready:
+                if adds_blocked(state['rows'],d):continue
                 if sum(x['add'] is not None for x in state['steps'])+sum(x['date']>str(d) for x in planned)>=budget:continue
                 held={str(r['id']) for r in state['rows']}
                 if key in held or key in state['removed']:continue
@@ -263,6 +284,7 @@ def weekly_sequences(roster,pool,schedule,days,drops,vacancy,budget,ref,weights,
         for depth in range(budget):
             expanded=[]
             for state in frontier:
+                if adds_blocked(state['rows'],d):continue
                 if sum(x['add'] is not None for x in state['steps'])+sum(x['date']>str(d) for x in planned)>=budget:continue
                 held={str(r.get('id')) for r in state['rows']}
                 droppable=sorted(((held&drops)|(held-initial_ids))-locked[str(d)])
@@ -300,6 +322,7 @@ def weekly_sequences(roster,pool,schedule,days,drops,vacancy,budget,ref,weights,
     baseline=score(before['tot']);plans=[];seen=set()
     for state in sorted(states,key=lambda s:(score(s['tot']),-len(s['steps'])),reverse=True):
         if not state['steps']:continue
+        if score(state['tot'])-baseline<=1e-9 or state['games']<before['g']:continue
         identity=tuple((s['date'],s['add'],s['drop']) for s in state['steps'])
         if identity in seen:continue
         seen.add(identity)
