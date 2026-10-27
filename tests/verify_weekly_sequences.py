@@ -107,3 +107,20 @@ assert a['sequences']==b['sequences']
 rookie=[{'id':None,'name':'Darryn Peterson','status':'IL'},{'id':'1643408','name':'Darryn Peterson','status':'IL'}]
 assert len(unique_roster(rookie))==1 and rookie[0]['id'] is None
 print('PASS duplicate roster rows/ID aliases do not inflate games, capacity or recommendation steps')
+
+# League 71585 has 13 normal slots, independently of ten scoring positions.
+capleague=copy.deepcopy(league);capleague.update(sync_league='71585',capacity=14)
+capleague['teams']['mine']=[{**row('old'),'id':'core'+str(i),'name':'Core '+str(i)} for i in range(13)]
+capleague['teams']['mine'] += [{**row('enemy','IL'),'injury_status':'O'}, {**row('c','IL'),'injury_status':'Q'}]
+check=run(league=capleague,drops=[])
+assert check['capacity']==13 and check['active_count']==13 and check['vacancies']==0
+assert check['returns']['c']==str(START) and check['il_blocked']==['c']
+assert not check['sequences']
+check=run(league=capleague,drops=['core0'])
+assert check['sequences'] and all(p['steps'][0].get('release_only') and p['steps'][0]['drop']=='core0' for p in check['sequences'])
+assert all(not x['add'] or x['drop'] for p in check['sequences'] for x in p['steps'])
+capleague['teams']['mine'][-1]['injury_status']='O'
+check=run(league=capleague,drops=[]);assert check['vacancies']==0 and not check['il_blocked']
+del capleague['teams']['mine'][-1]['injury_status']
+assert run(league=capleague)['issues']
+print('PASS 13 normal + 3 IL separate from ten starters; non-O IL activated before adds; full roster needs release; unknown injury never assumed O')

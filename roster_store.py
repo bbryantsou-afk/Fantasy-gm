@@ -17,7 +17,7 @@ def state(entries):
             m=re.match(r'\((\w+)\s*-\s*([^)]*)',e.get('position',''))
             teams.setdefault(e['fantasyTeam'],[]).append({'id':str(e['playerId']) if e.get('playerId') is not None else None,
                 'name':e['name'],'team':m.group(1) if m else '', 'eligible':m.group(2).split(',') if m else [],'status':'active','games':1})
-        data={'teams':teams,'free':[],'capacity':14,'revision':0,'roster_sources':{t:{'kind':'draft'} for t in teams}}
+        data={'teams':teams,'free':[],'capacity':13,'revision':0,'roster_sources':{t:{'kind':'draft'} for t in teams}}
         try:
             saved=json.loads(private_path(FILE).read_text())
             if set(saved.get('teams',{}))==set(teams): data.update(saved)
@@ -39,7 +39,7 @@ def state(entries):
                             if r.get('id') is None:r['id']=str(p['PLAYER_ID'])
                             r.setdefault('team',p['TEAM_ABBREVIATION'])
                         migrated.append(r)
-                    data['capacity']=max(14,sum(r.get('status')!='IL' for r in migrated))
+                    data['capacity']=max(13,sum(r.get('status')!='IL' for r in migrated))
                     save_team(entries,next(iter(teams)),migrated)
             except (OSError,ValueError,KeyError,TypeError):pass
     return st.session_state['_league']

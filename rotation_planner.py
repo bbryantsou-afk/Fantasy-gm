@@ -23,6 +23,7 @@ def assign_day(roster,pool,schedule,day,weights,ref):
 
 def rotation_workflow(league,pool,schedule,team,opponent,start,drops,remaining,ref,weights,allowed=None,mode='本週對局',layout=None,pregame_teams=None):
     from weekly_planner import close_category_weights
+    league={**league,"capacity":13 if str(league.get("sync_league"))=="71585" else league.get("capacity",13)}
     monday=start-timedelta(days=start.weekday());days=[monday+timedelta(days=i) for i in range(7)]
     future=[d for d in days if d>=start]
     from player_portraits import portrait_id,name_key,unique_roster
@@ -34,7 +35,7 @@ def rotation_workflow(league,pool,schedule,team,opponent,start,drops,remaining,r
     drops=[drop_alias.get(str(k),str(k)) for k in drops]
     active=[r for r in roster if r.get('status')!='IL'];drop_ids={str(x) for x in drops}
     drop_ids&={str(r.get('id')) for r in roster}
-    vacancy=max(0,league.get('capacity',14)-len(active))
+    vacancy=max(0,league.get('capacity',13)-len(active))
     core=[r for r in roster if str(r.get('id')) not in drop_ids]
     # Accept only the selected teams/week. A stale simulator never changes this week.
     layout=layout if isinstance(layout,dict) and layout.get('context',{}).get('my_team')==team and layout.get('context',{}).get('opp_team')==opponent and layout.get('week_dates')==[str(d) for d in days] else None
@@ -72,9 +73,20 @@ def rotation_workflow(league,pool,schedule,team,opponent,start,drops,remaining,r
             for raw in line.get('my',{}).values():
                 key=aliases['my'].get(str(raw),str(raw))
                 if key in injured:returns.setdefault(key,d)
+    # An ineligible IL occupant must be activated before any add. Unknown is not O.
+    layout_players={aliases.get('my',{}).get(str(p['id']),str(p['id'])):p for p in (layout or {}).get('players',{}).get('my',[])}
+    il_blocked=[]
+    for r in roster:
+        if r.get('status')!='IL':continue
+        key=str(r['id']);flag=layout_players.get(key,{}).get('injury_status',r.get('injury_status'))
+        if flag is None:
+            if key not in returns:issues.append(r['name']+'：請確認 IL 傷病標示（O／非 O），再規劃加人')
+        elif flag!='O':
+            returns[key]=start;il_blocked.append(key)
+    vacancy=max(0,league['capacity']-sum(r.get('status')!='IL' or str(r['id']) in returns and returns[str(r['id'])]<=start for r in roster))
     def selected_slots(rows,day,side='my'):
         available={str(r.get('id')) for r in rows if r.get('status')!='IL' or side=='my' and str(r.get('id')) in returns and day>=returns[str(r.get('id'))]};out={};used=set()
-        if not layout:out=assign_day(rows,pool,schedule,day,weights,ref);used={str(p['PLAYER_ID']) for p in out.values()}
+        if not layout:out=assign_day([{**r,'status':'active'} if str(r.get('id')) in returns and day>=returns[str(r.get('id'))] else r for r in rows],pool,schedule,day,weights,ref);used={str(p['PLAYER_ID']) for p in out.values()}
         for i,name in enumerate(names) if layout else []:
             raw=layout['lineups'][days.index(day)].get(side,{}).get(name)
             key=aliases[side].get(str(raw),str(raw));p=pool.get(key)
@@ -149,6 +161,7 @@ def rotation_workflow(league,pool,schedule,team,opponent,start,drops,remaining,r
             p=pool[key]
             for drop in ([None]+sorted(drop_ids) if vacancy else sorted(drop_ids)):
                 new=[r for r in roster if str(r.get('id'))!=drop]+[{'id':key,'name':p['PLAYER_NAME'],'team':p['team'],'eligible':sorted(p['eligible']),'status':'active','games':1}]
+                if any(sum(r.get('status')!='IL' or str(r['id']) in returns and d>=returns[str(r['id'])] for r in new)>league['capacity'] for d in future):continue
                 after=projection(new)
                 # Adding a streamer may not push a protected core player off the court.
                 displaces_core=False
@@ -170,7 +183,7 @@ def rotation_workflow(league,pool,schedule,team,opponent,start,drops,remaining,r
     missing_history=[r['date'] for r in report if r['historical'] and not r['known'] and any(date.fromisoformat(r['date']) in ds for ds in schedule.values())]
     sequences=weekly_sequences(roster,pool,schedule,future,drop_ids,vacancy,remaining,ref,weights,keys,enemy,priority,scale,before,selected_slots,league,team,returns,planned)
     if issues:sequences=[]
-    return {'issues':issues,'planned_adds':planned,'returns':{k:str(v) for k,v in returns.items()},'sequences':sequences,'missing_history':missing_history,'days':report,'rotation_slots':vacancy+len(drop_ids),'vacancies':vacancy,'drops':sorted(drop_ids),'teams':team_recs,'results':results,'before':before,'enemy':enemy,'focus':focus,'margins':margins}
+    return {'issues':issues,'planned_adds':planned,'returns':{k:str(v) for k,v in returns.items()},'sequences':sequences,'missing_history':missing_history,'days':report,'rotation_slots':vacancy+len(drop_ids),'vacancies':vacancy,'capacity':league['capacity'],'active_count':sum(r.get('status')!='IL' for r in roster),'il_blocked':il_blocked,'drops':sorted(drop_ids),'teams':team_recs,'results':results,'before':before,'enemy':enemy,'focus':focus,'margins':margins}
 
 def weekly_sequences(roster,pool,schedule,days,drops,vacancy,budget,ref,weights,allowed,enemy,priority,scale,before,select_slots,league,team,returns=None,planned=None):
     """Bounded beam search across dated transactions; each state owns its own roster.
@@ -190,7 +203,7 @@ def weekly_sequences(roster,pool,schedule,days,drops,vacancy,budget,ref,weights,
     required={str(d):{str(p['PLAYER_ID']) for p in select_slots([r for r in roster if str(r.get('id')) not in drops],d).values()} for d in days}
     def active_count(rows,d):return sum(r.get('status')!='IL' or str(r.get('id')) in returns and d>=returns[str(r.get('id'))] for r in rows)
     def day_value(rows,d):
-        if active_count(rows,d)>league.get('capacity',14):return None
+        if active_count(rows,d)>league.get('capacity',13):return None
         slots=select_slots(rows,d)
         if not required[str(d)].issubset({str(p['PLAYER_ID']) for p in slots.values()}):return None
         return slots
@@ -223,14 +236,14 @@ def weekly_sequences(roster,pool,schedule,days,drops,vacancy,budget,ref,weights,
             for _ in range(len(returns)):
                 expanded=[]
                 for v in variants:
-                    if active_count(v['rows'],d)<=league.get('capacity',14):expanded.append(v);continue
+                    if active_count(v['rows'],d)<=league.get('capacity',13):expanded.append(v);continue
                     for r in v['rows']:
                         key=str(r.get('id'))
                         if (key not in drops and key in initial_ids) or (r.get('status')=='IL' and (key not in returns or d<returns[key])) or key in locked[str(d)]:continue
                         step={'date':str(d),'add':None,'add_name':'IL 回歸','nba_team':'','drop':key,'drop_name':r['name'],'confirmed':True,'release_only':True}
                         expanded.append({**v,'rows':[x for x in v['rows'] if x is not r],'steps':v['steps']+[step],'removed':v['removed']|{key}})
                 variants=expanded[:12]
-            ready.extend(v for v in variants if active_count(v['rows'],d)<=league.get('capacity',14))
+            ready.extend(v for v in variants if active_count(v['rows'],d)<=league.get('capacity',13))
         # Fixed user plans are transactions on their own date, never backfilled.
         for fixed in (x for x in planned if x['date']==str(d)):
             acquired=[];key=fixed['key'];p=pool[key]
@@ -239,7 +252,7 @@ def weekly_sequences(roster,pool,schedule,days,drops,vacancy,budget,ref,weights,
                 held={str(r['id']) for r in state['rows']}
                 if key in held or key in state['removed']:continue
                 choices=sorted(((held&drops)|(held-initial_ids))-locked[str(d)])
-                if active_count(state['rows'],d)<league.get('capacity',14):choices=[None]+choices
+                if active_count(state['rows'],d)<league.get('capacity',13):choices=[None]+choices
                 for drop in choices:
                     rows=[r for r in state['rows'] if str(r['id'])!=drop]+[{'id':key,'name':p['PLAYER_NAME'],'team':p['team'],'eligible':sorted(p['eligible']),'status':'active'}]
                     if day_value(rows,d) is None:continue
@@ -253,13 +266,13 @@ def weekly_sequences(roster,pool,schedule,days,drops,vacancy,budget,ref,weights,
                 if sum(x['add'] is not None for x in state['steps'])+sum(x['date']>str(d) for x in planned)>=budget:continue
                 held={str(r.get('id')) for r in state['rows']}
                 droppable=sorted(((held&drops)|(held-initial_ids))-locked[str(d)])
-                if sum(r.get('status')!='IL' or str(r.get('id')) in returns and d>=returns[str(r.get('id'))] for r in state['rows'])<league.get('capacity',14):droppable=[None]+droppable
+                if sum(r.get('status')!='IL' or str(r.get('id')) in returns and d>=returns[str(r.get('id'))] for r in state['rows'])<league.get('capacity',13):droppable=[None]+droppable
                 for key in candidates:
                     if key in held or key in state['removed']:continue
                     p=pool[key]
                     for drop in droppable:
                         rows=[r for r in state['rows'] if str(r.get('id'))!=drop]+[{'id':key,'name':p['PLAYER_NAME'],'team':p['team'],'eligible':sorted(p['eligible']),'status':'active'}]
-                        if sum(r.get('status')!='IL' or str(r.get('id')) in returns and d>=returns[str(r.get('id'))] for r in rows)>league.get('capacity',14):continue
+                        if sum(r.get('status')!='IL' or str(r.get('id')) in returns and d>=returns[str(r.get('id'))] for r in rows)>league.get('capacity',13):continue
                         slots=day_value(rows,d)
                         # No speculative add today solely to replace it again today.
                         if slots is None or not any(str(v['PLAYER_ID'])==key for v in slots.values()):continue

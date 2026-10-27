@@ -79,6 +79,13 @@ def _render_planner(notes):
     from rotation_ui import drop_picker
     drops=drop_picker(roster,'planner_drops_'+team)
     st.caption('點頭像切換外框；包含 IL，標記可丟棄。')
+    # Local planning overrides only; never change the real Yahoo/Drive roster here.
+    league={**league,'teams':{**league['teams'],team:[dict(r) for r in roster]}}
+    for r in league['teams'][team]:
+        if r.get('status')!='IL':continue
+        flags=[None,'O','Q','','INJ'];current=r.get('injury_status')
+        r['injury_status']=st.selectbox(r['name']+' · IL 標示',flags,index=flags.index(current) if current in flags else 4,format_func=lambda x:{None:'待確認','O':'O','Q':'Q／GTD','':'無傷病標示','INJ':'其他非 O'}[x],key='planner_il_'+team+'_'+str(r.get('id') or r['name']))
+
     owners=ownership(entries,team)
     unowned=[k for k in pool if k not in owners]
     with st.expander('確認自由市場／調整候選名單'):

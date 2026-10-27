@@ -48,7 +48,7 @@ def normalize_snapshot(raw,current=None):
     if len(keys)!=len(raw['teams']):keys=['隊伍'+str(i+1) for i in range(len(raw['teams']))]
     existing=current if current and current.get('sync_league')==lid else None
     mapping=(existing or {}).get('sync_mapping') or {lid+':'+str(t['id']):keys[i] for i,t in enumerate(raw['teams'])}
-    league=existing or {'teams':{t:[] for t in mapping.values()},'free':[],'capacity':14,'revision':0}
+    league=existing or {'teams':{t:[] for t in mapping.values()},'free':[],'capacity':13,'revision':0}
     from zoneinfo import ZoneInfo
     today=datetime.now(ZoneInfo('America/New_York')).date()
     return apply_snapshot(league,matched,mapping,raw,today)

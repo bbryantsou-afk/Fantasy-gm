@@ -27,6 +27,7 @@ function parseYahooDocument(doc, expectedDate, requireDaily=false, sourceURL='')
     const nba=text.match(/\b([A-Z]{2,3})\s*-\s*((?:PG|SG|SF|PF|C)(?:,(?:PG|SG|SF|PF|C))*)/);
     if(!name || !nba)throw new Error('無法辨識球員位置／NBA 隊伍。');
     const row={yahooPlayerId:id,name,position:pos,eligible:nba[2].split(','),nbaTeam:nba[1]};
+    const injury=[...(cell.querySelectorAll?.('span,abbr')||[])].map(n=>n.textContent.trim()).find(v=>['O','Q','GTD','DTD','INJ','IR','NA','SUSP'].includes(v));row.injury_status=injury||'';
     if(daily){
       const text=k=>cells[columns.indexOf(k)]?.textContent.trim()??'';
       const numeric=s=>/^\d+(?:\.\d+)?$/.test(s)?Number(s):null;

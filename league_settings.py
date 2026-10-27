@@ -6,7 +6,7 @@ from roster_store import state,persist,identity
 
 def validate_backup(data,teams,allow_history=True):
     if not isinstance(data,dict) or set(data.get('teams',{}))!=set(teams):raise ValueError('備份的聯盟球隊不符。')
-    cap=data.get('capacity',14)
+    cap=data.get('capacity',13)
     if type(cap) is not int or not 10<=cap<=25:raise ValueError('名單席次必須介於10至25。')
     seen=set()
     for rows in data['teams'].values():

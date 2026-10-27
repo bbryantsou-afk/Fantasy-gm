@@ -1,13 +1,15 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const {parseYahooDocument}=require('../browser_sync_extension/parser.js');
-function fixture(date='2026-10-20',name='Jimmy Butler III',id='4912',position='IL'){
- const cell={innerText:name+'Player Note\nGSW - SF,PF'};
+function fixture(date='2026-10-20',name='Jimmy Butler III',id='4912',position='IL',injury='O'){
+ const cell={innerText:name+'Player Note\nGSW - SF,PF',querySelectorAll:()=>injury?[{textContent:injury}]:[]};
  const link={href:'https://sports.yahoo.com/nba/players/'+id,textContent:name,closest:()=>cell};
  const row={cells:[{textContent:position}],querySelectorAll:()=>[link]};
  const table={textContent:"Private Team's Players roster for "+date+'.',querySelectorAll:()=>[row]};
  return {querySelectorAll:q=>q==='table'?[table]:[]};
 }
 assert.equal(parseYahooDocument(fixture(),'2026-10-20').rows[0].position,'IL');
+assert.equal(parseYahooDocument(fixture(),'2026-10-20').rows[0].injury_status,'O');
+assert.equal(parseYahooDocument(fixture('2026-10-20','Chet Holmgren','999','IL','Q'),'2026-10-20').rows[0].injury_status,'Q');
 assert.throws(()=>parseYahooDocument(fixture(),'2026-10-19'),/日期/);
 assert.throws(()=>parseYahooDocument({querySelectorAll:()=>[]},'2026-10-20'),/登入/);
 const storage={};let url='',closed=0;const listeners=[];
