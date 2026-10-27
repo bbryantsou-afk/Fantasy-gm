@@ -7,7 +7,7 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
  const S={team:'mine',date:'2026-10-28',sim:null,simDay:0,simSide:'my',page:'planner',model:{schedule:{ATL:['2026-10-28','2026-10-29'],BOS:['2026-10-28']}},payload:{files:{'league_rosters.json':league},prefs:{}}};
  const c={...m,S,structuredClone,Set,Date,JSON,Math,Number,String,Error,console,PORTRAITS:{},today:()=> '2026-10-27',opponent:()=> 'other',league:()=>league,roster:(t='mine')=>league.teams[t],archives:()=>league.daily_rosters,pkey:p=>String(p.id),render:()=>{},editableStats:()=>true,plannerResult:'old',plannerTrayOpen:false,plannerRemaining:4,plannerStart:'2026-10-28',esc:s=>String(s??''),photo:()=>'<img>',teamName:t=>t};
  vm.createContext(c);
- for(const name of ['uniqueRoster','simPlayers','archiveSlots','ensureSim','simPlannedAdds','simAddBudget','plannerMove'])vm.runInContext(one(name),c);
+ for(const name of ['uniqueRoster','simPlayers','archiveSlots','ensureSim','simPlannedAdds','simAddBudget','plannerMove','plannerSchedule'])vm.runInContext(one(name),c);
  c.ensureSim();assert(S.sim.players.my.some(p=>p.id==='history'&&p.historical_only));assert.equal(S.sim.lineups[0].my.PG,'history');assert(!Object.values(S.sim.lineups[2].my).includes('history'));
  const sim=S.sim;c.ensureSim();assert.equal(sim,S.sim);
  assert.throws(()=>c.plannerMove('history','my','PG'),/歷史/);
@@ -17,7 +17,7 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
  assert.throws(()=>c.plannerMove('a','my','IL'),/傷兵/);assert.throws(()=>c.plannerMove('a','my','C1'),/位置/);
  S.sim.players.my.push({id:'f',name:'FA',team:'ATL',eligible:['PG'],status:'active',added:true,acquired_date:'2026-10-29'});assert.equal(c.simPlannedAdds().length,1);assert.throws(()=>c.plannerMove('f','my','PG'),/加入日期/);
  vm.runInContext(source.slice(source.indexOf('function plannerBoard()'),source.indexOf('\nfunction archiveSlots')),c);
- const html=c.plannerBoard();assert(html.includes('data-drop-slot="BN"'));assert(html.includes('data-drop-slot="IL"'));assert(!html.includes('data-action="planner-slot"'));assert(!html.includes('data-action="planner-place"'));
+ const html=c.plannerBoard();assert(html.includes('ATL · 有賽程'));assert(html.includes('player-week'));assert(c.plannerSchedule({team:'BOS'},'2026-10-29').includes('無賽程'));assert(c.plannerSchedule({team:'UNKNOWN'},'2026-10-29').includes('賽程未載入'));assert(!Object.values(m.autoLineup(rows,'2026-10-30',S.model.schedule)).includes('a'));assert(html.includes('data-drop-slot="BN"'));assert(html.includes('data-drop-slot="IL"'));assert(!html.includes('data-action="planner-slot"'));assert(!html.includes('data-action="planner-place"'));
  S.date='2026-11-04';c.ensureSim();assert.notEqual(sim,S.sim);assert.equal(S.sim.week_dates[0],'2026-11-02');
  console.log('PASS shared weekly roster, immutable history, drag to lineup/bench/IL, return cancellation, date/eligibility guards, planned add budget, no position-picker buttons');
 })();
