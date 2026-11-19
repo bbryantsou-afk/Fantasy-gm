@@ -55,8 +55,6 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
                 if context.get('opp_team') in state(draft)['teams']:st.session_state['sim_opp_team']=context['opp_team']
                 season=context.get('season','2026-27')
                 st.session_state['sim_season']=season
-                if season_stats_enabled and season == '2026-27':
-                    st.session_state['v15_projection_only'] = bool(context.get('projection_only'))
                 begin,end=(date(2025,10,21),date(2026,4,12)) if season=='2025-26' else (date(2026,10,20),date(2027,4,11))
                 st.session_state['sim_date_'+season]=max(begin,min(end,date.fromisoformat(payload['week_dates'][payload['selected_day']])))
                 st.session_state['_sim_restore']=payload
@@ -85,11 +83,7 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
 
     selected_season = '2026-27' if planner_context else st.selectbox('模擬賽季', ['2026-27', '2025-26'], key='sim_season')
     show_current_season = season_stats_enabled and selected_season == '2026-27'
-    projection_only = show_current_season and st.checkbox(
-        "整週預測模式", value=True, key="v15_projection_only",
-        help="使用目前名單與 NBA 賽程模擬所選整週。取消勾選可查看已同步的單日實績。",
-    )
-    use_current_actuals = selected_season == '2026-27' and not projection_only
+    use_current_actuals = selected_season == '2026-27'
     season_begin, season_end = (date(2025,10,21),date(2026,4,12)) if selected_season=='2025-26' else (date(2026,10,20),date(2027,4,11))
     @st.cache_data(show_spinner=False)
     def historical_logs():
@@ -671,7 +665,6 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
       const root = component.parentElement.querySelector("#lineup-app");
       if (!root) return;
       const data = component.data ?? {};
-      const projectionOnly = Boolean(data.projection_only);
       const players = structuredClone(data.players ?? {my:[],opp:[]});
       const candidates = data.candidates ?? [];
       const teamWeeks = data.team_weeks ?? {};
@@ -689,7 +682,7 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
         if(officialApplied)return;officialApplied=true;
         for(let i=0;i<weekDates.length;i++)for(const side of ['my','opp']){
           const slots=data.official_lineups?.[weekDates[i]]?.[side];
-          if(!projectionOnly && !data.historical && weekDates[i]<=data.today){
+          if(!data.historical && weekDates[i]<=data.today){
             // Never retain restored or auto-filled slots for a missing Yahoo day.
             state[i][side]=Object.fromEntries(positions.map(pos=>[pos,slots?.[pos]??null]));
           }else if(slots)state[i][side]=Object.fromEntries(positions.map(pos=>[pos,slots[pos]??null]));
@@ -720,9 +713,6 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
            !Array.isArray(payload.lineups)||payload.lineups.length!==7 ||
            !payload.players||!Array.isArray(payload.players.my)||!Array.isArray(payload.players.opp) ||
            !payload.daily_choices) throw Error("檔案格式不符，或不是目前這一週的模擬。請先切換到對應週次。");
-        if(data.current_season_source && Boolean(payload.context?.projection_only)!==projectionOnly)
-          throw Error("請先切換至此紀錄的預測或實績模式。");
-        includeActual=payload.include_actual!==false;
         for(const side of ["my","opp"]){
           players[side].splice(0,players[side].length,...structuredClone(payload.players[side]));
           const officialIds=new Set(Object.values(data.official_lineups??{}).flatMap(day=>Object.values(day[side]??{})));
@@ -744,6 +734,7 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
           }
         }
         dayIndex=Math.max(0,Math.min(6,Number(payload.selected_day)||0));
+        officialApplied=false;
         render();
       }
       function readSaved(){return savedDB;}
@@ -798,14 +789,17 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
         return profileLabels[setting.profile]?setting:{profile:'season',custom:null};
       };
       // Server records remain authoritative, including after JSON restore.
-      const actual=(p,idx)=>projectionOnly||!includeActual?null:data.actual_by_player?.[p.evidence_id??p.nba_id]?.[weekDates[idx]]??data.actual_by_player?.[p.nba_id]?.[weekDates[idx]]??null;
-      const canPredict=(p,idx)=>projectionOnly||weekDates[idx]>data.today || (weekDates[idx]===data.today && (data.scheduled_teams??[]).includes(p.team));
-      const past=(p,idx)=>!projectionOnly&&(weekDates[idx]<data.today || Boolean(data.final_teams?.[weekDates[idx]]?.includes(p.team)) || ((data.uncertain_days??[]).includes(weekDates[idx])&&!canPredict(p,idx)));
-      const isLocked=(p,idx)=>!canPredict(p,idx)&&actual(p,idx)!==null;
+      const actual=(p,idx)=>data.actual_by_player?.[p.evidence_id??p.nba_id]?.[weekDates[idx]]??data.actual_by_player?.[p.nba_id]?.[weekDates[idx]]??null;
+      const canPredict=(p,idx)=>{
+        const day=weekDates[idx];
+        if(day<data.today||actual(p,idx)!==null||(data.final_teams?.[day]??[]).includes(p.team))return false;
+        return day>data.today||(day===data.today&&(data.scheduled_teams??[]).includes(p.team));
+      };
+      const isLocked=(p,idx)=>actual(p,idx)!==null;
       const requiresActual=(p,idx)=>!canPredict(p,idx);
       const dailyStats=(p,side,idx)=>{
         if(isLocked(p,idx))return actual(p,idx);
-        if(past(p,idx)||requiresActual(p,idx))return {}; // Missing past/today evidence is not a prediction.
+        if(requiresActual(p,idx))return {};
         const setting=daySetting(p,side,idx);
         return setting.profile==="manual"?(setting.custom??{}):(p.profiles?.[setting.profile]??{});
       };
@@ -1003,7 +997,7 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
           if(!dragging||dragging.side!==side)return;
           const p=getPlayer(side,dragging.id);
           if(!p)return;
-          if((!projectionOnly&&weekDates[dayIndex]<data.today)||!onRoster(p,side)||!canPredict(p,dayIndex)){setMessage("過去／已開賽排陣不可修改，球員必須在當日名單。");return;}
+          if(!onRoster(p,side)||!canPredict(p,dayIndex)){setMessage("過去／已開賽排陣不可修改，球員必須在當日名單。");return;}
           if(pos&&!plays(p)){setMessage(`${p.name} 當天 ${status(p)}，不能排入先發。`);return;}
           if(pos&&!eligible(p,pos)){setMessage(`${p.name} 不符合 ${pos} 位置資格。`);return;}
           const old=location(side,p.id);
@@ -1122,7 +1116,7 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
             const btn=document.createElement("button");btn.type="button";
             btn.textContent=`＋ ${p.name} (${p.team})`;
             btn.addEventListener("click",()=>{
-              if(!projectionOnly&&weekDates[dayIndex]<data.today){setMessage('過去日期不能新增球員。');return;}
+              if(weekDates[dayIndex]<data.today){setMessage('過去日期不能新增球員。');return;}
               if((data.league_owned_ids??[]).includes(String(p.nba_id))){setMessage('此球員已屬於聯盟其他隊伍，不能視為自由球員 add。');return;}
               const rank=players[side].length+1;
               const code=(p.team||"").toUpperCase();
@@ -1158,7 +1152,7 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
         const add=document.createElement("button");add.type="button";
         add.textContent="＋ 加入輸入的球員";
         add.addEventListener("click",()=>{
-          if(!projectionOnly&&weekDates[dayIndex]<data.today){setMessage('過去日期不能新增球員。');return;}
+          if(weekDates[dayIndex]<data.today){setMessage('過去日期不能新增球員。');return;}
           const name=input.value.trim();
           const eligible=pos.value.toUpperCase().split(/[,，\s]+/).filter(Boolean);
           const validPositions=["PG","SG","G","SF","PF","F","C"];
@@ -1179,11 +1173,11 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
       // 優先保留較高排名，依位置限制尋找最多可安排的先發球員。
       // 用增廣路徑避免 C、G、F 等稀缺位置被一般 UTIL 佔掉。
       function onRoster(p,side,idx=dayIndex){
-        if(!projectionOnly&&weekDates[idx]<=data.today)return (data.official_roster_ids?.[weekDates[idx]]?.[side]??[]).includes(p.id);
+        if(weekDates[idx]<=data.today)return (data.official_roster_ids?.[weekDates[idx]]?.[side]??[]).includes(p.id);
         return p.added===true||(data.current_roster_ids?.[side]??[]).includes(p.id);
       }
       function autoFill(side,idx=dayIndex) {
-        if(!projectionOnly&&weekDates[idx]<data.today)return 0;
+        if(weekDates[idx]<data.today)return 0;
         const frozen=new Set(positions.filter(pos=>{
           const p=getPlayer(side,state[idx][side][pos]);return p&&!canPredict(p,idx);
         }));
@@ -1226,7 +1220,7 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
           const trash=root.querySelector("#"+side+"-trash");trashTarget(trash,side);
           const bench=root.querySelector("#"+side+"-bench");
           bench.replaceChildren();dropTarget(bench,side);
-          const dated=!projectionOnly && !data.historical && weekDates[dayIndex]<=data.today;
+          const dated=!data.historical && weekDates[dayIndex]<=data.today;
           const rosterIds=dated?new Set(data.official_roster_ids?.[weekDates[dayIndex]]?.[side]??[]):null;
           if(dated && !data.official_lineups?.[weekDates[dayIndex]]?.[side]){
             const warning=document.createElement('small');warning.textContent='此隊當日 Yahoo 排陣尚未同步';bench.appendChild(warning);
@@ -1262,7 +1256,7 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
           my+=autoFill("my",i);
           opp+=autoFill("opp",i);
         }
-        render();setMessage(projectionOnly ? `已排整週預測：我方 ${my}、對手 ${opp}。` : `已排尚未開賽場次：我方 ${my}、對手 ${opp}；過去與已開賽排陣保持不變。`);
+        render();setMessage(`已排尚未開賽場次：我方 ${my}、對手 ${opp}；過去與已開賽排陣保持不變。`);
       };
 
       const bulk=root.querySelector('#bulk-profile');bulk.replaceChildren();
@@ -1272,29 +1266,24 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
         option.textContent=option.disabled?label+" · 目前無資料":label;bulk.appendChild(option);
       }
       bulk.value=data.current_season_source?"current_season":"season";
-      if(projectionOnly){
-        const apply=root.querySelector('#bulk-apply');
-        apply.textContent="套用整週預測";
-        root.querySelector('#sim-actual').hidden=true;
-      }
       root.querySelector('#bulk-apply').onclick=()=>{
         const target=root.querySelector('#bulk-side').value;
         let changed=0,skipped=0;
         const sides=target==='both'?['my','opp']:[target];
         for(const side of sides)for(const p of players[side])for(let i=0;i<7;i++){
-          if(isLocked(p,i)||past(p,i)||requiresActual(p,i)||!plays(p,i)||(projectionOnly&&!onRoster(p,side,i)))continue;
+          if(!canPredict(p,i)||!plays(p,i)||!onRoster(p,side,i))continue;
           if(!completeStats(p.profiles?.[bulk.value])){skipped++;continue;}
           dailyChoices[side][dailyKey(p,i)]={profile:bulk.value,custom:null};changed++;
         }
-        if(projectionOnly&&changed)for(const side of sides)for(let i=0;i<weekDates.length;i++){
-          if(!Object.values(state[i][side]).some(Boolean))autoFill(side,i);
+        if(data.current_season_source&&changed)for(const side of sides)for(let i=0;i<weekDates.length;i++){
+          if(weekDates[i]>data.today&&!Object.values(state[i][side]).some(Boolean))autoFill(side,i);
         }
         render();
         const message=changed||skipped
           ? `已套用 ${profileLabels[bulk.value]}：${changed} 次球員出賽，${skipped} 次缺少來源。`
           : "本週沒有可套用的場次。";
-        setMessage(message+(projectionOnly?"":" 已開賽場次依單日實績顯示。"));
-        if(projectionOnly)root.querySelector('#bulk-feedback').textContent=message;
+        setMessage(message+" 已開賽場次依單日實績顯示。");
+        root.querySelector('#bulk-feedback').textContent=message;
       };
       root.querySelector("#sim-actual").onclick=()=>{includeActual=true;render();};
       root.querySelector("#sim-reset-data").onclick=()=>{includeActual=true;dailyChoices.my={};dailyChoices.opp={};render();setMessage("已清空預測，保留實績與排陣。");};
@@ -1317,9 +1306,6 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
     if planner_context:
         HTML=HTML.replace('<button id="auto-week"', '<button id="planner-use" type="button">用此排陣更新補強推薦</button><button id="auto-week"')
         JS=JS.replace('      let working=null;', '      root.querySelector("#planner-use").onclick=()=>component.setTriggerValue("planner_layout",snapshot());\n      let working=null;')
-    bulk_guidance = "已完賽實績與待補實績不受覆寫；缺少所選來源則保留原設定。"
-    if projection_only:
-        HTML = HTML.replace(bulk_guidance, "沒有先發的日期會自動排陣；有先發的日期保留原排陣。")
     if lite:
         # Optional prose belongs below the mobile workflow, outside the live board.
         import re as guidance_re
@@ -1327,7 +1313,7 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
             page_caption(guidance_re.sub('<[^>]+>', '', match.group(0)))
             return ''
         main_html, editor_html = HTML.split('<div id="editor"', 1)
-        main_html = guidance_re.sub(r'<details class="guide">.*?</details>|<div class="note">.*?</div>|<p class="cat-rule">.*?</p>|<span>(?:已完賽實績|沒有先發的日期).*?</span>|<span>每天可獨立調整.*?</span>', collect_guidance, main_html, flags=guidance_re.S)
+        main_html = guidance_re.sub(r'<details class="guide">.*?</details>|<div class="note">.*?</div>|<p class="cat-rule">.*?</p>|<span>已完賽實績.*?</span>|<span>每天可獨立調整.*?</span>', collect_guidance, main_html, flags=guidance_re.S)
         HTML = main_html + '<div id="editor"' + editor_html
         from matchup_lite import LITE_CSS, enhance_lite
         HTML = HTML.replace("名單依選秀輪次排序。拖曳新增球員到垃圾桶可移除；點擊先發球員即可編輯預測數據。", "從底部選擇我的／對手球隊，拖曳或點選姓名再點位置；點頭像查看當天數據。")
@@ -1348,20 +1334,23 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
         html=HTML, css=CSS, js=JS,
     )
     context={'season':selected_season,'my_team':my_team,'opp_team':opp_team}
-    if projection_only:
-        context['projection_only'] = True
+    def matches_context(payload):
+        saved_context = dict(payload.get('context') or {})
+        saved_context.pop('projection_only', None)
+        return saved_context == context
+
     restore_payload=st.session_state.get('_sim_restore')
-    if restore_payload and restore_payload.get('context')!=context:restore_payload=None
+    if restore_payload and not matches_context(restore_payload):restore_payload=None
     # Re-open the same named save after a newer cloud profile arrives.
     active_name=st.session_state.get('_sim_active_name','')
     if restore_payload is None and active_name in saved_simulations:
         candidate=saved_simulations[active_name]
-        if candidate.get('context')==context and candidate.get('week_dates')==[d.isoformat() for d in week_dates]:
+        if matches_context(candidate) and candidate.get('week_dates')==[d.isoformat() for d in week_dates]:
             restore_payload=candidate
     if planner_context:
         candidate=st.session_state.get('_planner_layout')
-        restore_payload=candidate if candidate and candidate.get('context')==context and candidate.get('week_dates')==[str(d) for d in week_dates] else None
-    board_key='matchup_board_'+('lite' if lite else 'desktop')+('_planner' if planner_context else '')+('_projection' if projection_only else '')
+        restore_payload=candidate if candidate and matches_context(candidate) and candidate.get('week_dates')==[str(d) for d in week_dates] else None
+    board_key='matchup_board_'+('lite' if lite else 'desktop')+('_planner' if planner_context else '')
     def save_immediately():
         change=st.session_state.get(board_key,{}).get('simulation_change')
         if change:
@@ -1403,7 +1392,6 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
             "scheduled_teams":(live or {}).get("scheduled_teams",[]),
             "historical":selected_season=="2025-26",
             "current_season_source":current_source,
-            "projection_only":projection_only,
             "loaded_profiles":[key for key, rows in profiles_by_id.items() if any(rows.values())],
             "uncertain_days":[d.isoformat() for d in week_dates if d<=today and d.isoformat() not in final_games and any(d in days for days in schedule.values())],
             "actual_by_player":actual_by_player,
@@ -1429,7 +1417,4 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
         process_simulation_save(change)
         st.rerun() if saved_simulations!=load_simulations() else None
     if st.session_state.get('_sim_save_status'):st.info(st.session_state['_sim_save_status'])
-    if projection_only:
-        page_caption("整週預測依目前名單、所選週賽程與所選場均計算。")
-    else:
-        page_caption("過去／今天採已同步的 Fantasy 單日實績或 NBA 單場數據，顯示更新時間；未來可使用場均與自訂預測。資料缺失會留白。")
+    page_caption("過去／今天採已同步的 Fantasy 單日實績或 NBA 單場數據，顯示更新時間；未來可使用場均與自訂預測。資料缺失會留白。")
