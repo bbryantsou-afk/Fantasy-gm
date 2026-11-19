@@ -1,7 +1,7 @@
 """Independent strategy season data; never replaces other features' baselines."""
 import json
 from pathlib import Path
-from datetime import datetime,timezone
+from datetime import date, timedelta
 import streamlit as st
 ROOT=Path(__file__).parent
 
@@ -25,32 +25,55 @@ def blended_players(logs,current):
         out.append(row)
     return out
 
-@st.cache_data(ttl=21600,show_spinner=False)
-def current_totals():
-    try:
-        from nba_api.stats.endpoints import leaguedashplayerstats
-        from ninecat_model import KEYS
-        f=leaguedashplayerstats.LeagueDashPlayerStats(season='2026-27',season_type_all_star='Regular Season',per_mode_detailed='Totals',timeout=18).get_data_frames()[0]
-        rows=json.loads(f[['PLAYER_ID','PLAYER_NAME','TEAM_ABBREVIATION','GP','MIN',*KEYS]].to_json(orient='records'))
-        if not rows:raise ValueError('尚無數據')
-        return {'fetchedAt':datetime.now(timezone.utc).isoformat(),'players':rows}
-    except Exception:
-        return json.loads((ROOT/'ninecat_assets/totals_2026_27.json').read_text())
+@st.cache_data(show_spinner=False)
+def official_2026_data():
+    assets = ROOT / 'ninecat_assets'
+    season = json.loads((assets / 'matchup_2026_27.json').read_text())
+    games = json.loads((assets / 'matchup_game_logs_2026_27.json').read_text())
+    return season, games
 
-@st.cache_data(ttl=21600,show_spinner=False)
-def strategy_snapshot(season='2026-27'):
-    if season not in ('2026-27','2025-26','blended-25'):raise ValueError('賽季不符')
-    if season=='blended-25':
-        current=current_totals()
-        logs=json.loads((ROOT/'ninecat_assets/game_logs_2025_26.json').read_text())
-        return {'season':'上季最後25場＋本季全部','fetchedAt':current['fetchedAt'],'players':blended_players(logs,current['players'])}
-    if season=='2025-26':return json.loads((ROOT/'ninecat_assets/data.json').read_text())
-    try:
-        from player_detail_v14 import league_stats
-        from ninecat_model import KEYS
-        frame=league_stats(season)
-        rows=json.loads(frame[['PLAYER_ID','PLAYER_NAME','TEAM_ABBREVIATION','GP','MIN',*KEYS]].to_json(orient='records'))
-        if not rows:raise ValueError('本季尚無資料')
-        return {'season':season,'fetchedAt':datetime.now(timezone.utc).isoformat(),'players':rows}
-    except Exception:
-        return json.loads((ROOT/'ninecat_assets/data_2026_27.json').read_text())
+
+def totals_from_games(season, games, end, days=None):
+    from ninecat_model import KEYS
+    start = (end - timedelta(days=days - 1)).isoformat() if days else ''
+    end_date = end.isoformat()
+    indexes = {key: games['fields'].index(key) for key in KEYS}
+    metadata = {row['PLAYER_ID']: row for row in season['players']}
+    players = {}
+    for game in games['rows']:
+        player_id, game_date = game[:2]
+        if not start <= game_date <= end_date or player_id not in metadata:
+            continue
+        if player_id not in players:
+            players[player_id] = {
+                **{key: metadata[player_id][key] for key in ('PLAYER_ID', 'PLAYER_NAME', 'TEAM_ABBREVIATION')},
+                'GP': 0, **dict.fromkeys(KEYS, 0),
+            }
+        player = players[player_id]
+        player['GP'] += 1
+        for key, index in indexes.items():
+            player[key] += game[index]
+    return list(players.values())
+
+
+@st.cache_data(show_spinner=False)
+def strategy_snapshot(season='2026-27', days=None):
+    if season not in ('2026-27','2025-26','blended-25') or days not in (None, 7, 14, 30):
+        raise ValueError('賽季或期間不符')
+    if season == '2025-26':
+        return {**json.loads((ROOT/'ninecat_assets/data.json').read_text()), 'source': 'NBA Stats 上季例行賽快照'}
+    current, games = official_2026_data()
+    through = date.fromisoformat(games['through'])
+    meta = {'fetchedAt': current['fetchedAt'], 'through': games['through']}
+    if season == 'blended-25':
+        logs = json.loads((ROOT/'ninecat_assets/game_logs_2025_26.json').read_text())
+        totals = totals_from_games(current, games, through)
+        return {**meta, 'season': '上季最後25場＋本季全部',
+                'source': 'NBA 官方逐場數據 · 依實際出賽加權',
+                'players': blended_players(logs, totals)}
+    if days is None:
+        return {**current, **meta, 'source': 'NBA Stats 本季例行賽場均快照'}
+    from ninecat_model import KEYS
+    rows = totals_from_games(current, games, through, days)
+    players = [{**row, **{key: row[key] / row['GP'] for key in KEYS}} for row in rows]
+    return {**meta, 'season': season, 'source': f'NBA 官方逐場數據 · 最近 {days} 天', 'players': players}

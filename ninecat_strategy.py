@@ -71,14 +71,52 @@ def render_ninecat_strategy():
         st.error(f'無法載入本機資料：{exc}')
         return
     season=st.selectbox('數據賽季',['2026-27','blended-25','2025-26'],format_func=lambda v:'上季最後25場＋本季全部' if v=='blended-25' else v,key='nc_data_season')
+    source_key = (season, None)
+    if season == '2026-27':
+        periods = {None: '整季平均', 7: '最近 7 天', 14: '最近 14 天', 30: '最近 30 天'}
+        days = st.selectbox('場均統計期間', list(periods), format_func=periods.get, key='nc_stats_period')
+        source_key = (season, days)
     from strategy_season import strategy_snapshot
-    with st.spinner('載入場均…'):snapshot=strategy_snapshot(season)
-    if st.session_state.get('_nc_filter_season')!=season:
+    with st.spinner('載入場均…'):
+        snapshot = strategy_snapshot(*source_key)
+    cutoff = f" · 截至美東 {snapshot['through']}" if snapshot.get('through') else ''
+    st.caption(f"{snapshot['source']}{cutoff} · 快照取得時間 {snapshot['fetchedAt']}")
+    if st.session_state.get('_nc_filter_season')!=source_key:
         st.session_state['nc_min_gp']=0
         st.session_state['nc_search']=''
         st.session_state['nc_only_ref']=False
-        st.session_state['_nc_filter_season']=season
-    players = snapshot['players']
+        st.session_state['_nc_filter_season']=source_key
+    original = {str(row['PLAYER_ID']): row for row in snapshot['players']}
+    adjustments = st.session_state.setdefault('nc_stat_adjustments', {}).setdefault(source_key, {})
+    with st.expander('調整個別球員場均'):
+        st.caption('調整套用到這次工作階段的九項策略、母體及排名。FG%／FT% 由場均命中與出手計算。')
+        player_id = st.selectbox('搜尋要調整的球員', sorted(original, key=lambda key: original[key]['PLAYER_NAME']),
+                                 index=None, format_func=lambda key: original[key]['PLAYER_NAME'], key=f'nc_stat_player_{source_key}')
+        if player_id is not None:
+            row = original[player_id]
+            applied = adjustments.get(player_id, {})
+            st.caption(f"來源數據 · {row['GP']} 場 · PTS {row['PTS']:.2f}")
+            fields = {'PTS': 'PTS', 'REB': 'REB', 'AST': 'AST', 'STL': 'ST', 'BLK': 'BLK',
+                      'FG3M': '3PT', 'TOV': 'TO', 'FGM': '場均投籃命中', 'FGA': '場均投籃出手',
+                      'FTM': '場均罰球命中', 'FTA': '場均罰球出手'}
+            form_key = f'nc_stat_form_{source_key}_{player_id}'
+            with st.form(form_key):
+                columns = st.columns(3)
+                edits = {key: columns[i % 3].number_input(label, min_value=0.0, value=float(applied.get(key, row[key])),
+                                                          step=0.1, format='%.3f') for i, (key, label) in enumerate(fields.items())}
+                apply = st.form_submit_button('套用場均調整')
+                reset = st.form_submit_button('還原官方場均')
+            if apply:
+                if edits['FG3M'] > edits['FGM'] or edits['FGM'] > edits['FGA'] or edits['FTM'] > edits['FTA']:
+                    st.error('三分命中不可超過投籃命中，命中不可超過出手。')
+                else:
+                    adjustments[player_id] = edits
+            if reset:
+                adjustments.pop(player_id, None)
+                st.rerun()
+            if player_id in adjustments:
+                st.caption('此球員正使用自訂場均。')
+    players = [{**row, **adjustments.get(key, {})} for key, row in original.items()]
     lookup = {str(p['PLAYER_ID']): p for p in players}
     pool = {player_key(p): p for p in players}
     for e in entries:
@@ -109,7 +147,7 @@ def render_ninecat_strategy():
     chosen = st.radio('參考母體', list(kinds), horizontal=True, key='nc_cohort')
     kind = kinds[chosen]
     default_ref = cohort_ids(players, entries, kind)
-    ref_key = 'nc_ref_' + kind
+    ref_key = f'nc_ref_{kind}_{source_key}'
     st.session_state.setdefault(ref_key, sorted(default_ref))
     ref_ids = set(st.session_state[ref_key])
     if not ref_ids:
@@ -117,7 +155,7 @@ def render_ninecat_strategy():
         st.session_state[ref_key] = sorted(default_ref)
         ref_ids = default_ref
     ref = baseline(players, ref_ids)
-    st.caption(f"{snapshot['season']} 例行賽快照 · 母體 {ref['n']} 人")
+    st.caption(f"{snapshot['season']} · 母體 {ref['n']} 人" + (f" · {len(adjustments)} 位使用自訂場均" if adjustments else ""))
     strip = '<div class="nc-baseline-strip" aria-label="九項母體平均">' + ''.join(
         '<div class="nc-baseline-stat" title="' + LABELS[c] + ' 母體標準差 ' + f"{ref[c]['std']:.3f}" + '">'
         + '<span class="nc-baseline-label">' + LABELS[c] + '</span>'
