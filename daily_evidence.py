@@ -19,18 +19,25 @@ def nba_official_today(day):
             r=requests.get(base+path,timeout=6);r.raise_for_status();return r.json()
         board=get('scoreboard/todaysScoreboard_00.json')['scoreboard']
         if board['gameDate']!=str(day):raise ValueError('NBA 比分日期與所選美東日期不同')
-        players={};statuses=[];scheduled=[]
+        players={};statuses=[];scheduled=[];in_progress=[];completed=[]
         fields={'PTS':'points','FG3M':'threePointersMade','REB':'reboundsTotal','AST':'assists','STL':'steals','BLK':'blocks','TOV':'turnovers','FGM':'fieldGoalsMade','FGA':'fieldGoalsAttempted','FTM':'freeThrowsMade','FTA':'freeThrowsAttempted'}
         for game in board['games']:
             statuses.append({'比賽':game['awayTeam']['teamTricode']+' @ '+game['homeTeam']['teamTricode'],'狀態':game['gameStatusText']})
-            if int(game['gameStatus'])==1:
-                scheduled.extend([game['awayTeam']['teamTricode'],game['homeTeam']['teamTricode']]);continue
+            teams = [game['awayTeam']['teamTricode'], game['homeTeam']['teamTricode']]
+            status = int(game['gameStatus'])
+            if status == 1:
+                scheduled.extend(teams)
+                continue
+            if status == 2:
+                in_progress.extend(teams)
+            elif status == 3:
+                completed.extend(teams)
             box=get('boxscore/boxscore_'+game['gameId']+'.json')['game']
             for side in ['homeTeam','awayTeam']:
                 for p in box[side]['players']:
                     if str(p.get('played'))!='1':continue
                     players[str(p['personId'])]={'PLAYER_ID':str(p['personId']),'PLAYER_NAME':p['name'],'TEAM_ABBREVIATION':box[side]['teamTricode'],'GP':1,**{k:float(p['statistics'][v]) for k,v in fields.items()}}
-        return {'players':players,'statuses':statuses,'scheduled_teams':sorted(set(scheduled)),'updated_at':datetime.now().astimezone().isoformat(),'error':''}
+        return {'players':players,'statuses':statuses,'scheduled_teams':sorted(set(scheduled)),'in_progress_teams':sorted(set(in_progress)),'completed_teams':sorted(set(completed)),'updated_at':datetime.now().astimezone().isoformat(),'error':''}
     except Exception as exc:
         return {'players':{},'statuses':[],'updated_at':'','error':f'{type(exc).__name__}: '+str(exc)[:180]}
 

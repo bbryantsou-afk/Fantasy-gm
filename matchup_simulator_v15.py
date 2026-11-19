@@ -5,6 +5,7 @@ import unicodedata
 import logging
 import math
 from collections import defaultdict
+from uuid import uuid4
 import json
 import streamlit as st
 from team_schedule import load_team_schedule, get_game_status
@@ -702,7 +703,7 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
       // One record per matchup week, not tied to the selected day.
       const storageKey="fantasy-gm-v12-simulations:"+(data.owner??"guest");
       let savedDB=structuredClone(data.saved_simulations??{});
-      const workingKey=storageKey+":"+JSON.stringify(data.context)+":"+weekDates[0]+(data.planner_mode?":planner":"");
+      const workingKey=storageKey+":"+JSON.stringify(data.context)+":"+weekDates[0]+(data.planner_mode?":planner":":"+data.draft_session);
       const snapshot=()=>({controller_date:data.selected_date,format:"fantasy-gm-simulation",version:1,week_dates:[...weekDates],
         players:structuredClone(players),lineups:structuredClone(state),
         daily_choices:structuredClone(dailyChoices),include_actual:includeActual,selected_day:dayIndex,
@@ -795,14 +796,21 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
         if(day<data.today||actual(p,idx)!==null||(data.final_teams?.[day]??[]).includes(p.team))return false;
         return day>data.today||(day===data.today&&(data.scheduled_teams??[]).includes(p.team));
       };
-      const isLocked=(p,idx)=>actual(p,idx)!==null;
-      const requiresActual=(p,idx)=>!canPredict(p,idx);
-      const dailyStats=(p,side,idx)=>{
-        if(isLocked(p,idx))return actual(p,idx);
-        if(requiresActual(p,idx))return {};
-        const setting=daySetting(p,side,idx);
-        return setting.profile==="manual"?(setting.custom??{}):(p.profiles?.[setting.profile]??{});
+      const canEditStats=(p,idx)=>{
+        const day=weekDates[idx];
+        if((data.final_teams?.[day]??[]).includes(p.team))return false;
+        return (data.in_progress_teams?.[day]??[]).includes(p.team)||canPredict(p,idx);
       };
+      const isLocked=(p,idx)=>!canEditStats(p,idx)&&actual(p,idx)!==null;
+      const requiresActual=(p,idx)=>!canEditStats(p,idx);
+      const prediction=(p,side,idx)=>{
+        if(!canEditStats(p,idx))return null;
+        const setting=daySetting(p,side,idx);
+        const stats=setting.profile==="manual"?setting.custom:p.profiles?.[setting.profile];
+        return completeStats(stats)?stats:null;
+      };
+      const dailyStats=(p,side,idx)=>prediction(p,side,idx)??actual(p,idx)??{};
+
 
 
       const getPlayer = (side,id) => players[side].find(p=>p.id===id);
@@ -865,7 +873,7 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
         if(!editing)return;
         const p=getPlayer(editing.side,editing.id);if(!p)return;
         const idx=editing.idx;
-        if(isLocked(p,idx)||requiresActual(p,idx)){setMessage("此場已開打、已結束或狀態未確認，不能編輯預測。");return;}
+        if(isLocked(p,idx)||requiresActual(p,idx)){setMessage("此場已結束或狀態未確認，不能編輯預測。");return;}
         if(clear){
           delete dailyChoices[editing.side][dailyKey(p,idx)];
           root.querySelector("#editor").hidden=true;
@@ -937,7 +945,7 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
           }
           el.appendChild(nine);
           const source=document.createElement('div');source.style.cssText='font-size:10px;margin-top:4px';
-          source.textContent=isLocked(p,dayIndex)?'🔒 單日實績':requiresActual(p,dayIndex)?'待取得單日實績':(completeStats(dailyStats(p,side,dayIndex))?'預測 · '+profileLabels[daySetting(p,side,dayIndex).profile]:(dailyChoices[side][dailyKey(p,dayIndex)]?'此來源尚無完整數據':'尚未套用預測'));
+          source.textContent=isLocked(p,dayIndex)?'🔒 單日實績':requiresActual(p,dayIndex)?'待取得單日實績':(prediction(p,side,dayIndex)?'預測 · '+profileLabels[daySetting(p,side,dayIndex).profile]:actual(p,dayIndex)?'即時實績':(dailyChoices[side][dailyKey(p,dayIndex)]?'此來源尚無完整數據':'尚未套用預測'));
           el.appendChild(source);
         } else {
           const info=document.createElement("div");
@@ -1033,7 +1041,7 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
             const s=dailyStats(p,side,i);
             if(!completeStats(s)){result.missing=(result.missing??0)+1;continue;}
             result.validGames=(result.validGames??0)+1;
-            if(!isLocked(p,i))result.predictedGames=(result.predictedGames??0)+1;
+            if(prediction(p,side,i))result.predictedGames=(result.predictedGames??0)+1;
             for(const k of sums)result[k]+=Number(s[k]);
           }
         }
@@ -1214,7 +1222,7 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
         const budget=root.querySelector('#sim-add-budget');
         budget.textContent='已計畫 add '+planned.length+(data.remaining_adds==null?'':' / '+data.remaining_adds);
         budget.style.color=planned.length>(data.remaining_adds??Infinity)?'#ce5849':'';
-        try{localStorage.setItem(workingKey,JSON.stringify(snapshot()));}catch{}
+        try{(data.planner_mode?localStorage:sessionStorage).setItem(workingKey,JSON.stringify(snapshot()));}catch{}
         const days=root.querySelector("#days");days.replaceChildren();
         weekDates.forEach((d,i)=>{
           const btn=document.createElement("button");
@@ -1280,7 +1288,7 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
         let changed=0,skipped=0;
         const sides=target==='both'?['my','opp']:[target];
         for(const side of sides)for(const p of players[side])for(let i=0;i<7;i++){
-          if(!canPredict(p,i)||!plays(p,i)||!onRoster(p,side,i))continue;
+          if(!canEditStats(p,i)||!plays(p,i)||!onRoster(p,side,i))continue;
           if(!completeStats(p.profiles?.[bulk.value])){skipped++;continue;}
           dailyChoices[side][dailyKey(p,i)]={profile:bulk.value,custom:null};changed++;
         }
@@ -1291,7 +1299,7 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
         const message=changed||skipped
           ? `已套用 ${profileLabels[bulk.value]}：${changed} 次球員出賽，${skipped} 次缺少來源。`
           : "本週沒有可套用的場次。";
-        setMessage(message+" 已開賽場次依單日實績顯示。");
+        setMessage(message+" 已完賽場次依單日實績顯示。");
         root.querySelector('#bulk-feedback').textContent=message;
       };
       root.querySelector("#sim-actual").onclick=()=>{includeActual=true;render();};
@@ -1303,10 +1311,11 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
         setMessage("已清空所有預測。比分只計入已取得的實績，排陣已保留。");
       };
       let working=null;
-      if(data.planner_mode)try{working=JSON.parse(localStorage.getItem(workingKey)??"null");}catch{}
+      try{working=JSON.parse((data.planner_mode?localStorage:sessionStorage).getItem(workingKey)??"null");}catch{}
       const nonce=data.restore_nonce??'';
       let seenNonce='';try{seenNonce=localStorage.getItem(workingKey+':restore')??'';}catch{}
-      const restored=data.planner_mode ? (working??data.restore) : (nonce && nonce!==seenNonce ? data.restore : null);
+      const requestedRestore=nonce&&nonce!==seenNonce?data.restore:null;
+      const restored=data.planner_mode?(working??data.restore):(requestedRestore??working);
       if(restored && JSON.stringify(restored.week_dates)===JSON.stringify(weekDates)){
         try{
           if(restored===working && working.controller_date!==data.selected_date)restored.selected_day=Math.max(0,weekDates.indexOf(data.selected_date));
@@ -1393,6 +1402,7 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
         key=board_key,
         data={
             "planner_mode":bool(planner_context),
+            "draft_session":st.session_state.setdefault("_sim_draft_session", uuid4().hex),
             "remaining_adds":planner_context.get('remaining') if planner_context else league_state.get('yahoo_adds',{}).get(my_team,{}).get('remaining'),
             "league_owned_ids":[str(r.get('id')) for rows in league_state['teams'].values() for r in rows if r.get('id')],
             "owner":st.session_state.get('_account_id','guest'),
@@ -1418,7 +1428,11 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
                 for d in week_dates if d<=today
             },
             "current_roster_ids":{side:[f"{side}-{r.get('id') or r['name']}" for r in league_state['teams'].get(team,[]) if r.get('status')!='IL' or planner_context] for side,team in [('my',my_team),('opp',opp_team)]},
-            "final_teams":final_teams,
+            "final_teams":{
+                day: sorted(set(final_teams.get(day, ())) | set(live_days.get(day, {}).get('completed_teams', ())))
+                for day in final_teams.keys() | live_days.keys()
+            },
+            "in_progress_teams":{day: evidence.get('in_progress_teams', []) for day, evidence in live_days.items()},
             "week_dates":[d.isoformat() for d in week_dates],
             "players":PLAYERS,
             "candidates":CANDIDATES,

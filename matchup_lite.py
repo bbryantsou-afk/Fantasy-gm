@@ -78,7 +78,7 @@ LITE_JS = r"""
           const values=dailyStats(p,side,dayIndex);
           const detail=document.createElement('small');
           if(completeStats(values)){
-            const source=isLocked(p,dayIndex)?'實績':'預測';
+            const source=prediction(p,side,dayIndex)?'預測':'實績';
             detail.textContent=`${source} · PTS ${fmt(values.PTS,'PTS')} · REB ${fmt(values.REB,'REB')} · AST ${fmt(values.AST,'AST')}`;
           }else detail.textContent='此場尚無完整數據';
           text.appendChild(detail);

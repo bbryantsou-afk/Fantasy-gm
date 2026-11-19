@@ -44,15 +44,20 @@ def espn_day(day):
     base='https://site.api.espn.com/apis/site/v2/sports/basketball/nba/'
     def get(path):
         r=requests.get(base+path,timeout=8);r.raise_for_status();return r.json()
-    players={};statuses=[];errors=[];scheduled=[];stamp=datetime.now().astimezone().isoformat()
+    players={};statuses=[];errors=[];scheduled=[];in_progress=[];completed=[];stamp=datetime.now().astimezone().isoformat()
     board=get('scoreboard?dates='+day.replace('-',''))
     events=board.get('events',[])
     phase='no_games' if not events else 'pregame' if all(e.get('status',{}).get('type',{}).get('state')=='pre' for e in events) else 'started'
     for event in events:
         status=event['status']['type'];statuses.append({'比賽':event['name'],'狀態':status['description']})
-        if status.get('state')=='pre':
-            scheduled.extend(team_code(c['team']['abbreviation']) for c in event.get('competitions',[{}])[0].get('competitors',[]))
+        teams = [team_code(c['team']['abbreviation']) for c in event.get('competitions',[{}])[0].get('competitors',[])]
+        if status.get('completed'):
+            completed.extend(teams)
+        elif status.get('state') == 'in':
+            in_progress.extend(teams)
+        elif status.get('state') == 'pre':
+            scheduled.extend(teams)
             continue
         try:players.update(parse_box(get('summary?event='+event['id']),day,stamp,final_observations()))
         except Exception as exc:errors.append(type(exc).__name__)
-    return {'phase':phase,'players':players,'statuses':statuses,'scheduled_teams':sorted(set(scheduled)),'updated_at':stamp if players else '', 'source':'ESPN 即時暫存','error':'／'.join(errors)}
+    return {'phase':phase,'players':players,'statuses':statuses,'scheduled_teams':sorted(set(scheduled)),'in_progress_teams':sorted(set(in_progress)),'completed_teams':sorted(set(completed)),'updated_at':stamp if players else '', 'source':'ESPN 即時暫存','error':'／'.join(errors)}
