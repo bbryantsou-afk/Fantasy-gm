@@ -797,6 +797,7 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
         return day>data.today||(day===data.today&&(data.scheduled_teams??[]).includes(p.team));
       };
       const canEditStats=(p,idx)=>{
+        if(!plays(p,idx))return false;
         const day=weekDates[idx];
         if((data.final_teams?.[day]??[]).includes(p.team))return false;
         return (data.in_progress_teams?.[day]??[]).includes(p.team)||canPredict(p,idx);
@@ -817,6 +818,17 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
       const location = (side,id,idx=dayIndex) => positions.find(p=>state[idx][side][p]===id);
       const status = (p,idx=dayIndex) => actual(p,idx)!==null?'GAME':data.historical?'OFF':(p.week?.[idx] ?? "OFF");
       const plays = (p,idx=dayIndex) => ["GAME","B2B"].includes(status(p,idx));
+      function statSourceLabel(p,side,idx){
+        if(!plays(p,idx))return data.historical?"當日未出賽／無紀錄":"當日無賽程";
+        if(prediction(p,side,idx))return "預測 · "+profileLabels[daySetting(p,side,idx).profile];
+        if(actual(p,idx))return isLocked(p,idx)?"🔒 單日實績":"即時實績";
+        const day=weekDates[idx];
+        if((data.in_progress_teams?.[day]??[]).includes(p.team))return "比賽進行中 · 等待即時數據";
+        if(canEditStats(p,idx))return dailyChoices[side][dailyKey(p,idx)]?"未開賽 · 所選來源無完整數據":"未開賽 · 尚未套用預測";
+        if(day<data.today||(data.final_teams?.[day]??[]).includes(p.team))return "待取得單日實績";
+        return "比賽狀態待確認";
+      }
+
       const eligible = (p,pos) => {
         if(pos.startsWith("UTIL")) return true;
         if(pos.startsWith("C")) return p.eligible.includes("C");
@@ -838,7 +850,7 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
         const locked=isLocked(p,dayIndex)||requiresActual(p,dayIndex);
         root.querySelector("#editor-title").textContent=`${p.name} · ${dateLabel} · 每日 9-Cat`;
         root.querySelector("#editor-description").textContent=locked
-          ? `🔒 單日實績／即時數據（${dateLabel}），唯讀；未取得時留白。`
+          ? statSourceLabel(p,side,dayIndex)
           : `${p.team} · ${p.eligible.join("/")}。這天的預測獨立設定，不影響其他日期。`;
         const select=root.querySelector("#editor-profile");select.replaceChildren();
         for(const [value,label] of Object.entries(profileLabels)) {
@@ -854,7 +866,7 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
           const key=select.value;
           const values=locked?actual(p,dayIndex):(key==="manual"?(setting.custom??{}):(p.profiles?.[key]??{}));
           const holder=root.querySelector("#editor-fields");holder.replaceChildren();
-          if(locked){
+          if(locked&&plays(p,dayIndex)){
             const note=document.createElement("div");note.className="locked";
             note.textContent="🔒 已取得的實績自動更新；缺少數據不以預測代替。";holder.appendChild(note);
           }
@@ -930,7 +942,7 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
         el.appendChild(weekStrip);
         if (inSlot) {
           if(isLocked(p,dayIndex))el.style.outline="2px solid #83b9e8";
-          el.title=isLocked(p,dayIndex)?"🔒 單日實績／即時數據（唯讀）":"點擊設定這位球員當天的預測數據";
+          el.title=canEditStats(p,dayIndex)?"點擊設定這位球員當天的預測數據":statSourceLabel(p,side,dayIndex);
           el.addEventListener("click",()=>openEditor(p,side));
           const nine=document.createElement("div");
           nine.className="nine";
@@ -945,7 +957,7 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
           }
           el.appendChild(nine);
           const source=document.createElement('div');source.style.cssText='font-size:10px;margin-top:4px';
-          source.textContent=isLocked(p,dayIndex)?'🔒 單日實績':requiresActual(p,dayIndex)?'待取得單日實績':(prediction(p,side,dayIndex)?'預測 · '+profileLabels[daySetting(p,side,dayIndex).profile]:actual(p,dayIndex)?'即時實績':(dailyChoices[side][dailyKey(p,dayIndex)]?'此來源尚無完整數據':'尚未套用預測'));
+          source.textContent=statSourceLabel(p,side,dayIndex);
           el.appendChild(source);
         } else {
           const info=document.createElement("div");

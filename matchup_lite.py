@@ -74,13 +74,13 @@ LITE_JS = r"""
         const text=document.createElement('span');text.className='lite-name';
         text.appendChild(document.createTextNode(p.name));
         const pos=document.createElement('small');pos.textContent=p.eligible.join('/')+(inSlot&&isLocked(p,dayIndex)?' 🔒':'');text.appendChild(pos);el.appendChild(text);
-        if(inSlot&&data.current_season_source&&plays(p)){
+        if(inSlot&&data.current_season_source){
           const values=dailyStats(p,side,dayIndex);
           const detail=document.createElement('small');
           if(completeStats(values)){
             const source=prediction(p,side,dayIndex)?'預測':'實績';
             detail.textContent=`${source} · PTS ${fmt(values.PTS,'PTS')} · REB ${fmt(values.REB,'REB')} · AST ${fmt(values.AST,'AST')}`;
-          }else detail.textContent='此場尚無完整數據';
+          }else detail.textContent=statSourceLabel(p,side,dayIndex);
           text.appendChild(detail);
         }
         el.ondragstart=e=>{if(!trayOpen){e.preventDefault();return;}dragging={side,id:p.id};e.dataTransfer.setData('text/plain',p.id);};
