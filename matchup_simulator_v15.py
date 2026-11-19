@@ -785,8 +785,8 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
 
       const dailyKey=(p,idx)=>`${p.id}::${idx}`;
       const daySetting=(p,side,idx)=>{
-        const setting=dailyChoices[side][dailyKey(p,idx)] ?? {profile:data.current_season_source?"current_season":"manual",custom:null};
-        return profileLabels[setting.profile]?setting:{profile:'season',custom:null};
+        const setting=dailyChoices[side][dailyKey(p,idx)];
+        return setting&&Object.hasOwn(profileLabels,setting.profile)?setting:{profile:"manual",custom:null};
       };
       // Server records remain authoritative, including after JSON restore.
       const actual=(p,idx)=>data.actual_by_player?.[p.evidence_id??p.nba_id]?.[weekDates[idx]]??data.actual_by_player?.[p.nba_id]?.[weekDates[idx]]??null;
@@ -866,9 +866,15 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
         const p=getPlayer(editing.side,editing.id);if(!p)return;
         const idx=editing.idx;
         if(isLocked(p,idx)||requiresActual(p,idx)){setMessage("此場已開打、已結束或狀態未確認，不能編輯預測。");return;}
+        if(clear){
+          delete dailyChoices[editing.side][dailyKey(p,idx)];
+          root.querySelector("#editor").hidden=true;
+          render();setMessage(`${p.name} ${weekDates[idx]} 的預測已清除。`);
+          return;
+        }
         const key=root.querySelector("#editor-profile").value;
         const values={};
-        if(key==="manual"&&!clear){
+        if(key==="manual"){
           for(const input of root.querySelectorAll("#editor-fields input")) {
             if(input.value.trim()!=="")values[input.dataset.stat]=Number(input.value);
           }
@@ -931,7 +937,7 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
           }
           el.appendChild(nine);
           const source=document.createElement('div');source.style.cssText='font-size:10px;margin-top:4px';
-          source.textContent=isLocked(p,dayIndex)?'🔒 單日實績':requiresActual(p,dayIndex)?'待取得單日實績':(completeStats(dailyStats(p,side,dayIndex))?'預測 · '+profileLabels[daySetting(p,side,dayIndex).profile]:'此來源尚無完整數據');
+          source.textContent=isLocked(p,dayIndex)?'🔒 單日實績':requiresActual(p,dayIndex)?'待取得單日實績':(completeStats(dailyStats(p,side,dayIndex))?'預測 · '+profileLabels[daySetting(p,side,dayIndex).profile]:(dailyChoices[side][dailyKey(p,dayIndex)]?'此來源尚無完整數據':'尚未套用預測'));
           el.appendChild(source);
         } else {
           const info=document.createElement("div");
@@ -1027,6 +1033,7 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
             const s=dailyStats(p,side,i);
             if(!completeStats(s)){result.missing=(result.missing??0)+1;continue;}
             result.validGames=(result.validGames??0)+1;
+            if(!isLocked(p,i))result.predictedGames=(result.predictedGames??0)+1;
             for(const k of sums)result[k]+=Number(s[k]);
           }
         }
@@ -1055,7 +1062,9 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
           <div><strong class="score-purple">${opp}</strong><small>🟣 對手球隊</small></div>`;
         score.innerHTML=valid?scoreHtml:`<div style="text-align:center">—　—<small>雙方尚無可比較的有效球員數據</small></div>`;
         const coverage=document.createElement("div");coverage.className="analysis-note";
-        coverage.textContent=`${provisional?"⚠️ 暫時比分｜":""}資料覆蓋：我方 ${a.validGames??0}/${a.playerGames}、對手 ${b.validGames??0}/${b.playerGames} 次球員上場${ties?`；${ties} 項平手`:""}。`;
+        const predictedGames=(a.predictedGames??0)+(b.predictedGames??0);
+        const scoreSource=predictedGames?`含 ${predictedGames} 次預測`:"僅計入實績，尚未套用預測";
+        coverage.textContent=`${provisional?"⚠️ 暫時比分｜":""}${scoreSource} · 資料覆蓋：我方 ${a.validGames??0}/${a.playerGames}、對手 ${b.validGames??0}/${b.playerGames} 次球員上場${ties?`；${ties} 項平手`:""}。`;
         score.after(coverage);
         root.querySelectorAll(".summary > .analysis-note").forEach((n,i)=>{if(i>0)n.remove();});
         const holder=root.querySelector("#weekly-table");
@@ -1286,7 +1295,13 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
         root.querySelector('#bulk-feedback').textContent=message;
       };
       root.querySelector("#sim-actual").onclick=()=>{includeActual=true;render();};
-      root.querySelector("#sim-reset-data").onclick=()=>{includeActual=true;dailyChoices.my={};dailyChoices.opp={};render();setMessage("已清空預測，保留實績與排陣。");};
+      root.querySelector("#sim-reset-data").onclick=()=>{
+        includeActual=true;
+        dailyChoices.my={};dailyChoices.opp={};
+        render();
+        root.querySelector('#bulk-feedback').textContent="";
+        setMessage("已清空所有預測。比分只計入已取得的實績，排陣已保留。");
+      };
       let working=null;
       if(data.planner_mode)try{working=JSON.parse(localStorage.getItem(workingKey)??"null");}catch{}
       const nonce=data.restore_nonce??'';
