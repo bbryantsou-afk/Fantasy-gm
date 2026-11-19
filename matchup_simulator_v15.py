@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo
 import unicodedata
 import logging
 import math
+from collections import defaultdict
 import json
 import streamlit as st
 from team_schedule import load_team_schedule, get_game_status
@@ -267,40 +268,82 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
             "3PM":"FG3M", "FGM":"FGM", "FGA":"FGA", "FTM":"FTM", "FTA":"FTA", "TO":"TOV"
         }.items()}
 
-    sim_notes.caption("📊 2025–26 場均由本機快照載入。本季近 7／14／30 天場均可勾選連線取得；上季模式直接使用單場實績。")
-    historical = json.loads((root_path/'ninecat_assets/data.json').read_text())['players']
-    profiles_by_id = {}
-    errors = []
-    if NBA_API_READY:
-        with st.spinner("正在讀取 NBA 真實球員名單與統計（首次可能稍久）..."):
-            try:
-                directory = load_directory()
-            except Exception as exc:
-                directory = []
-                errors.append(f"球員目錄：{type(exc).__name__}")
-            asof = min(today, selected_date)
-            profiles_by_id['season'] = {int(r['PLAYER_ID']):row_stats(r) for r in historical}
-            requests = {}
-            days_by_profile = {"one_week": 7, "two_weeks": 14, "month": 30}
-            if selected_season=="2026-27" and recent_sources and asof >= date(2026, 10, 20):
-                for key, days in days_by_profile.items():
-                    requests[key] = ("2026-27", (asof-timedelta(days=days-1)).strftime("%m/%d/%Y"), asof.strftime("%m/%d/%Y"))
-            for key, (season, start_date, end_date) in requests.items():
-                try:
-                    rows = load_nba_stats(season, start_date, end_date)
-                    profiles_by_id[key] = {
-                        int(row["PLAYER_ID"]): stats for row in rows if (stats := row_stats(row))
-                    }
-                    if season_stats_enabled and not profiles_by_id[key]:
-                        errors.append(f"近 {days_by_profile[key]} 天：NBA API 無有效場均")
-                except Exception as exc:
-                    errors.append(f"近 {days_by_profile[key]} 天：{type(exc).__name__}")
-    else:
-        directory = []
-        errors.append("尚未安裝 nba_api，請執行 pip install nba_api")
+    @st.cache_data(show_spinner=False)
+    def rolling_snapshot(contents, end):
+        snapshot = json.loads(contents)
+        through = min(end, date.fromisoformat(snapshot["through"]))
+        windows = {"one_week": 7, "two_weeks": 14, "month": 30}
+        start_dates = {
+            key: (through - timedelta(days=days - 1)).isoformat()
+            for key, days in windows.items()
+        }
+        end_date = through.isoformat()
+        totals = {key: defaultdict(lambda: [0] * (len(STAT_FIELDS) + 1)) for key in windows}
+        stat_indexes = [snapshot["fields"].index(field) for field in STAT_FIELDS]
+        for player_id, game_date, *game_stats in snapshot["rows"]:
+            if game_date > end_date:
+                continue
+            values = [game_stats[i - 2] for i in stat_indexes]
+            for key, start in start_dates.items():
+                if game_date < start:
+                    continue
+                player = totals[key][player_id]
+                player[0] += 1
+                for i, value in enumerate(values, start=1):
+                    player[i] += value
+        return through, {
+            key: {
+                int(player_id): row_stats(dict(GP=values[0], **{
+                    field: total / values[0] for field, total in zip(STAT_FIELDS, values[1:])
+                }))
+                for player_id, values in players.items()
+            }
+            for key, players in totals.items()
+        }
 
-    if errors:
-        st.warning("NBA 統計部分未取得：" + "；".join(errors) + "。缺少數據的球員會顯示 —，不會當作 0。")
+    @st.cache_data(ttl=600, show_spinner=False)
+    def load_recent_profile(start, end):
+        try:
+            rows = load_nba_stats("2026-27", start, end)
+            profile = {int(row["PLAYER_ID"]): stats for row in rows if (stats := row_stats(row))}
+            return profile, "" if profile else "NBA API 無有效場均"
+        except Exception as exc:
+            logging.getLogger(__name__).warning("NBA rolling averages %s–%s: %s", start, end, exc)
+            return {}, type(exc).__name__
+
+    sim_notes.caption("近期場均以最近已完成的美東比賽日為截止日；上季模式使用單場實績。")
+    historical = json.loads((root_path/'ninecat_assets/data.json').read_text())['players']
+    profiles_by_id = {'season': {int(row['PLAYER_ID']):row_stats(row) for row in historical}}
+    directory = load_directory() if NBA_API_READY else []
+    if show_current_season and recent_sources:
+        asof = min(today - timedelta(days=1), selected_date)
+        if asof >= season_begin:
+            fallback_path = root_path / 'ninecat_assets/matchup_game_logs_2026_27.json'
+            through, backup_profiles = (
+                rolling_snapshot(fallback_path.read_text(), asof) if fallback_path.exists()
+                else (None, {})
+            )
+            used_backup = []
+            missing = []
+            with st.spinner("正在讀取 NBA 近期場均…"):
+                for key, days in (("one_week", 7), ("two_weeks", 14), ("month", 30)):
+                    backup = backup_profiles.get(key, {})
+                    profile = {}
+                    reason = "缺少 NBA API"
+                    if through != asof and NBA_API_READY:
+                        start = max(season_begin, asof - timedelta(days=days - 1))
+                        profile, reason = load_recent_profile(start.strftime("%m/%d/%Y"), asof.strftime("%m/%d/%Y"))
+                    if profile:
+                        profiles_by_id[key] = profile
+                    elif backup:
+                        profiles_by_id[key] = backup
+                        used_backup.append(str(days))
+                    else:
+                        missing.append(f"近 {days} 天（{reason or '無已完成比賽'}）")
+            if used_backup:
+                st.caption(f"近 {'／'.join(used_backup)} 天場均使用 NBA 官方逐場快照（截至美東 {through}）。")
+            if missing:
+                st.warning("暫無可用近期場均：" + "、".join(missing))
 
     nba_team_by_id = {int(r['PLAYER_ID']):r['TEAM_ABBREVIATION'] for r in historical}
     for e in draft:
@@ -316,15 +359,23 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
             current_snapshot = json.loads(published_snapshot.read_text())
     current_players = current_snapshot.get('players', [])
     if show_current_season:
-        live_rows, api_error = load_current_season() if NBA_API_READY else ([], "缺少 nba_api")
-        snapshot_date = current_snapshot.get('fetchedAt', '')[:10]
+        fetched_at = current_snapshot.get('fetchedAt', '')
+        snapshot_date = datetime.fromisoformat(fetched_at).astimezone(ZoneInfo("America/New_York")).date() if fetched_at else None
+        snapshot_is_current = snapshot_date == today and bool(current_players)
+        if snapshot_is_current:
+            live_rows, api_error = [], ""
+        else:
+            live_rows, api_error = load_current_season() if NBA_API_READY else ([], "缺少 nba_api")
         if live_rows:
             current_players = live_rows
             current_source = "NBA Stats · 2026–27 例行賽場均"
             st.caption(current_source)
         else:
             current_source = f"2026–27 例行賽場均 · 快照 {snapshot_date}"
-            st.warning(f"NBA 場均暫時無法更新（{api_error}）。目前使用 {current_source}。")
+            if api_error:
+                st.warning(f"NBA 場均暫時無法更新（{api_error}）。目前使用 {current_source}。")
+            else:
+                st.caption(current_source)
         profiles_by_id['current_season'] = {
             int(p['PLAYER_ID']): stats for p in current_players if (stats := row_stats(p))
         }
