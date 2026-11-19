@@ -1276,7 +1276,6 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
         const apply=root.querySelector('#bulk-apply');
         apply.textContent="套用整週預測";
         root.querySelector('#sim-actual').hidden=true;
-        apply.nextElementSibling.textContent="沒有先發的日期會自動排陣；有先發的日期保留原排陣。";
       }
       root.querySelector('#bulk-apply').onclick=()=>{
         const target=root.querySelector('#bulk-side').value;
@@ -1318,6 +1317,9 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
     if planner_context:
         HTML=HTML.replace('<button id="auto-week"', '<button id="planner-use" type="button">用此排陣更新補強推薦</button><button id="auto-week"')
         JS=JS.replace('      let working=null;', '      root.querySelector("#planner-use").onclick=()=>component.setTriggerValue("planner_layout",snapshot());\n      let working=null;')
+    bulk_guidance = "已完賽實績與待補實績不受覆寫；缺少所選來源則保留原設定。"
+    if projection_only:
+        HTML = HTML.replace(bulk_guidance, "沒有先發的日期會自動排陣；有先發的日期保留原排陣。")
     if lite:
         # Optional prose belongs below the mobile workflow, outside the live board.
         import re as guidance_re
@@ -1325,7 +1327,7 @@ def render_matchup_simulator(lite=False, planner_context=None, *, test_season_st
             page_caption(guidance_re.sub('<[^>]+>', '', match.group(0)))
             return ''
         main_html, editor_html = HTML.split('<div id="editor"', 1)
-        main_html = guidance_re.sub(r'<details class="guide">.*?</details>|<div class="note">.*?</div>|<p class="cat-rule">.*?</p>|<span>已完賽實績.*?</span>|<span>每天可獨立調整.*?</span>', collect_guidance, main_html, flags=guidance_re.S)
+        main_html = guidance_re.sub(r'<details class="guide">.*?</details>|<div class="note">.*?</div>|<p class="cat-rule">.*?</p>|<span>(?:已完賽實績|沒有先發的日期).*?</span>|<span>每天可獨立調整.*?</span>', collect_guidance, main_html, flags=guidance_re.S)
         HTML = main_html + '<div id="editor"' + editor_html
         from matchup_lite import LITE_CSS, enhance_lite
         HTML = HTML.replace("名單依選秀輪次排序。拖曳新增球員到垃圾桶可移除；點擊先發球員即可編輯預測數據。", "從底部選擇我的／對手球隊，拖曳或點選姓名再點位置；點頭像查看當天數據。")
