@@ -47,10 +47,10 @@ LITE_JS = r"""
       tray.setAttribute('aria-label','固定球員名單');root.appendChild(tray);
       const trayToggle=document.createElement('button');trayToggle.type='button';trayToggle.className='lite-tray-toggle';
       trayToggle.onclick=()=>{trayOpen=!trayOpen;picked=null;render();};root.querySelector('.board').before(trayToggle);
-      function benchLite(side,id){const p=getPlayer(side,id);if(!p||weekDates[dayIndex]<data.today||!canPredict(p,dayIndex)){setMessage("過去與已開賽排陣不可修改。");return;}const pos=location(side,id);if(pos)state[dayIndex][side][pos]=null;picked=null;render();}
+      function benchLite(side,id){const p=getPlayer(side,id);if(!p||!canPredict(p,dayIndex)){setMessage("過去與已開賽排陣不可修改。");return;}const pos=location(side,id);if(pos)state[dayIndex][side][pos]=null;picked=null;render();}
       function moveLite(side,id,pos){
         const p=getPlayer(side,id);
-        if(!p||!onRoster(p,side)||!canPredict(p,dayIndex)||weekDates[dayIndex]<data.today){setMessage("此球員不在當日名單，或排陣已鎖定。");return;}
+        if(!p||!onRoster(p,side)||!canPredict(p,dayIndex)){setMessage("此球員不在當日名單，或排陣已鎖定。");return;}
         if(!p||!plays(p)){setMessage('這位球員當天沒有出賽，不能排入。');return;}
         if(!eligible(p,pos)){setMessage(`${p.name} 不符合 ${pos} 位置。`);return;}
         const old=location(side,id),occupant=state[dayIndex][side][pos];
@@ -74,6 +74,15 @@ LITE_JS = r"""
         const text=document.createElement('span');text.className='lite-name';
         text.appendChild(document.createTextNode(p.name));
         const pos=document.createElement('small');pos.textContent=p.eligible.join('/')+(inSlot&&isLocked(p,dayIndex)?' 🔒':'');text.appendChild(pos);el.appendChild(text);
+        if(inSlot&&data.current_season_source&&plays(p)){
+          const values=dailyStats(p,side,dayIndex);
+          const detail=document.createElement('small');
+          if(completeStats(values)){
+            const source=isLocked(p,dayIndex)?'實績':'預測';
+            detail.textContent=`${source} · PTS ${fmt(values.PTS,'PTS')} · REB ${fmt(values.REB,'REB')} · AST ${fmt(values.AST,'AST')}`;
+          }else detail.textContent='此場尚無完整數據';
+          text.appendChild(detail);
+        }
         el.ondragstart=e=>{if(!trayOpen){e.preventDefault();return;}dragging={side,id:p.id};e.dataTransfer.setData('text/plain',p.id);};
         el.ondragend=()=>{dragging=null;};
         const choose=()=>{if(inSlot){if(picked?.side===side&&picked.id!==p.id)moveLite(side,picked.id,location(side,p.id));else openEditor(p,side);}else{picked={side,id:p.id};renderTray();setMessage('點選同側的位置格排入；也可以直接拖曳。');}};
